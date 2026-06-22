@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% set nav_active = 'employees' %}
+{% block title %}الدرجات الوظيفية{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-stairs" style="color:var(--accent)"></i> الدرجات الوظيفية</h1>
+  <button class="btn btn-accent btn-sm" onclick="openGradeModal()"><i class="ti ti-plus"></i> إضافة درجة</button>
+</header>
+<div style="padding:20px">
+  <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <table class="tbl">
+      <thead><tr>
+        <th>الكود</th><th>الاسم</th><th>التصنيف</th><th>المستوى</th><th>الراتب الأساسي</th><th>بدل المسؤولية</th><th>بدل النقل</th><th>بدل السكن</th><th>إجراء</th>
+      </tr></thead>
+      <tbody>
+        {% for g in grades %}
+        <tr>
+          <td>{{ g.code }}</td>
+          <td>{{ g.name_ar }}</td>
+          <td>{{ g.category }}</td>
+          <td>{{ g.level }}</td>
+          <td>{{ g.base_salary }}</td>
+          <td>{{ g.responsibility_allowance }}</td>
+          <td>{{ g.transport_allowance }}</td>
+          <td>{{ g.housing_allowance }}</td>
+          <td>
+            <button class="btn btn-ghost btn-xs" onclick="editGrade({{ g.id }})"><i class="ti ti-edit"></i></button>
+            <button class="btn btn-ghost btn-xs" onclick="deleteGrade({{ g.id }})"><i class="ti ti-trash"></i></button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">لا توجد درجات وظيفية</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="gradeModal">
+  <div class="modal-sheet" style="max-width:600px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-stairs" style="color:var(--accent)"></i> <span id="gradeModalTitle">إضافة درجة وظيفية</span></h3>
+    <input type="hidden" id="gradeId">
+    <div class="modal-grid">
+      <div><label>الكود</label><input type="text" id="gCode" class="form-input" placeholder="مثل: G01"></div>
+      <div><label>الاسم</label><input type="text" id="gName" class="form-input" placeholder="مثل: درجة أولى"></div>
+      <div><label>التصنيف</label>
+        <select id="gCategory" class="form-input">
+          <option value="leadership">قيادية</option>
+          <option value="specialist">تخصصية</option>
+          <option value="administrative">إدارية</option>
+          <option value="technical">فنية</option>
+          <option value="support">مساندة</option>
+        </select>
+      </div>
+      <div><label>المستوى</label><input type="number" id="gLevel" class="form-input" min="1" max="20"></div>
+      <div><label>الراتب الأساسي</label><input type="number" id="gBase" class="form-input" step="0.01"></div>
+      <div><label>بدل المسؤولية</label><input type="number" id="gResp" class="form-input" step="0.01" value="0"></div>
+      <div><label>بدل الخطر</label><input type="number" id="gHazard" class="form-input" step="0.01" value="0"></div>
+      <div><label>بدل النقل</label><input type="number" id="gTransport" class="form-input" step="0.01" value="0"></div>
+      <div><label>بدل السكن</label><input type="number" id="gHousing" class="form-input" step="0.01" value="0"></div>
+      <div><label>مستوى التأمين الصحي</label>
+        <select id="gMed" class="form-input">
+          <option value="basic">أساسي</option>
+          <option value="enhanced">ممتاز</option>
+          <option value="premium">مميز</option>
+        </select>
+      </div>
+      <div><label>أيام الإجازة السنوية</label><input type="number" id="gAnnual" class="form-input" value="30"></div>
+      <div><label>أيام الإجازة المرضية</label><input type="number" id="gSick" class="form-input" value="15"></div>
+      <div><label>سن التقاعد</label><input type="number" id="gRetire" class="form-input" value="60"></div>
+      <div><label>نسبة المعاش (%)</label><input type="number" id="gPension" class="form-input" value="2.5" step="0.1"></div>
+      <div><label>سنوات الترقية</label><input type="number" id="gMinYears" class="form-input" value="5"></div>
+      <div><label>المؤهل المطلوب</label>
+        <select id="gQual" class="form-input">
+          <option value="">بدون</option>
+          <option value="primary">ابتدائي</option>
+          <option value="intermediate">إعدادي</option>
+          <option value="secondary">ثانوي</option>
+          <option value="diploma">دبلوم</option>
+          <option value="bachelor">بكالوريوس</option>
+          <option value="master">ماجستير</option>
+          <option value="doctorate">دكتوراه</option>
+        </select>
+      </div>
+      <div class="full"><label>الدرجة التالية</label>
+        <select id="gNext" class="form-input">
+          <option value="">لا يوجد</option>
+          {% for g in grades %}
+          <option value="{{ g.id }}">{{ g.name_ar }} ({{ g.code }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-accent" onclick="saveGrade()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('gradeModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function openGradeModal() {
+  document.getElementById('gradeId').value = '';
+  document.getElementById('gradeModalTitle').textContent = 'إضافة درجة وظيفية';
+  ['gCode','gName','gBase','gResp','gHazard','gTransport','gHousing','gAnnual','gSick','gRetire','gPension','gMinYears','gLevel','gCategory','gMed','gQual','gNext'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.type === 'number' && !['gLevel','gAnnual','gSick','gRetire','gMinYears','gPension','gBase','gResp','gHazard','gTransport','gHousing'].includes(id)) el.value = '';
+    else if (el && el.tagName === 'SELECT') { if (id === 'gCategory') el.value = 'administrative'; else if (id === 'gMed') el.value = 'basic'; else el.value = ''; }
+    else if (el) { if (['gBase','gResp','gHazard','gTransport','gHousing','gPension'].includes(id)) el.value = '0'; else if (id === 'gAnnual') el.value = '30'; else if (id === 'gSick') el.value = '15'; else if (id === 'gRetire') el.value = '60'; else if (id === 'gMinYears') el.value = '5'; else el.value = ''; }
+  });
+  openModal('gradeModal');
+}
+function editGrade(gid) {
+  api('/admin/promotions/grades').then(data => {
+    const g = data.grades.find(x => x.id === gid);
+    if (!g) { toast('الدرجة غير موجودة', 'err'); return; }
+    document.getElementById('gradeId').value = g.id;
+    document.getElementById('gradeModalTitle').textContent = 'تعديل: ' + g.name_ar;
+    document.getElementById('gCode').value = g.code || '';
+    document.getElementById('gName').value = g.name_ar || '';
+    document.getElementById('gCategory').value = g.category || 'administrative';
+    document.getElementById('gLevel').value = g.level || '';
+    document.getElementById('gBase').value = g.base_salary || 0;
+    document.getElementById('gResp').value = g.responsibility_allowance || 0;
+    document.getElementById('gHazard').value = g.hazard_allowance || 0;
+    document.getElementById('gTransport').value = g.transport_allowance || 0;
+    document.getElementById('gHousing').value = g.housing_allowance || 0;
+    document.getElementById('gMed').value = g.medical_insurance_level || 'basic';
+    document.getElementById('gAnnual').value = g.annual_leave_days || 30;
+    document.getElementById('gSick').value = g.sick_leave_days || 15;
+    document.getElementById('gRetire').value = g.retirement_age || 60;
+    document.getElementById('gPension').value = g.pension_rate || 2.5;
+    document.getElementById('gMinYears').value = g.min_years_for_promotion || 5;
+    document.getElementById('gQual').value = g.required_qualification || '';
+    document.getElementById('gNext').value = g.next_grade_id || '';
+    openModal('gradeModal');
+  });
+}
+function saveGrade() {
+  const payload = {
+    id: document.getElementById('gradeId').value || undefined,
+    code: document.getElementById('gCode').value,
+    name_ar: document.getElementById('gName').value,
+    category: document.getElementById('gCategory').value,
+    level: parseInt(document.getElementById('gLevel').value) || 0,
+    base_salary: parseFloat(document.getElementById('gBase').value) || 0,
+    responsibility_allowance: parseFloat(document.getElementById('gResp').value) || 0,
+    hazard_allowance: parseFloat(document.getElementById('gHazard').value) || 0,
+    transport_allowance: parseFloat(document.getElementById('gTransport').value) || 0,
+    housing_allowance: parseFloat(document.getElementById('gHousing').value) || 0,
+    medical_insurance_level: document.getElementById('gMed').value,
+    annual_leave_days: parseInt(document.getElementById('gAnnual').value) || 30,
+    sick_leave_days: parseInt(document.getElementById('gSick').value) || 15,
+    retirement_age: parseInt(document.getElementById('gRetire').value) || 60,
+    pension_rate: parseFloat(document.getElementById('gPension').value) || 2.5,
+    min_years_for_promotion: parseInt(document.getElementById('gMinYears').value) || 5,
+    required_qualification: document.getElementById('gQual').value || null,
+    next_grade_id: parseInt(document.getElementById('gNext').value) || null,
+  };
+  api('/admin/grades', payload).then(data => {
+    if (data.ok) { toast('تم حفظ الدرجة', 'ok'); closeModal('gradeModal'); setTimeout(() => location.reload(), 500); }
+    else { toast('فشل الحفظ', 'err'); }
+  });
+}
+function deleteGrade(gid) {
+  Swal.fire({ title:'تأكيد الحذف', text:'هل تريد حذف هذه الدرجة؟', icon:'warning', showCancelButton:true, confirmButtonText:'حذف', cancelButtonText:'إلغاء', confirmButtonColor:'#dc2626', background:'var(--card)', color:'var(--text)', customClass:{popup:'swal2-dark-custom'} }).then(r => {
+    if (!r.isConfirmed) return;
+    fetch('/admin/grades/' + gid, {method:'DELETE'}).then(r => r.json()).then(data => {
+      if (data.ok) { toast('تم الحذف', 'ok'); location.reload(); }
+      else { toast('فشل الحذف', 'err'); }
+    });
+  });
+}
+</script>
+{% endblock %}

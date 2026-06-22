@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% set nav_active = 'gps' %}
+{% block title %}إدارة المناطق الجغرافية{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/static/css/tracking-premium.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .modal-overlay { z-index: 9999 !important; }
+  .modal-sheet { position: relative; z-index: 10000 !important; }
+</style>
+
+<div id="geofenceApp">
+  <header class="track-header">
+    <div class="track-header-row">
+      <div class="track-header-left">
+        <h1><i class="ti ti-map" style="color:var(--accent)"></i> إدارة المناطق الجغرافية</h1>
+        <span class="track-badge">{{ zones|length }} منطقة</span>
+      </div>
+      <div class="track-header-actions">
+        <button class="btn btn-sm btn-red" onclick="openZoneModal()"><i class="ti ti-plus"></i> إضافة منطقة</button>
+        <button class="btn btn-sm btn-ghost" onclick="fitZonesOnMap()"><i class="ti ti-maximize"></i> عرض الكل</button>
+      </div>
+    </div>
+    <div class="track-header-meta">
+      <span><i class="ti ti-circle"></i> <span id="zCircleCount">{{ zones|selectattr('zone_type','equalto','circle')|list|length }}</span> دائرية</span>
+      <span><i class="ti ti-hexagon"></i> <span id="zPolyCount">{{ zones|selectattr('zone_type','in',['polygon','rectangle'])|list|length }}</span> مضلعة</span>
+      <span><i class="ti ti-shield-lock"></i> <span id="zRestrictedCount">{{ zones|selectattr('is_restricted','equalto',True)|list|length }}</span> محظورة</span>
+      <span><i class="ti ti-shield-check"></i> <span id="zTrustedCount">{{ zones|selectattr('is_trusted','equalto',True)|list|length }}</span> موثوقة</span>
+    </div>
+  </header>
+
+  <div class="geofence-layout">
+    <div class="geofence-map-container">
+      <div id="geofenceMap" class="geofence-map"></div>
+      <div class="map-draw-tools" id="drawTools">
+        <button class="btn btn-sm btn-ghost active" onclick="setDrawMode('view',this)" title="عرض" id="drawView"><i class="ti ti-cursor-move"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="setDrawMode('circle',this)" title="رسم دائرة" id="drawCircle"><i class="ti ti-circle"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="setDrawMode('polygon',this)" title="رسم مضلع" id="drawPolygon"><i class="ti ti-hexagon"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="setDrawMode('rectangle',this)" title="رسم مستطيل" id="drawRect"><i class="ti ti-square"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="clearDraw()" title="مسح" id="drawClear"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+
+    <div class="geofence-sidebar">
+      <div class="sidebar-section">
+        <div class="section-title"><i class="ti ti-map-pin"></i> المناطق المسجلة</div>
+        <div class="zones-list" id="zonesList">
+          {% for z in zones %}
+          <div class="zone-list-item" data-zone-id="{{ z.id }}" onclick="focusZone({{ z.id }})" style="border-right:4px solid {{ z.color }}">
+            <div class="zone-list-info">
+              <div class="zone-list-name">{{ z.name }}</div>
+              <div class="zone-list-meta">
+                <span class="zone-type-tag">{{ z.zone_type }}</span>
+                {% if z.is_restricted %}<span class="zone-tag restricted">محظورة</span>{% endif %}
+                {% if z.is_trusted %}<span class="zone-tag trusted">موثوقة</span>{% endif %}
+                {% if not z.is_active %}<span class="zone-tag inactive">غير نشطة</span>{% endif %}
+              </div>
+              <div class="zone-list-detail">{{ z.address or '—' }} • {{ z.radius|default('—') }}م</div>
+            </div>
+            <div class="zone-list-actions">
+              <button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();editZone({{ z.id }})"><i class="ti ti-edit" style="color:#f59e0b"></i></button>
+              <button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();deleteZone({{ z.id }},'{{ z.name }}')"><i class="ti ti-trash" style="color:#ef4444"></i></button>
+            </div>
+          </div>
+          {% else %}
+          <div class="empty-state-mini">
+            <i class="ti ti-map-off"></i>
+            <p>لا توجد مناطق مسجلة. أضف منطقتك الأولى!</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="zoneModal">
+  <div class="modal-sheet" style="max-width:640px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-map" style="color:var(--accent)"></i> <span id="zoneModalTitle">إضافة منطقة جغرافية</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeZoneModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="zoneForm" onsubmit="return saveZone(event)">
+      <input type="hidden" id="zoneId" value="">
+      <div class="modal-grid">
+        <div>
+          <label>اسم المنطقة <span style="color:var(--red)">*</span></label>
+          <input type="text" id="zoneName" required placeholder="مثال: مبنى الإدارة">
+        </div>
+        <div>
+          <label>الاسم بالإنجليزية</label>
+          <input type="text" id="zoneNameEn" placeholder="e.g. Admin Building" style="direction:ltr">
+        </div>
+        <div>
+          <label>نوع المنطقة</label>
+          <select id="zoneType" onchange="toggleZoneTypeFields()">
+            <option value="circle">دائرة</option>
+            <option value="polygon">مضلع</option>
+            <option value="rectangle">مستطيل</option>
+          </select>
+        </div>
+        <div>
+          <label>اللون</label>
+          <input type="color" id="zoneColor" value="#22c55e">
+        </div>
+        <div id="circleFields">
+          <label>خط العرض</label>
+          <input type="number" step="any" id="zoneCenterLat" placeholder="32.0755">
+        </div>
+        <div id="circleFields2">
+          <label>خط الطول</label>
+          <input type="number" step="any" id="zoneCenterLng" placeholder="23.9752">
+        </div>
+        <div id="radiusField">
+          <label>نصف القطر (متر)</label>
+          <input type="number" id="zoneRadius" value="200" min="10">
+        </div>
+        <div>
+          <label>العنوان</label>
+          <input type="text" id="zoneAddress" placeholder="وصف الموقع">
+        </div>
+        <div class="full">
+          <label>الغرض من المنطقة</label>
+          <input type="text" id="zonePurpose" placeholder="مثال: منطقة العمل الأساسية">
+        </div>
+        <div>
+          <label>وقت البداية</label>
+          <input type="time" id="zoneWorkStart" value="08:00">
+        </div>
+        <div>
+          <label>وقت النهاية</label>
+          <input type="time" id="zoneWorkEnd" value="17:00">
+        </div>
+        <div class="full">
+          <label>أيام العمل</label>
+          <div class="days-grid">
+            {% set day_map = {'sat':'السبت','sun':'الأحد','mon':'الاثنين','tue':'الثلاثاء','wed':'الأربعاء','thu':'الخميس','fri':'الجمعة'} %}
+            {% for dk, dn in day_map.items() %}
+            <label class="day-check"><input type="checkbox" class="work-day" value="{{ dk }}" checked> {{ dn }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="full">
+          <label>الموظفون المخصصون</label>
+          <select id="zoneEmployees" multiple style="height:100px">
+            {% for e in employees %}
+            <option value="{{ e.id }}">{{ e.full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="checkbox-label"><input type="checkbox" id="zoneRestricted"> منطقة محظورة</label>
+        </div>
+        <div>
+          <label class="checkbox-label"><input type="checkbox" id="zoneTrusted"> موقع موثوق</label>
+        </div>
+        <div>
+          <label class="checkbox-label"><input type="checkbox" id="zoneAlertEntry" checked> تنبيه عند الدخول</label>
+        </div>
+        <div>
+          <label class="checkbox-label"><input type="checkbox" id="zoneAlertExit" checked> تنبيه عند الخروج</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button type="submit" class="btn btn-red" style="flex:1"><i class="ti ti-device-floppy"></i> حفظ</button>
+        <button type="button" class="btn btn-ghost" onclick="closeZoneModal()">إلغاء</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/tracking-map.js"></script>
+<script>
+var GEOFENCE_DATA = {
+  bloodBankLat: 32.0755,
+  bloodBankLng: 23.9752,
+  zones: {{ zones | tojson | safe }},
+  employees: {{ employees | tojson | safe }}
+};
+document.addEventListener('DOMContentLoaded', function() {
+  initGeofenceMap(GEOFENCE_DATA);
+});
+function toggleZoneTypeFields() {
+  var t = document.getElementById('zoneType').value;
+  document.getElementById('circleFields').style.display = t === 'circle' ? 'block' : 'none';
+  document.getElementById('circleFields2').style.display = t === 'circle' ? 'block' : 'none';
+  document.getElementById('radiusField').style.display = t === 'circle' ? 'block' : 'none';
+}
+function openZoneModal(data) {
+  document.getElementById('zoneModalTitle').textContent = data ? 'تعديل المنطقة' : 'إضافة منطقة';
+  document.getElementById('zoneId').value = data ? data.id : '';
+  document.getElementById('zoneName').value = data ? data.name : '';
+  document.getElementById('zoneNameEn').value = data ? (data.name_en || '') : '';
+  document.getElementById('zoneType').value = data ? data.zone_type : 'circle';
+  document.getElementById('zoneColor').value = data ? data.color : '#22c55e';
+  document.getElementById('zoneCenterLat').value = data ? data.center_lat : '';
+  document.getElementById('zoneCenterLng').value = data ? data.center_lng : '';
+  document.getElementById('zoneRadius').value = data ? (data.radius || 200) : 200;
+  document.getElementById('zoneAddress').value = data ? (data.address || '') : '';
+  document.getElementById('zonePurpose').value = data ? (data.purpose || '') : '';
+  document.getElementById('zoneWorkStart').value = data ? (data.work_hours_start || '08:00') : '08:00';
+  document.getElementById('zoneWorkEnd').value = data ? (data.work_hours_end || '17:00') : '17:00';
+  document.getElementById('zoneRestricted').checked = data ? data.is_restricted : false;
+  document.getElementById('zoneTrusted').checked = data ? data.is_trusted : false;
+  document.getElementById('zoneAlertEntry').checked = data ? (data.alert_on_entry !== false) : true;
+  document.getElementById('zoneAlertExit').checked = data ? (data.alert_on_exit !== false) : true;
+  var days = data ? (data.work_days || ['sat','sun','mon','tue','wed','thu']) : ['sat','sun','mon','tue','wed','thu'];
+  document.querySelectorAll('.work-day').forEach(function(cb) { cb.checked = days.includes(cb.value); });
+  var assigned = data ? (data.assigned_employee_ids || []) : [];
+  var sel = document.getElementById('zoneEmployees');
+  for (var i = 0; i < sel.options.length; i++) {
+    sel.options[i].selected = assigned.includes(parseInt(sel.options[i].value));
+  }
+  toggleZoneTypeFields();
+  openModal('zoneModal');
+}
+function closeZoneModal() { closeModal('zoneModal'); }
+function editZone(id) {
+  fetch('/api/admin/geofence/zones').then(function(r) { return r.json(); }).then(function(resp) {
+    if (resp.ok) {
+      var z = resp.data.find(function(zz) { return zz.id === id; });
+      if (z) { openZoneModal(z); if (window.focusZoneOnMap) focusZoneOnMap(z); }
+    }
+  });
+}
+function deleteZone(id, name) {
+  Swal.fire({
+    title: 'حذف المنطقة',
+    text: 'هل أنت متأكد من حذف منطقة "' + name + '"?',
+    icon: 'warning', showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc2626', background:'var(--card)', color:'var(--text)',
+    customClass:{ popup:'swal2-dark-custom' }
+  }).then(function(r) {
+    if (r.isConfirmed) {
+      api('/api/admin/geofence/zones/' + id, {}).then(function(resp) {
+        if (resp.ok) { toast(resp.msg, 'ok'); location.reload(); }
+        else { toast(resp.msg, 'err'); }
+      });
+    }
+  });
+}
+function saveZone(e) {
+  e.preventDefault();
+  var id = document.getElementById('zoneId').value;
+  var body = {
+    name: document.getElementById('zoneName').value,
+    name_en: document.getElementById('zoneNameEn').value,
+    zone_type: document.getElementById('zoneType').value,
+    color: document.getElementById('zoneColor').value,
+    center_lat: parseFloat(document.getElementById('zoneCenterLat').value) || null,
+    center_lng: parseFloat(document.getElementById('zoneCenterLng').value) || null,
+    radius: parseFloat(document.getElementById('zoneRadius').value) || 200,
+    address: document.getElementById('zoneAddress').value,
+    purpose: document.getElementById('zonePurpose').value,
+    work_hours_start: document.getElementById('zoneWorkStart').value,
+    work_hours_end: document.getElementById('zoneWorkEnd').value,
+    is_restricted: document.getElementById('zoneRestricted').checked,
+    is_trusted: document.getElementById('zoneTrusted').checked,
+    alert_on_entry: document.getElementById('zoneAlertEntry').checked,
+    alert_on_exit: document.getElementById('zoneAlertExit').checked
+  };
+  var workDays = [];
+  document.querySelectorAll('.work-day:checked').forEach(function(cb) { workDays.push(cb.value); });
+  body.work_days = workDays.length ? workDays : ['sat','sun','mon','tue','wed','thu'];
+  var sel = document.getElementById('zoneEmployees');
+  var assigned = [];
+  for (var i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].selected) assigned.push(parseInt(sel.options[i].value));
+  }
+  body.assigned_employee_ids = assigned;
+  var url = id ? ('/api/admin/geofence/zones/' + id) : '/api/admin/geofence/zones';
+  var method = id ? 'PUT' : 'POST';
+  var btn = e.target.querySelector('button[type=submit]');
+  loadingBtn(btn);
+  api(url, body, method).then(function(resp) {
+    restoreBtn(btn);
+    if (resp.ok) { toast(resp.msg, 'ok'); closeZoneModal(); location.reload(); }
+    else { toast(resp.msg, 'err'); }
+  });
+}
+function api(url, data, method) {
+  return fetch(url, {
+    method: method || (data ? 'POST' : 'GET'),
+    headers: { 'Content-Type': 'application/json' },
+    body: data ? JSON.stringify(data) : undefined
+  }).then(function(r) { return r.json(); });
+}
+function focusZone(id) {
+  if (window.focusZoneOnMap) focusZoneOnMap(id);
+}
+</script>
+{% endblock %}

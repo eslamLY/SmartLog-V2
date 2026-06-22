@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% set nav_active = 'leaves' %}
+{% block title %}طلبات الإجازات{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700;margin-bottom:10px">إدارة طلبات الإجازات</h1>
+  <div style="display:flex;gap:4px;font-size:13px">
+    {% for s, label in [('pending','قيد الانتظار'),('approved','مُعتمدة'),('rejected','مرفوضة')] %}
+    <a href="/admin/leaves?status={{ s }}" style="padding:6px 16px;text-decoration:none;border-radius:8px;font-weight:{% if status==s %}700{% else %}400{% endif %};background:{% if status==s %}rgba(99,102,241,.15){% endif %};color:{% if status==s %}var(--accent){% else %}var(--muted){% endif %};transition:all .2s">{{ label }} <span style="font-size:12px;color:inherit;opacity:.6">({{ counts[s] }})</span></a>
+    {% endfor %}
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 110px)">
+  {% if leaves %}
+  <div style="display:flex;flex-direction:column;gap:10px">
+    {% for lv, emp in leaves %}
+    <div class="card" style="padding:16px 18px" id="leave-{{ lv.id }}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--accent)15;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--accent);border:1px solid var(--accent)30">{{ emp.full_name[0] }}</div>
+            <div>
+              <div style="font-size:14px;font-weight:700">{{ emp.full_name }}</div>
+              <div style="font-size:11px;color:var(--muted)">{{ emp.department }} · {{ lv.request_type }}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-xs" onclick="showLeaveBalance({{ emp.id }},'{{ emp.full_name }}')" title="رصيد الإجازات"><i class="ti ti-coins"></i> الرصيد</button>
+          {% if lv.status == 'pending' %}
+          <button class="btn btn-green btn-sm" onclick="leaveAction({{ lv.id }},'approve')">اعتماد</button>
+          <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--red)" onclick="leaveAction({{ lv.id }},'reject')">رفض</button>
+          {% else %}
+          <span class="badge {% if lv.status=='approved' %}badge-present{% else %}badge-absent{% endif %}">{% if lv.status=='approved' %}✅ مُعتمدة{% else %}❌ مرفوضة{% endif %}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:16px;font-size:13px;flex-wrap:wrap;color:var(--muted)">
+        <span><i class="ti ti-calendar"></i> من {{ lv.start_date.strftime('%d/%m/%Y') }}</span>
+        {% if lv.end_date %}<span><i class="ti ti-calendar"></i> إلى {{ lv.end_date.strftime('%d/%m/%Y') }}</span>{% endif %}
+        <span style="opacity:.6"><i class="ti ti-clock"></i> {{ lv.created_at.strftime('%d/%m/%Y') }}</span>
+      </div>
+      {% if lv.reason %}
+      <div style="margin-top:8px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text)"><i class="ti ti-message" style="color:var(--accent);margin-left:6px"></i>{{ lv.reason }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:64px 16px">
+    <i class="ti ti-file-description" style="font-size:48px;color:var(--muted);margin-bottom:12px;display:block"></i>
+    <div style="font-size:15px;color:var(--muted)">لا توجد طلبات {{ 'قيد الانتظار' if status=='pending' else 'مُعتمدة' if status=='approved' else 'مرفوضة' }}</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+<!-- Leave Balance Modal -->
+<div class="modal-overlay" id="leaveBalanceModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:4px" id="lbTitle">رصيد الإجازات</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px" id="lbEmpName"></div>
+    <div id="lbContent" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="btn btn-outline" style="margin-top:12px;width:100%" onclick="document.getElementById('leaveBalanceModal').classList.remove('open')">إغلاق</button>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+async function leaveAction(id, action){
+  const r=await api(`/admin/leaves/${id}/action`,{action});
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){setTimeout(()=>location.reload(),1200);}
+}
+async function showLeaveBalance(empId, empName){
+  document.getElementById('lbTitle').textContent='رصيد الإجازات';
+  document.getElementById('lbEmpName').textContent=empName;
+  document.getElementById('lbContent').innerHTML='<div style="text-align:center;padding:16px"><span class="spinner"></span></div>';
+  document.getElementById('leaveBalanceModal').classList.add('open');
+  try{
+    const r=await api('/api/hrms/leave-balance/'+empId);
+    const container=document.getElementById('lbContent');
+    container.innerHTML='';
+    if(!r.ok||!r.leave_balances||!r.leave_balances.length){
+      container.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted)">لا توجد أرصدة إجازات لهذا الموظف</div>';
+      return;
+    }
+    r.leave_balances.forEach(function(b){
+      var usedPct=b.total_days>0?Math.round((b.used_days/b.total_days)*100):0;
+      var remPct=100-usedPct;
+      container.innerHTML+=
+        '<div class="card" style="padding:14px;background:var(--card2)">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+            '<span style="font-weight:600;font-size:14px">'+b.leave_type+'</span>'+
+            '<span style="font-size:13px;color:var(--muted)">'+b.used_days+' / '+b.total_days+' يوم</span>'+
+          '</div>'+
+          '<div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:6px">'+
+            '<div style="height:100%;width:'+usedPct+'%;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:4px;transition:width .6s"></div>'+
+          '</div>'+
+          '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted2)">'+
+            '<span>✓ المستخدم: '+b.used_days+'</span>'+
+            '<span>❐ المتبقي: <strong style="color:'+(b.remaining_days>0?'#22c55e':'#ef4444')+'">'+b.remaining_days+'</strong></span>'+
+          '</div>'+
+        '</div>';
+    });
+  }catch(e){
+    document.getElementById('lbContent').innerHTML='<div style="text-align:center;padding:16px;color:#ef4444">خطأ في تحميل الرصيد</div>';
+  }
+}
+</script>
+{% endblock %}

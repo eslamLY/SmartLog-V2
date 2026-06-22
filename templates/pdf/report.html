@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تقرير الحضور — {{ month_name }} {{ year }}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+    * { font-family: 'Cairo', 'Arial', sans-serif !important; margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #fff; color: #1e293b; font-size: 11px; direction: rtl; padding: 20px; }
+    h1 { text-align: center; font-size: 18px; font-weight: 800; color: #991b1b; margin-bottom: 4px; }
+    .sub { text-align: center; font-size: 12px; color: #64748b; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { background: #dc2626; color: #fff; padding: 8px 10px; text-align: center; font-weight: 700; }
+    td { padding: 6px 10px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+    tr:nth-child(even) { background: #fef2f2; }
+    .footer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <h1>🩸 بنك دم طبرق</h1>
+  <div class="sub">تقرير الحضور والانصراف — {{ month_name }} {{ year }} — تاريخ التقرير: {{ generated }}</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>الرقم الوظيفي</th><th>الاسم</th><th>القسم</th><th>حضور</th><th>تأخير</th><th>غياب</th><th>دقائق تأخير</th><th>الراتب</th><th>الخصم</th><th>الصافي</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ r.username }}</td>
+        <td style="text-align:right;font-weight:600">{{ r.name }}</td>
+        <td>{{ r.dept }}</td>
+        <td style="color:#16a34a;font-weight:700">{{ r.present }}</td>
+        <td style="color:#d97706">{{ r.late }}</td>
+        <td style="color:{% if r.absent > 0 %}#dc2626{% else %}#94a3b8{% endif %}">{{ r.absent }}</td>
+        <td>{{ r.late_m }}</td>
+        <td>{{ '%.0f'|format(r.salary) }}</td>
+        <td style="color:#dc2626">{{ '%.2f'|format(r.ded) }}</td>
+        <td style="font-weight:700;color:#16a34a">{{ '%.2f'|format(r.net) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="footer">
+    <p>تم إنشاء هذا التقرير آلياً من منظومة بنك دم طبرق لنظام الحضور والانصراف</p>
+    <p style="margin-top:4px;font-size:9px">معادلة الخصم: (إجمالي دقائق التأخير ÷ (30 × 8 × 60)) × الراتب الأساسي</p>
+  </div>
+</body>
+</html>

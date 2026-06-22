@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كشف راتب — {{ emp.full_name }}</title>
+  <link rel="stylesheet" href="/static/css/payroll-premium.css">
+  <link rel="stylesheet" href="/static/css/payroll-print.css">
+  <style>
+    @page { size: A4; margin: 1.5cm; }
+    body { background: #fff; color: #1a1a2e; font-family: 'Segoe UI', system-ui, sans-serif; padding: 0; margin: 0; }
+    .payslip-page { max-width: 210mm; margin: 0 auto; padding: 30px 40px; background: #fff; }
+    .payslip-header { text-align: center; border-bottom: 3px double #1a2035; padding-bottom: 20px; margin-bottom: 24px; }
+    .payslip-header .org-name { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+    .payslip-header .org-sub { font-size: 13px; color: #666; margin-top: 4px; }
+    .payslip-header .payslip-title { font-size: 26px; font-weight: 900; margin-top: 14px; color: #1a2035; }
+    .payslip-header .payslip-period { font-size: 14px; color: #555; margin-top: 4px; }
+    .emp-info-section { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: #f5f7fb; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; }
+    .emp-info-section .field { display: flex; gap: 6px; }
+    .emp-info-section .field-label { color: #888; font-weight: 600; }
+    .emp-info-section .field-value { font-weight: 700; }
+    .salary-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+    .salary-table th { background: #1a2035; color: #fff; padding: 10px 14px; text-align: right; font-size: 13px; }
+    .salary-table td { padding: 9px 14px; border-bottom: 1px solid #e0e4ec; }
+    .salary-table tr.total-row td { font-weight: 800; font-size: 15px; background: #f0f2f5; border-top: 2px solid #1a2035; }
+    .salary-table .amount { text-align: left; direction: ltr; font-family: 'Courier New', monospace; }
+    .salary-table .label-cell { font-weight: 600; }
+    .net-salary-box { text-align: center; border: 3px solid #22c55e; border-radius: 12px; padding: 20px; margin: 24px 0; background: #f0faf4; }
+    .net-salary-box .net-label { font-size: 16px; color: #555; }
+    .net-salary-box .net-amount { font-size: 36px; font-weight: 900; color: #22c55e; direction: ltr; }
+    .net-salary-box .net-currency { font-size: 18px; color: #22c55e; }
+    .payment-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f9fafb; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px; font-size: 13px; }
+    .payment-details .pd-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e0e4ec; }
+    .payment-details .pd-label { color: #888; }
+    .payment-details .pd-value { font-weight: 700; }
+    .payslip-footer { text-align: center; font-size: 11px; color: #999; border-top: 1px solid #e0e4ec; padding-top: 16px; margin-top: 24px; }
+    .signature-area { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e4ec; }
+    .signature-box { text-align: center; width: 200px; }
+    .signature-line { border-top: 1px solid #1a2035; margin-top: 40px; padding-top: 6px; font-size: 12px; color: #888; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .payslip-page { padding: 0; }
+      .emp-info-section { break-inside: avoid; }
+      .net-salary-box { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align:center;padding:12px;background:#f0f2f5;margin-bottom:16px">
+    <button onclick="window.print()" style="padding:8px 24px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px"><i class="ti ti-printer"></i> طباعة</button>
+    <button onclick="window.close()" style="padding:8px 24px;background:#e0e4ec;color:#333;border:none;border-radius:6px;cursor:pointer;font-size:14px;margin-right:8px">إغلاق</button>
+  </div>
+
+  <div class="payslip-page">
+    <div class="payslip-header">
+      <div class="org-name">منظمة صحة الدم — طبرق</div>
+      <div class="org-sub">Blood Health Organization — Tobruk</div>
+      <div class="payslip-title">كشف الراتب الشهري</div>
+      <div class="payslip-period">{{ month_name }} {{ year }}</div>
+    </div>
+
+    <div class="emp-info-section">
+      <div class="field"><span class="field-label">الموظف:</span><span class="field-value">{{ emp.full_name }}</span></div>
+      <div class="field"><span class="field-label">رقم الموظف:</span><span class="field-value">{{ emp.username }}</span></div>
+      <div class="field"><span class="field-label">القسم:</span><span class="field-value">{{ emp.department }}</span></div>
+      <div class="field"><span class="field-label">المسمى الوظيفي:</span><span class="field-value">{{ emp.job_title or '—' }}</span></div>
+      <div class="field"><span class="field-label">تاريخ الراتب:</span><span class="field-value">{{ month_name }} {{ year }}</span></div>
+      <div class="field"><span class="field-label">تاريخ الإعداد:</span><span class="field-value">{{ today.isoformat() }}</span></div>
+    </div>
+
+    <table class="salary-table">
+      <thead><tr><th style="width:60%">البيان</th><th style="width:40%" class="amount">المبلغ (د.ل)</th></tr></thead>
+      <tbody>
+        <tr><td class="label-cell">الراتب الأساسي</td><td class="amount">{{ '%.2f'|format(comp.base) }}</td></tr>
+        <tr><td class="label-cell">بدل السكن</td><td class="amount">{{ '%.2f'|format(comp.housing_allowance) }}</td></tr>
+        <tr><td class="label-cell">بدل المواصلات</td><td class="amount">{{ '%.2f'|format(comp.transport_allowance) }}</td></tr>
+        {% for a in comp.other_allowances %}
+        <tr><td class="label-cell">{{ a.label or 'بدل' }}</td><td class="amount">{{ '%.2f'|format(a.amount) }}</td></tr>
+        {% endfor %}
+        <tr><td class="label-cell">العمل الإضافي ({{ comp.overtime_hours }} ساعة)</td><td class="amount">{{ '%.2f'|format(comp.overtime_pay) }}</td></tr>
+        <tr class="total-row"><td class="label-cell">إجمالي الراتب الإجمالي</td><td class="amount">{{ '%.2f'|format(comp.gross) }}</td></tr>
+      </tbody>
+    </table>
+
+    <table class="salary-table">
+      <thead><tr><th style="width:60%">الخصومات</th><th style="width:40%" class="amount">المبلغ (د.ل)</th></tr></thead>
+      <tbody>
+        <tr><td class="label-cell">خصم التأخيرات ({{ comp.late_minutes }} دقيقة)</td><td class="amount" style="color:#ef4444">-{{ '%.2f'|format(comp.late_deduction) }}</td></tr>
+        <tr><td class="label-cell">خصم الغيابات ({{ comp.absent_days }} يوم)</td><td class="amount" style="color:#ef4444">-{{ '%.2f'|format(comp.absent_deduction) }}</td></tr>
+        <tr><td class="label-cell">ضريبة الدخل</td><td class="amount" style="color:#f59e0b">-{{ '%.2f'|format(comp.tax_income) }}</td></tr>
+        <tr><td class="label-cell">التأمينات الاجتماعية</td><td class="amount" style="color:#f59e0b">-{{ '%.2f'|format(comp.tax_social) }}</td></tr>
+        <tr class="total-row"><td class="label-cell">إجمالي الخصومات</td><td class="amount" style="color:#ef4444">-{{ '%.2f'|format(comp.total_deductions + comp.total_tax) }}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="net-salary-box">
+      <div class="net-label">الراتب الصافي (المستحق للصرف)</div>
+      <div class="net-amount">{{ '%.2f'|format(comp.net) }} <span class="net-currency">د.ل</span></div>
+    </div>
+
+    <div class="payment-details">
+      <div class="pd-item"><span class="pd-label">طريقة الدفع</span><span class="pd-value">{{ {'bank_transfer':'تحويل بنكي','cash':'صرف نقدي','check':'شيك'}.get(emp.payment_method, emp.payment_method) }}</span></div>
+      <div class="pd-item"><span class="pd-label">اسم البنك</span><span class="pd-value">{{ emp.bank_name or '—' }}</span></div>
+      <div class="pd-item"><span class="pd-label">رقم IBAN</span><span class="pd-value" style="direction:ltr;font-family:monospace">{{ emp.bank_account_number or '—' }}</span></div>
+      <div class="pd-item"><span class="pd-label">تاريخ الصرف</span><span class="pd-value">{{ end_date.isoformat() if end_date else today.isoformat() }}</span></div>
+      <div class="pd-item"><span class="pd-label">حالة الدفع</span><span class="pd-value" style="color:#22c55e">✅ معتمد وجاهز للصرف</span></div>
+    </div>
+
+    <div style="font-size:12px;color:#666;line-height:1.8;margin-bottom:20px;padding:12px;background:#f9fafb;border-radius:6px">
+      هذا الكشف يعتبر إقبالً بالراتب المستحق.<br>
+      يتم الاحتفاظ بنسخة أصلية لدى الموظف.<br>
+      للاستفسارات الرجاء التواصل مع إدارة الموارد البشرية.
+    </div>
+
+    <div class="signature-area">
+      <div class="signature-box">
+        <div class="signature-line">مدير الموارد البشرية</div>
+      </div>
+      <div class="signature-box">
+        <div class="signature-line">الموظف</div>
+      </div>
+      <div class="signature-box">
+        <div class="signature-line">التاريخ: {{ today.isoformat() }}</div>
+      </div>
+    </div>
+
+    <div class="payslip-footer">
+      كشف راتب آلي — منظمة صحة الدم طبرق — {{ month_name }} {{ year }}
+    </div>
+  </div>
+</body>
+</html>

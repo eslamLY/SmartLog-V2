@@ -1,0 +1,49 @@
+@media (max-width: 1200px) {
+  .filter-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-deep-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+@media (max-width: 900px) {
+  .filter-grid { grid-template-columns: 1fr; }
+  .filter-row { flex-direction: column; }
+  .filter-field { min-width: unset; }
+  .header-actions { width: 100%; justify-content: flex-start; }
+  .tab-navigation { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-btn { padding: 8px 14px; font-size: 0.75rem; }
+  .stats-deep-grid { grid-template-columns: repeat(3, 1fr); }
+  .analysis-grid { grid-template-columns: 1fr; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .chart-card.full-width { grid-column: 1; }
+  .table-toolbar { flex-direction: column; align-items: stretch; }
+  .table-search { max-width: unset; }
+}
+@media (max-width: 600px) {
+  body { padding: 10px; }
+  .premium-header { padding: 14px 16px; }
+  .header-left h1 { font-size: 1.1rem; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 12px; gap: 10px; }
+  .stat-icon { width: 36px; height: 36px; font-size: 1rem; }
+  .stat-value { font-size: 1.1rem; }
+  .stats-deep-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-deep-card { padding: 12px 8px; }
+  .deept-value { font-size: 0.95rem; }
+  .premium-table { font-size: 0.72rem; }
+  .premium-table th, .premium-table td { padding: 6px 8px; }
+  .employee-cell { gap: 4px; }
+  .emp-avatar-mini { width: 24px; height: 24px; font-size: 0.65rem; }
+  .expand-daily { gap: 4px; }
+  .day-cell { width: 52px; padding: 4px; font-size: 0.6rem; }
+  .modal-sheet { padding: 16px; border-radius: 16px 16px 0 0; max-height: 90vh; margin-top: auto; }
+  .modal-overlay { align-items: flex-end; }
+  .preset-buttons { gap: 4px; }
+  .preset-btn { padding: 4px 10px; font-size: 0.68rem; }
+  .chip-group { gap: 4px; }
+  .chip { padding: 4px 10px; font-size: 0.68rem; }
+  .filter-radio-group { gap: 4px; }
+  .radio-pill { padding: 4px 10px; font-size: 0.68rem; }
+  .header-meta { gap: 10px; font-size: 0.72rem; }
+}
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .stats-deep-grid { grid-template-columns: 1fr; }
+}

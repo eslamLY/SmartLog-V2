@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% set nav_active = 'employees' %}
+{% block title %}الدورات التدريبية - {{ employee.full_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-book" style="color:var(--accent)"></i> الدورات التدريبية - {{ employee.full_name }}</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-accent btn-sm" onclick="openTrainingModal()"><i class="ti ti-plus"></i> إضافة دورة</button>
+    <a href="/admin/employees/{{ employee.id }}/profile" class="btn btn-outline btn-sm"><i class="ti ti-arrow-right"></i> الملف الشخصي</a>
+  </div>
+</header>
+<div style="padding:20px">
+  <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <table class="tbl">
+      <thead><tr>
+        <th>الدورة</th><th>الجهة</th><th>تاريخ البداية</th><th>تاريخ النهاية</th><th>الساعات</th><th>شهادة</th><th>الحالة</th><th>إجراء</th>
+      </tr></thead>
+      <tbody id="trainingBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">جاري التحميل...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="trainingModal">
+  <div class="modal-sheet" style="max-width:550px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-book" style="color:var(--accent)"></i> <span id="trainingModalTitle">إضافة دورة تدريبية</span></h3>
+    <input type="hidden" id="trainingId">
+    <div class="modal-grid">
+      <div class="full"><label>اسم الدورة</label><input type="text" id="trainCourse" class="form-input" placeholder="اسم الدورة"></div>
+      <div class="full"><label>الجهة المقدمة</label><input type="text" id="trainProvider" class="form-input" placeholder="الجهة"></div>
+      <div><label>تاريخ البداية</label><input type="date" id="trainStart" class="form-input"></div>
+      <div><label>تاريخ النهاية</label><input type="date" id="trainEnd" class="form-input"></div>
+      <div><label>عدد الساعات</label><input type="number" id="trainHours" class="form-input" min="0" step="0.5"></div>
+      <div><label>الحالة</label>
+        <select id="trainStatus" class="form-input">
+          <option value="completed">مكتمل</option>
+          <option value="in_progress">قيد التنفيذ</option>
+          <option value="planned">مخطط</option>
+          <option value="cancelled">ملغي</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:8px;padding-bottom:4px">
+        <label style="margin-bottom:0;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text)"><input type="checkbox" id="trainCert"> تم الحصول على شهادة</label>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:8px;padding-bottom:4px">
+        <label style="margin-bottom:0;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text)"><input type="checkbox" id="trainGov"> مطلوبة حكومياً</label>
+      </div>
+      <div class="full"><label>ملاحظات</label><textarea id="trainNotes" class="form-input" rows="2"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-accent" onclick="saveTraining()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('trainingModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const eid = {{ employee.id }};
+function loadTraining() {
+  api('/admin/training/' + eid).then(data => {
+    const tbody = document.getElementById('trainingBody');
+    if (!data.trainings || data.trainings.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">لا توجد دورات تدريبية</td></tr>';
+      return;
+    }
+    const statusMap = {completed:'مكتمل',in_progress:'قيد التنفيذ',planned:'مخطط',cancelled:'ملغي'};
+    tbody.innerHTML = data.trainings.map(t => `<tr>
+      <td><strong>${t.course_name}</strong></td>
+      <td>${t.provider}</td>
+      <td>${t.start_date || '—'}</td>
+      <td>${t.end_date || '—'}</td>
+      <td>${t.duration_hours || '—'}</td>
+      <td>${t.cert_earned ? 'نعم' : 'لا'}</td>
+      <td><span class="badge ${t.status === 'completed' ? 'badge-present' : t.status === 'in_progress' ? 'badge-info' : 'badge-absent'}">${statusMap[t.status] || t.status}</span></td>
+      <td><button class="btn btn-ghost btn-xs" onclick="editTraining(${t.id})"><i class="ti ti-edit"></i></button></td>
+    </tr>`).join('');
+  });
+}
+function openTrainingModal() {
+  document.getElementById('trainingId').value = '';
+  document.getElementById('trainingModalTitle').textContent = 'إضافة دورة تدريبية';
+  ['trainCourse','trainProvider','trainStart','trainEnd','trainNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('trainHours').value = '';
+  document.getElementById('trainStatus').value = 'completed';
+  document.getElementById('trainCert').checked = false;
+  document.getElementById('trainGov').checked = false;
+  openModal('trainingModal');
+}
+function editTraining(tid) {
+  api('/admin/training/' + eid).then(data => {
+    const t = (data.trainings || []).find(x => x.id === tid);
+    if (!t) return;
+    document.getElementById('trainingId').value = t.id;
+    document.getElementById('trainingModalTitle').textContent = 'تعديل: ' + t.course_name;
+    document.getElementById('trainCourse').value = t.course_name;
+    document.getElementById('trainProvider').value = t.provider;
+    document.getElementById('trainStart').value = t.start_date || '';
+    document.getElementById('trainEnd').value = t.end_date || '';
+    document.getElementById('trainHours').value = t.duration_hours || '';
+    document.getElementById('trainStatus').value = t.status || 'completed';
+    document.getElementById('trainCert').checked = t.cert_earned;
+    document.getElementById('trainGov').checked = t.is_government_required;
+    document.getElementById('trainNotes').value = t.notes || '';
+    openModal('trainingModal');
+  });
+}
+function saveTraining() {
+  const data = {
+    course_name: document.getElementById('trainCourse').value,
+    provider: document.getElementById('trainProvider').value,
+    start_date: document.getElementById('trainStart').value,
+    end_date: document.getElementById('trainEnd').value,
+    duration_hours: parseFloat(document.getElementById('trainHours').value) || null,
+    status: document.getElementById('trainStatus').value,
+    cert_earned: document.getElementById('trainCert').checked,
+    is_government_required: document.getElementById('trainGov').checked,
+    notes: document.getElementById('trainNotes').value,
+  };
+  const tid = document.getElementById('trainingId').value;
+  if (tid) data.id = parseInt(tid);
+  api('/admin/training/' + eid, data).then(resp => {
+    if (resp.ok) { toast('تم حفظ الدورة', 'ok'); closeModal('trainingModal'); loadTraining(); }
+    else { toast('فشل الحفظ', 'err'); }
+  });
+}
+loadTraining();
+</script>
+{% endblock %}

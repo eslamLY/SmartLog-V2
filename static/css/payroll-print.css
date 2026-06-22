@@ -1,0 +1,39 @@
+@media print {
+  body { background: #fff !important; color: #000 !important; padding: 0 !important; margin: 0 !important; }
+  .payroll-header, .filter-bar, .payroll-tabs, .payroll-summary,
+  .table-toolbar, .pagination-bar, .modal-overlay, .toast,
+  .payroll-export-dropdown, .no-print, .action-btns,
+  #payrollThemeToggle, .header-actions .btn,
+  .payroll-panel#tab2Panel, .payroll-panel#tab3Panel,
+  .payroll-panel#tab4Panel, .payroll-panel#tab5Panel,
+  .payroll-panel#tab6Panel, .payroll-panel#tab7Panel {
+    display: none !important;
+  }
+  .payroll-panel { display: block !important; }
+  .payroll-table { font-size: 10pt !important; min-width: auto !important; }
+  .payroll-table th { background: #1a2035 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .payroll-table td { border-color: #ccc !important; }
+  .payroll-table .sticky-col { position: static !important; }
+  .payroll-table tbody tr:hover { background: transparent !important; }
+  .payroll-table tbody tr:hover .sticky-col { background: transparent !important; }
+  .row-detail { display: none !important; }
+  .payroll-table-wrap { border: 1px solid #ccc !important; overflow: visible !important; }
+  .summary-card.highlight { border-color: #22c55e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .status-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .emp-avatar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .dept-pill, .type-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page-break { page-break-before: always; }
+  @page { margin: 1.5cm; }
+  * { box-shadow: none !important; text-shadow: none !important; }
+}
+
+@media print {
+  .individual-payslip { border: none !important; padding: 0 !important; }
+  .ip-header { border-bottom-color: #1a2035 !important; }
+  .ip-net-box { border-color: #22c55e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .payroll-panel#tab1Panel { display: block !important; }
+  .payroll-table .text-green { color: #22c55e !important; }
+  .payroll-table .text-red { color: #ef4444 !important; }
+  .payroll-table .text-amber { color: #f59e0b !important; }
+  .payroll-table .highlight-blue { color: #3b82f6 !important; }
+}

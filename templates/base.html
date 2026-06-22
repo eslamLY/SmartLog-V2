@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="بنك دم طبرق">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.svg">
+  <link rel="apple-touch-startup-image" href="/static/icons/icon-512.svg">
+  <title>{% block title %}منظومة بنك دم طبرق{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="/static/css/pwa.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root {
+      --bg: #080c18;
+      --card: #0f172a;
+      --card2: #141d33;
+      --border: #1e2a45;
+      --border2: #17213a;
+      --text: #f0f4f9;
+      --muted: #8899b4;
+      --muted2: #566580;
+      --red: #dc2626;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --indigo: #6366f1;
+      --accent: #818cf8;
+      --glow: rgba(99,102,241,.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Cairo', 'Arial', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: rgba(99,102,241,.3); color: #fff; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted2); }
+
+    /* ── Sidebar ── */
+    .sidebar { width: 230px; background: var(--card); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; position: sticky; top: 0; height: 100vh; z-index: 50; }
+    .sidebar .logo-section { padding: 20px 14px 8px; }
+    .sidebar .nav { padding: 4px 14px 12px; }
+    .sidebar .nav-bottom { margin-top: auto; padding: 10px 14px 14px; border-top: 1px solid var(--border); }
+    .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; color: var(--muted); text-decoration: none; transition: all .2s; margin-bottom: 1px; position: relative; }
+    .nav-link:hover { background: rgba(255,255,255,.04); color: var(--text); }
+    .nav-link.active { background: linear-gradient(135deg, var(--glow), transparent); color: var(--accent); font-weight: 600; border-right: 2px solid var(--indigo); }
+    .nav-link i { font-size: 18px; flex-shrink: 0; }
+    .nav-link-sub { padding-right: 32px; font-size: 13px; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; text-decoration: none; background: var(--card2); color: var(--text); white-space: nowrap; }
+    .btn:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+    .btn:active { transform: translateY(0); }
+    .btn-red { background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; }
+    .btn-green { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
+    .btn-indigo { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; }
+    .btn-ghost { background: transparent; color: var(--muted); }
+    .btn-ghost:hover { background: rgba(255,255,255,.05); color: var(--text); transform: none; box-shadow: none; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .btn-xs { padding: 4px 8px; font-size: 11px; border-radius: 6px; }
+
+    /* ── Cards ── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; transition: border-color .2s; }
+    .card:hover { border-color: rgba(255,255,255,.06); }
+    .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+    /* ── Badges ── */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-present { background: rgba(22,163,74,.15); color: var(--green); }
+    .badge-late { background: rgba(245,158,11,.15); color: var(--amber); }
+    .badge-absent { background: rgba(239,68,68,.15); color: var(--red); }
+    .badge-info { background: rgba(99,102,241,.15); color: var(--accent); }
+
+    /* ── Tables ── */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl thead th { padding: 11px 14px; text-align: right; font-size: 12px; color: var(--muted); font-weight: 700; background: var(--card2); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .3px; }
+    .tbl tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border2); }
+    .tbl tbody tr { transition: background .15s; }
+    .tbl tbody tr:hover { background: rgba(99,102,241,.04); }
+    .tbl tbody tr:nth-child(even) { background: rgba(255,255,255,.015); }
+    .tbl tbody tr:nth-child(even):hover { background: rgba(99,102,241,.06); }
+
+    /* ── Progress bars ── */
+    .progress-bar { height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+    /* ── Modals ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet { background: var(--card); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 520px; padding: 24px 28px 28px; max-height: 85vh; overflow-y: auto; animation: modalIn .3s cubic-bezier(.16,1,.3,1); }
+    .modal-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: -12px auto 16px; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-grid .full { grid-column: span 2; }
+    @keyframes modalIn { from { transform: scale(.95) translateY(12px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+    /* ── Stat cards ── */
+    .stat-card { border-radius: 14px; padding: 16px; text-align: center; border: 1px solid transparent; }
+    .stat-val { font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
+
+    /* ── Inputs ── */
+    input, select, textarea { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'Cairo', sans-serif; font-size: 14px; outline: none; transition: all .2s; }
+    input:hover, select:hover, textarea:hover { border-color: rgba(255,255,255,.12); }
+    input:focus, select:focus, textarea:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--glow); }
+    input[type="color"] { padding: 4px; cursor: pointer; height: 42px; }
+    input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--indigo); }
+    input[type="date"], input[type="time"], input[type="datetime-local"] { direction: ltr; text-align: right; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 600; letter-spacing: .2px; }
+    select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 12px center; padding-left: 36px; }
+
+    /* ── Bottom nav ── */
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); z-index: 40; padding: 4px 0 env(safe-area-inset-bottom, 4px); justify-content: space-around; backdrop-filter: blur(12px); }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 10px; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 10px; transition: all .2s; position: relative; }
+    .bottom-nav-item i { font-size: 20px; }
+    .bottom-nav-item.active { color: var(--accent); }
+    .bottom-nav-item.active::after { content: ''; position: absolute; top: -4px; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; border-radius: 2px; background: var(--indigo); }
+    .bottom-nav-item:hover { color: var(--text); background: rgba(255,255,255,.04); }
+
+    /* ── Misc ── */
+    .mobile-pb { padding-bottom: 70px; }
+
+    /* ── Toast ── */
+    .toast { padding: 12px 24px; border-radius: 12px; font-size: 13px; font-weight: 600; text-align: center; min-width: 200px; max-width: 90vw; animation: toastIn .3s ease; pointer-events: auto; backdrop-filter: blur(8px); }
+    .toast.ok { background: rgba(22,163,74,.92); color: #fff; }
+    .toast.err { background: rgba(239,68,68,.92); color: #fff; }
+    .toast.info { background: rgba(99,102,241,.92); color: #fff; }
+
+    /* ── SweetAlert2 Dark Overrides ── */
+    .swal-toast-dark { background: var(--card) !important; border: 1px solid var(--border) !important; color: var(--text) !important; box-shadow: 0 8px 32px rgba(0,0,0,.5) !important; border-radius: 12px !important; }
+    .swal-toast-dark .swal2-title { color: var(--text) !important; font-size: 14px !important; font-family: 'Cairo', sans-serif !important; }
+    .swal-toast-dark .swal2-timer-progress-bar { background: var(--accent) !important; height: 3px !important; }
+    .swal-toast-dark .swal2-icon { font-size: 10px !important; }
+    .swal2-modal.swal2-dark-custom { background: var(--card) !important; border: 1px solid var(--border) !important; border-radius: 20px !important; color: var(--text) !important; }
+    .swal2-modal.swal2-dark-custom .swal2-title { color: var(--text) !important; font-family: 'Cairo', sans-serif !important; }
+    .swal2-modal.swal2-dark-custom .swal2-html-container { color: var(--muted) !important; font-family: 'Cairo', sans-serif !important; }
+    .swal2-modal.swal2-dark-custom .swal2-confirm { font-family: 'Cairo', sans-serif !important; border-radius: 10px !important; font-weight: 600 !important; padding: 9px 24px !important; }
+    .swal2-modal.swal2-dark-custom .swal2-cancel { font-family: 'Cairo', sans-serif !important; border-radius: 10px !important; }
+    @keyframes toastIn { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* ── Animations & Micro-Interactions ── */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 var(--pulse-c, rgba(99,102,241,.35)); }
+      50%      { box-shadow: 0 0 0 14px var(--pulse-c, rgba(99,102,241,0)); }
+    }
+    .animate-fade-in { animation: fadeInUp .4s cubic-bezier(.16,1,.3,1) both; animation-delay: calc(var(--i,0) * 0.1s); }
+    .pulse-glow { animation: pulseGlow 2s cubic-bezier(.4,0,.6,1) infinite; }
+    .card, .stat-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .25s ease !important; }
+    .card:hover, .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.3); }
+    .tbl tbody tr { transition: transform .25s cubic-bezier(.16,1,.3,1), background .15s ease !important; }
+    .tbl tbody tr:hover { transform: translateY(-2px); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; margin-left:6px; }
+    .btn:disabled { opacity:.5; pointer-events:none; }
+
+    /* ── Shimmer skeleton ── */
+    .shimmer { background: linear-gradient(90deg, var(--card2) 25%, var(--border) 50%, var(--card2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .bottom-nav { display: flex; }
+      .main-area { padding-bottom: 64px; }
+      .modal-sheet { border-radius: 20px 20px 0 0; max-width: 100%; margin: auto 0 0; }
+    }
+    @media (min-width: 769px) {
+      .modal-sheet { border-radius: 20px; margin: auto; }
+      .modal-handle { display: none; }
+    }
+  </style>
+</head>
+<body>
+{% if is_employee|default(false) %}
+  {% block employee_layout %}{% endblock %}
+{% else %}
+  <div style="display:flex;min-height:100vh;background:var(--bg)">
+    <aside class="sidebar">
+      <div class="logo-section">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:22px">
+          <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#dc2626,#991b1b);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(220,38,38,.3)">
+            <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+          </div>
+          <div><div style="font-size:13px;font-weight:700">بنك دم طبرق</div><div style="font-size:11px;color:var(--muted)">لوحة التحكم</div></div>
+        </div>
+        <nav class="nav">
+          <a href="/admin" class="nav-link {% if nav_active == 'dashboard' %}active{% endif %}"><i class="ti ti-layout-dashboard"></i>الرئيسية</a>
+          <a href="/admin/employees" class="nav-link {% if nav_active == 'employees' %}active{% endif %}"><i class="ti ti-users"></i>الموظفون</a>
+          <a href="/admin/employees/add-form" class="nav-link nav-link-sub {% if nav_active == 'employees' %}active{% endif %}"><i class="ti ti-user-plus" style="font-size:14px"></i>إضافة موظف (قديم)</a>
+          <a href="/admin/grades" class="nav-link {% if nav_active == 'grades' %}active{% endif %}"><i class="ti ti-stairs"></i>الدرجات الوظيفية</a>
+          <a href="/admin/promotions" class="nav-link {% if nav_active == 'promotions' %}active{% endif %}"><i class="ti ti-arrow-up-circle"></i>الترقيات</a>
+          <a href="/admin/leave-mgmt" class="nav-link {% if nav_active == 'leaves' %}active{% endif %}"><i class="ti ti-calendar"></i>إدارة الإجازات</a>
+          <a href="/admin/departments" class="nav-link {% if nav_active == 'departments' %}active{% endif %}"><i class="ti ti-building"></i>الأقسام</a>
+          <a href="/admin/attendance" class="nav-link {% if nav_active == 'attendance' %}active{% endif %}"><i class="ti ti-clock-record"></i>سجل الحضور</a>
+          <a href="/admin/shifts" class="nav-link {% if nav_active == 'shifts' %}active{% endif %}"><i class="ti ti-calendar-event"></i>المناوبات</a>
+          <a href="/admin/shifts/types" class="nav-link nav-link-sub {% if nav_active == 'shift_types' %}active{% endif %}"><i class="ti ti-settings" style="font-size:14px"></i>أنواع المناوبات</a>
+          <a href="/admin/shifts/swaps" class="nav-link nav-link-sub {% if nav_active == 'shift_swaps' %}active{% endif %}"><i class="ti ti-arrows-exchange" style="font-size:14px"></i>طلبات التبديل</a>
+          <a href="/admin/shifts/coverage" class="nav-link nav-link-sub {% if nav_active == 'shift_coverage' %}active{% endif %}"><i class="ti ti-chart-grid-dots" style="font-size:14px"></i>تغطية المناوبات</a>
+          <a href="/admin/requests/review" class="nav-link {% if nav_active == 'leaves' %}active{% endif %}"><i class="ti ti-file-description"></i>الطلبات</a>
+          <a href="/admin/analytics" class="nav-link {% if nav_active == 'analytics' %}active{% endif %}"><i class="ti ti-chart-line"></i>التحليلات</a>
+          <a href="/admin/employee-analytics" class="nav-link nav-link-sub {% if nav_active == 'employee_analytics' %}active{% endif %}"><i class="ti ti-users" style="font-size:14px"></i>تحليلات الموظفين</a>
+          <a href="/admin/reports/attendance" class="nav-link {% if nav_active == 'reports' %}active{% endif %}"><i class="ti ti-chart-bar"></i>التقارير المتقدمة</a>
+          <a href="/admin/payroll" class="nav-link {% if nav_active == 'payroll' %}active{% endif %}"><i class="ti ti-currency-dollar"></i>الرواتب</a>
+          <div style="border-top:1px solid var(--border);margin:10px 0;padding-top:8px">
+            <div style="font-size:11px;color:var(--muted2);padding:6px 14px;font-weight:600;letter-spacing:.3px">النظام المتقدم</div>
+            <a href="/admin/notifications" class="nav-link {% if nav_active == 'notifications' %}active{% endif %}"><i class="ti ti-bell"></i>الإشعارات</a>
+            <a href="/admin/gps" class="nav-link {% if nav_active == 'gps' %}active{% endif %}"><i class="ti ti-map-pin"></i>تتبع GPS</a>
+            <a href="/admin/devices" class="nav-link {% if nav_active == 'devices' %}active{% endif %}"><i class="ti ti-devices"></i>الأجهزة</a>
+            <a href="/admin/devices/security" class="nav-link nav-link-sub {% if nav_active == 'device_security' %}active{% endif %}"><i class="ti ti-shield-lock" style="font-size:14px"></i>أمن الأجهزة</a>
+            <a href="/admin/biometrics" class="nav-link {% if nav_active == 'biometrics' %}active{% endif %}"><i class="ti ti-fingerprint"></i>البيانات الحيوية</a>
+            <a href="/admin/documents" class="nav-link {% if nav_active == 'documents' %}active{% endif %}"><i class="ti ti-files"></i>المستندات</a>
+            <a href="/admin/document-vault" class="nav-link nav-link-sub {% if nav_active == 'document_vault' %}active{% endif %}"><i class="ti ti-vault" style="font-size:14px"></i>خزينة المستندات</a>
+            <a href="/admin/branding" class="nav-link {% if nav_active == 'branding' %}active{% endif %}"><i class="ti ti-palette"></i>العلامة التجارية</a>
+            <a href="/admin/qr-generator" class="nav-link {% if nav_active == 'qr_generator' %}active{% endif %}"><i class="ti ti-qrcode"></i>مولد QR</a>
+            <a href="/admin/ai-predictor" class="nav-link {% if nav_active == 'ai_predictor' %}active{% endif %}"><i class="ti ti-brain"></i>AI المناوبات</a>
+            <a href="/admin/forecasting" class="nav-link {% if nav_active == 'forecast' %}active{% endif %}"><i class="ti ti-chart-arrows"></i>توقعات AI المتقدمة</a>
+          </div>
+          <div style="border-top:1px solid var(--border);margin:10px 0;padding-top:8px">
+            <div style="font-size:11px;color:var(--muted2);padding:6px 14px;font-weight:600;letter-spacing:.3px">الإدارة والصيانة</div>
+            <a href="/admin/backups" class="nav-link {% if nav_active == 'backups' %}active{% endif %}"><i class="ti ti-database-export"></i>النسخ الاحتياطي</a>
+            <a href="/admin/audit-logs" class="nav-link {% if nav_active == 'audit_logs' %}active{% endif %}"><i class="ti ti-history"></i>سجل التدقيق</a>
+            <a href="/admin/permissions" class="nav-link {% if nav_active == 'permissions' %}active{% endif %}"><i class="ti ti-lock"></i>الأذونات</a>
+            <a href="/admin/rbac" class="nav-link {% if nav_active == 'rbac' %}active{% endif %}"><i class="ti ti-shield-lock"></i>الصلاحيات والأدوار</a>
+            <a href="/admin/email-notifications" class="nav-link {% if nav_active == 'email_notifications' %}active{% endif %}"><i class="ti ti-mail"></i>إشعارات البريد</a>
+            <a href="/admin/sms-notifications" class="nav-link {% if nav_active == 'sms_notifications' %}active{% endif %}"><i class="ti ti-message"></i>إشعارات SMS</a>
+            <a href="/admin/system-health" class="nav-link {% if nav_active == 'system_health' %}active{% endif %}"><i class="ti ti-heartbeat"></i>صحة النظام</a>
+          </div>
+        </nav>
+      </div>
+      <div class="nav-bottom">
+        <a href="/logout" class="nav-link" style="color:#ef4444"><i class="ti ti-logout"></i>تسجيل الخروج</a>
+      </div>
+    </aside>
+    <div style="flex:1;overflow:hidden" class="main-area">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <a href="/admin" class="bottom-nav-item {% if nav_active == 'dashboard' %}active{% endif %}"><i class="ti ti-layout-dashboard"></i><span>الرئيسية</span></a>
+    <a href="/admin/employees" class="bottom-nav-item {% if nav_active == 'employees' %}active{% endif %}"><i class="ti ti-users"></i><span>الموظفون</span></a>
+    <a href="/admin/shifts" class="bottom-nav-item {% if nav_active in ('shifts','shift_types','shift_swaps','shift_coverage') %}active{% endif %}"><i class="ti ti-calendar-event"></i><span>المناوبات</span></a>
+    <a href="/admin/analytics" class="bottom-nav-item {% if nav_active == 'analytics' %}active{% endif %}"><i class="ti ti-chart-line"></i><span>التحليلات</span></a>
+    <a href="/logout" class="bottom-nav-item"><i class="ti ti-logout"></i><span>خروج</span></a>
+  </nav>
+{% endif %}
+
+{% if not is_employee|default(false) %}
+<div id="notifBell" onclick="toggleNotifPanel()" style="position:fixed;bottom:100px;right:20px;width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(129,140,248,.4);z-index:60;transition:all .2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+  <i class="ti ti-bell" style="font-size:22px;color:#fff"></i>
+  <span id="notifBadge" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:20px;height:20px;display:none;align-items:center;justify-content:center;border:2px solid var(--card)"></span>
+</div>
+<div id="notifPanel" style="position:fixed;bottom:160px;right:20px;width:340px;max-height:400px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:61;display:none;overflow:hidden;animation:modalIn .2s ease">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:14px;font-weight:700"><i class="ti ti-bell" style="color:var(--accent)"></i> الإشعارات</span>
+    <span id="notifCountLabel" style="font-size:12px;color:var(--muted)"></span>
+  </div>
+  <div id="notifList" style="overflow-y:auto;max-height:320px;padding:4px 0"></div>
+  <div style="padding:8px 16px;border-top:1px solid var(--border);text-align:center">
+    <button class="btn btn-sm btn-ghost" onclick="markAllRead()"><i class="ti ti-check"></i> قراءة الكل</button>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function api(url, data) {
+  return fetch(url, {
+    method: data ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: data ? JSON.stringify(data) : undefined
+  }).then(r => r.json());
+}
+function toast(msg, type) {
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    customClass: { popup: 'swal-toast-dark' },
+    didOpen: (toast) => { toast.onmouseenter = Swal.stopTimer; toast.onmouseleave = Swal.resumeTimer; }
+  });
+  const iconMap = { ok: 'success', err: 'error', info: 'info' };
+  Toast.fire({ icon: iconMap[type] || 'info', title: msg });
+}
+function swalSuccess(title, msg, cb) {
+  Swal.fire({ icon:'success', title:title, text:msg, confirmButtonText:'حسناً',
+    confirmButtonColor:'#818cf8', background:'var(--card)', color:'var(--text)',
+    customClass:{ popup:'swal2-dark-custom' }, timer:4000, timerProgressBar:true
+  }).then(function(r){ if(cb && r.isConfirmed) cb(); });
+}
+function swalError(title, msg) {
+  Swal.fire({ icon:'error', title:title, text:msg, confirmButtonText:'حسناً',
+    confirmButtonColor:'#dc2626', background:'var(--card)', color:'var(--text)',
+    customClass:{ popup:'swal2-dark-custom' } });
+}
+function loadingBtn(btn) {
+  btn._origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> جاري المعالجة...';
+}
+function restoreBtn(btn) {
+  btn.innerHTML = btn._origHTML || btn.innerHTML;
+  btn.disabled = false;
+}
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('open'); el.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.remove('open'); el.style.display = 'none'; document.body.style.overflow = ''; }
+}
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('open'); e.target.style.display = 'none'; document.body.style.overflow = '';
+  }
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.open').forEach(el => { el.classList.remove('open'); el.style.display = 'none'; document.body.style.overflow = ''; }); }
+});
+
+{% if not is_employee|default(false) %}
+var notifPanelOpen = false;
+function toggleNotifPanel() {
+  notifPanelOpen = !notifPanelOpen;
+  document.getElementById('notifPanel').style.display = notifPanelOpen ? 'block' : 'none';
+  if (notifPanelOpen) fetchNotifs();
+}
+function fetchNotifs() {
+  api('/api/notifications/history').then(function(data) {
+    var list = document.getElementById('notifList');
+    list.innerHTML = '';
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px"><i class="ti ti-bell-off" style="font-size:32px;display:block;margin-bottom:8px;opacity:.5"></i>لا توجد إشعارات</div>';
+      return;
+    }
+    data.forEach(function(n) {
+      var icons = { info: 'ti-info-circle', warning: 'ti-alert-triangle', danger: 'ti-alert-circle', success: 'ti-circle-check' };
+      var colors = { info: 'var(--accent)', warning: 'var(--amber)', danger: 'var(--red)', success: 'var(--green)' };
+      var icon = n.icon || icons[n.ntype] || 'ti-info-circle';
+      var color = colors[n.ntype] || 'var(--accent)';
+      var bg = n.is_read ? 'transparent' : 'rgba(99,102,241,.05)';
+      var escapedUrl = (n.url || '').replace(/'/g, "\\'");
+      list.innerHTML += '<div style="padding:10px 14px;border-bottom:1px solid var(--border2);cursor:pointer;background:' + bg + ';transition:all .15s" onclick="handleNotifClick(' + n.id + ',\'' + escapedUrl + '\')" onmouseover="this.style.background=\'rgba(255,255,255,.03)\'" onmouseout="this.style.background=\'' + bg + '\'">' +
+        '<div style="display:flex;align-items:flex-start;gap:8px;pointer-events:none">' +
+        '<i class="ti ' + icon + '" style="color:' + color + ';font-size:16px;margin-top:2px;pointer-events:none"></i>' +
+        '<div style="flex:1;min-width:0;pointer-events:none">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text)">' + n.title + '</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-top:1px">' + n.message + '</div>' +
+        '<div style="font-size:10px;color:var(--muted2);margin-top:3px;direction:ltr;text-align:right">' + new Date(n.created_at).toLocaleString('ar-SA') + '</div>' +
+        '</div></div></div>';
+    });
+  });
+}
+function handleNotifClick(nid, url) {
+  markRead(nid).then(function() {
+    if (url) { location.href = url; }
+  });
+}
+async function markRead(nid) {
+  await api('/api/notifications/read/' + nid);
+  updateNotifBadge();
+  fetchNotifs();
+}
+function markAllRead() {
+  api('/api/notifications/history').then(function(data) {
+    (data || []).forEach(function(n) { if (!n.is_read) api('/api/notifications/read/' + n.id); });
+    updateNotifBadge(); fetchNotifs();
+  });
+}
+function updateNotifBadge() {
+  api('/api/notifications/unread-count').then(function(data) {
+    var badge = document.getElementById('notifBadge');
+    var label = document.getElementById('notifCountLabel');
+    if (data.count > 0) {
+      badge.style.display = 'flex'; badge.textContent = data.count > 99 ? '99+' : data.count;
+      label.textContent = data.count + ' غير مقروء';
+    } else {
+      badge.style.display = 'none'; label.textContent = 'لا توجد إشعارات جديدة';
+    }
+  });
+}
+setInterval(updateNotifBadge, 30000);
+updateNotifBadge();
+{% endif %}
+
+</script>
+<script src="/static/js/app.js" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

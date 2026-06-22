@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% set nav_active = 'system_health' %}
+{% block title %}صحة النظام{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-heartbeat" style="color:var(--accent)"></i> صحة النظام</h1>
+  <button class="btn btn-indigo" onclick="refreshHealth()"><i class="ti ti-refresh"></i> تحديث</button>
+</header>
+<div style="padding:20px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px">
+    <div class="stat-card" style="background:var(--card);border:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">حالة النظام</div>
+      <div class="stat-val" id="systemStatus" style="color:var(--green)">-</div>
+    </div>
+    <div class="stat-card" style="background:var(--card);border:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">قاعدة البيانات</div>
+      <div class="stat-val" id="dbStatus" style="color:var(--green)">-</div>
+    </div>
+    <div class="stat-card" style="background:var(--card);border:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">الذاكرة</div>
+      <div class="stat-val" id="memoryStatus" style="color:var(--green)">-</div>
+    </div>
+    <div class="stat-card" style="background:var(--card);border:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">القرص</div>
+      <div class="stat-val" id="diskStatus" style="color:var(--green)">-</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="card-header">مقاييس الأداء</div>
+      <div style="padding:16px">
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:var(--muted)">الطلبات/دقيقة</span>
+            <span id="rpmValue" style="font-size:12px;font-weight:700">-</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="rpmBar" style="width:0%;background:var(--green)"></div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:var(--muted)">متوسط الاستجابة</span>
+            <span id="avgResponseValue" style="font-size:12px;font-weight:700">-</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="avgResponseBar" style="width:0%;background:var(--accent)"></div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:var(--muted)">نسبة الأخطاء</span>
+            <span id="errorRateValue" style="font-size:12px;font-weight:700">-</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="errorRateBar" style="width:0%;background:var(--red)"></div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:var(--muted)">المستخدمين النشطين</span>
+            <span id="activeUsersValue" style="font-size:12px;font-weight:700">-</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="activeUsersBar" style="width:0%;background:var(--amber)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="card-header">تفاصيل الموارد</div>
+      <div style="padding:16px">
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">استخدام الذاكرة</div>
+          <div id="memoryDetails" style="font-size:13px;font-weight:600">-</div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">استخدام القرص</div>
+          <div id="diskDetails" style="font-size:13px;font-weight:600">-</div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">حالة قاعدة البيانات</div>
+          <div id="dbDetails" style="font-size:13px;font-weight:600">-</div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">وقت التشغيل</div>
+          <div id="uptime" style="font-size:13px;font-weight:600">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px;margin-top:20px">
+    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px">سجل الأحداث الأخيرة</h2>
+    <div id="eventsLog" style="font-family:monospace;font-size:11px;color:var(--muted);max-height:200px;overflow-y:auto">
+      <div style="text-align:center;padding:20px">لا توجد أحداث</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function refreshHealth() {
+  api('/api/health').then(function(res) {
+    if (res) {
+      document.getElementById('systemStatus').textContent = res.status === 'healthy' ? 'سليم' : 'مشكلة';
+      document.getElementById('systemStatus').style.color = res.status === 'healthy' ? 'var(--green)' : 'var(--red)';
+      
+      document.getElementById('dbStatus').textContent = res.database === 'connected' ? 'متصل' : 'غير متصل';
+      document.getElementById('dbStatus').style.color = res.database === 'connected' ? 'var(--green)' : 'var(--red)';
+      
+      document.getElementById('memoryStatus').textContent = res.memory ? 'جيد' : '-';
+      document.getElementById('memoryStatus').style.color = res.memory && res.memory.status === 'ok' ? 'var(--green)' : 'var(--amber)';
+      
+      document.getElementById('diskStatus').textContent = res.disk ? 'جيد' : '-';
+      document.getElementById('diskStatus').style.color = res.disk && res.disk.status === 'ok' ? 'var(--green)' : 'var(--amber)';
+      
+      if (res.memory) {
+        document.getElementById('memoryDetails').textContent = res.memory.used + ' / ' + res.memory.total;
+      }
+      if (res.disk) {
+        document.getElementById('diskDetails').textContent = res.disk.used + ' / ' + res.disk.total;
+      }
+      if (res.database) {
+        document.getElementById('dbDetails').textContent = res.database;
+      }
+    }
+  }).catch(function() {
+    toast('فشل تحميل صحة النظام', 'err');
+  });
+  
+  api('/api/admin/metrics').then(function(res) {
+    if (res) {
+      document.getElementById('rpmValue').textContent = res.requests_per_minute || '-';
+      document.getElementById('rpmBar').style.width = Math.min((res.requests_per_minute || 0) * 2, 100) + '%';
+      
+      document.getElementById('avgResponseValue').textContent = (res.avg_response_time || 0) + 'ms';
+      document.getElementById('avgResponseBar').style.width = Math.min((res.avg_response_time || 0) / 5, 100) + '%';
+      
+      document.getElementById('errorRateValue').textContent = (res.error_rate || 0) + '%';
+      document.getElementById('errorRateBar').style.width = Math.min(res.error_rate || 0, 100) + '%';
+      
+      document.getElementById('activeUsersValue').textContent = res.active_users || '-';
+      document.getElementById('activeUsersBar').style.width = Math.min((res.active_users || 0) * 5, 100) + '%';
+    }
+  }).catch(function() {
+    toast('فشل تحميل المقاييس', 'err');
+  });
+}
+
+setInterval(refreshHealth, 30000);
+refreshHealth();
+</script>
+{% endblock %}

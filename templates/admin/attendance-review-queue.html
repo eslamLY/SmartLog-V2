@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}مراجعة البصمات{% endblock %}
+{% set nav_active = 'attendance_review' %}
+{% block content %}
+<div style="padding:20px 24px;direction:rtl">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h1 style="font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px">
+        <i class="ti ti-shield-check" style="color:var(--accent)"></i>
+        مراجعة البصمات
+      </h1>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px">
+        السجلات التي تحتاج مراجعة يدوية من الإدارة
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:13px;color:var(--muted)">المجموع: <strong id="totalCount" style="color:var(--text)">0</strong></span>
+      <select id="filterStatus" onchange="applyFilters()" style="width:auto;padding:6px 10px;font-size:12px">
+        <option value="">جميع الحالات</option>
+        <option value="pending_review">قيد المراجعة</option>
+        <option value="reviewed">تمت المراجعة</option>
+        <option value="escalated">مرفوع للإدارة</option>
+      </select>
+      <select id="filterReason" onchange="applyFilters()" style="width:auto;padding:6px 10px;font-size:12px">
+        <option value="">جميع الأسباب</option>
+        <option value="time_mismatch">تباين في الوقت</option>
+        <option value="future_time">توقيت مستقبلي</option>
+        <option value="extreme_time_variance">تباين زمني كبير</option>
+        <option value="off_shift">خارج وقت المناوبة</option>
+        <option value="possible_duplicate">مكرر محتمل</option>
+      </select>
+      <input type="text" id="filterEmployee" placeholder="بحث عن موظف..." oninput="applyFilters()" style="width:160px;padding:6px 10px;font-size:12px">
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+    <div class="stat-card" style="background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.2)">
+      <div style="font-size:11px;color:var(--accent)"><i class="ti ti-clock"></i> قيد المراجعة</div>
+      <div class="stat-val" style="color:var(--accent)" id="statPending">0</div>
+    </div>
+    <div class="stat-card" style="background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.2)">
+      <div style="font-size:11px;color:var(--green)"><i class="ti ti-circle-check"></i> تمت الموافقة</div>
+      <div class="stat-val" style="color:var(--green)" id="statApproved">0</div>
+    </div>
+    <div class="stat-card" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2)">
+      <div style="font-size:11px;color:var(--red)"><i class="ti ti-circle-x"></i> مرفوض</div>
+      <div class="stat-val" style="color:var(--red)" id="statRejected">0</div>
+    </div>
+    <div class="stat-card" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)">
+      <div style="font-size:11px;color:var(--amber)"><i class="ti ti-alert-triangle"></i> تباين زمني</div>
+      <div class="stat-val" style="color:var(--amber)" id="statTimeVariance">0</div>
+    </div>
+  </div>
+
+  <div id="reviewTable" class="card" style="overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="tbl" id="reviewDataTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الموظف</th>
+            <th>القسم</th>
+            <th>نوع البصمة</th>
+            <th>وقت العميل</th>
+            <th>وقت الخادم</th>
+            <th>الفرق</th>
+            <th>السبب</th>
+            <th>تاريخ الإبلاغ</th>
+            <th>الحالة</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="reviewTableBody">
+          <tr id="loadingRow">
+            <td colspan="11" style="text-align:center;padding:40px">
+              <span class="spinner"></span> جاري التحميل...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="emptyState" style="display:none;padding:40px;text-align:center;color:var(--muted)">
+      <i class="ti ti-shield-check" style="font-size:48px;display:block;margin-bottom:10px;opacity:.4"></i>
+      <div style="font-size:15px;font-weight:600">لا توجد بصمات بحاجة للمراجعة</div>
+      <div style="font-size:13px;margin-top:4px">جميع البصمات متزامنة بشكل طبيعي</div>
+    </div>
+  </div>
+
+  <div id="pagination" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;font-size:13px"></div>
+</div>
+
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal-sheet" style="max-width:560px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">
+      <i class="ti ti-shield-check" style="color:var(--accent)"></i>
+      <span id="reviewModalTitle">مراجعة البصمة</span>
+    </h3>
+    <input type="hidden" id="reviewId">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div><label>الموظف</label><div style="font-size:14px;font-weight:600;color:var(--text)" id="reviewEmpName">-</div></div>
+      <div><label>القسم</label><div style="font-size:14px;color:var(--text)" id="reviewEmpDept">-</div></div>
+      <div><label>وقت العميل</label><div style="font-size:13px;color:var(--amber);font-family:monospace" id="reviewClientTime">-</div></div>
+      <div><label>وقت الخادم</label><div style="font-size:13px;color:var(--green);font-family:monospace" id="reviewServerTime">-</div></div>
+      <div><label>الفارق الزمني</label><div style="font-size:14px;font-weight:700;color:var(--red)" id="reviewVariance">-</div></div>
+      <div><label>السبب</label><div style="font-size:14px" id="reviewReason">-</div></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label>الإجراء</label>
+      <select id="reviewAction" onchange="toggleAdjustTime()">
+        <option value="approved">✅ موافقة</option>
+        <option value="rejected">❌ رفض</option>
+        <option value="adjusted">✏️ تعديل الوقت</option>
+      </select>
+    </div>
+    <div id="adjustTimeSection" style="display:none;margin-bottom:14px">
+      <label>تعديل الوقت</label>
+      <input type="datetime-local" id="adjustedTime">
+    </div>
+    <div style="margin-bottom:14px">
+      <label>ملاحظات الإدارة</label>
+      <textarea id="reviewNotes" rows="3" style="resize:none" placeholder="أضف ملاحظات..."></textarea>
+    </div>
+    <div class="modal-grid">
+      <button class="btn btn-green" onclick="submitReview()">
+        <i class="ti ti-check"></i> تأكيد
+      </button>
+      <button class="btn btn-outline" onclick="closeModal('reviewModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var allReviews = [];
+var currentPage = 1;
+var pageSize = 20;
+
+function loadReviews() {
+  fetch('/api/admin/attendance-reviews')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      allReviews = data.reviews || [];
+      updateStats();
+      applyFilters();
+    })
+    .catch(function () {
+      document.getElementById('reviewTableBody').innerHTML =
+        '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--red)">⚠️ فشل تحميل البيانات</td></tr>';
+    });
+}
+
+function updateStats() {
+  var pending = allReviews.filter(function (r) { return r.status === 'pending_review'; }).length;
+  var approved = allReviews.filter(function (r) { return r.admin_action === 'approved'; }).length;
+  var rejected = allReviews.filter(function (r) { return r.admin_action === 'rejected'; }).length;
+  var timeVar = allReviews.filter(function (r) { return r.time_variance_minutes > 120; }).length;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statApproved').textContent = approved;
+  document.getElementById('statRejected').textContent = rejected;
+  document.getElementById('statTimeVariance').textContent = timeVar;
+  document.getElementById('totalCount').textContent = allReviews.length;
+}
+
+function applyFilters() {
+  var statusFilter = document.getElementById('filterStatus').value;
+  var reasonFilter = document.getElementById('filterReason').value;
+  var empFilter = document.getElementById('filterEmployee').value.trim().toLowerCase();
+
+  var filtered = allReviews.filter(function (r) {
+    if (statusFilter && r.status !== statusFilter) return false;
+    if (reasonFilter && r.flagged_reason !== reasonFilter) return false;
+    if (empFilter) {
+      var name = (r.employee_name || '').toLowerCase();
+      var id = (r.employee_id || '').toString();
+      if (name.indexOf(empFilter) === -1 && id.indexOf(empFilter) === -1) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('totalCount').textContent = filtered.length;
+  renderTable(filtered);
+}
+
+function renderTable(filtered) {
+  var tbody = document.getElementById('reviewTableBody');
+  var empty = document.getElementById('emptyState');
+  var pagination = document.getElementById('pagination');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    pagination.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  var totalPages = Math.ceil(filtered.length / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages;
+  var start = (currentPage - 1) * pageSize;
+  var page = filtered.slice(start, start + pageSize);
+
+  tbody.innerHTML = '';
+  page.forEach(function (r, i) {
+    var idx = start + i + 1;
+    var clientTime = r.client_time ? new Date(r.client_time).toLocaleString('ar-SA') : '-';
+    var serverTime = r.server_time ? new Date(r.server_time).toLocaleString('ar-SA') : '-';
+    var flaggedAt = r.flagged_at ? new Date(r.flagged_at).toLocaleString('ar-SA') : '-';
+    var reasonLabel = r.flagged_reason_ar || r.flagged_reason;
+    var statusLabel = r.status_ar || r.status;
+    var variance = r.time_variance_minutes ? Math.round(r.time_variance_minutes) + ' دقيقة' : '-';
+
+    var statusBadge = '';
+    if (r.status === 'pending_review') {
+      statusBadge = '<span class="badge badge-late">قيد المراجعة</span>';
+    } else if (r.status === 'reviewed') {
+      if (r.admin_action === 'approved') {
+        statusBadge = '<span class="badge badge-present">تمت الموافقة</span>';
+      } else if (r.admin_action === 'rejected') {
+        statusBadge = '<span class="badge badge-absent">مرفوض</span>';
+      } else if (r.admin_action === 'adjusted') {
+        statusBadge = '<span class="badge badge-info">تم التعديل</span>';
+      } else {
+        statusBadge = '<span class="badge badge-info">تمت المراجعة</span>';
+      }
+    } else {
+      statusBadge = '<span class="badge badge-absent">' + statusLabel + '</span>';
+    }
+
+    var actions = '';
+    if (r.status === 'pending_review') {
+      actions = '<button class="btn btn-sm btn-indigo" onclick="openReview(' + r.id + ')"><i class="ti ti-eye"></i> مراجعة</button>';
+    } else {
+      actions = '<span style="font-size:12px;color:var(--muted)">' + (r.reviewer_name || '-') + '</span>';
+    }
+
+    tbody.innerHTML += '<tr>' +
+      '<td style="text-align:center">' + idx + '</td>' +
+      '<td><strong>' + (r.employee_name || '#' + r.employee_id) + '</strong></td>' +
+      '<td style="font-size:12px;color:var(--muted)">' + (r.department || '-') + '</td>' +
+      '<td style="font-size:12px">' + (r.reference_type || 'حضور/انصراف') + '</td>' +
+      '<td style="font-size:12px;font-family:monospace">' + clientTime + '</td>' +
+      '<td style="font-size:12px;font-family:monospace">' + serverTime + '</td>' +
+      '<td style="font-size:12px;font-weight:600;color:' + (r.time_variance_minutes > 120 ? 'var(--red)' : 'var(--amber)') + '">' + variance + '</td>' +
+      '<td><span class="badge badge-absent" style="font-size:11px">' + reasonLabel + '</span></td>' +
+      '<td style="font-size:12px;color:var(--muted)">' + flaggedAt + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td>' + actions + '</td>' +
+      '</tr>';
+  });
+
+  var paginationHtml = '';
+  if (totalPages > 1) {
+    paginationHtml += '<button class="btn btn-sm btn-ghost" onclick="goPage(' + (currentPage - 1) + ')" ' + (currentPage <= 1 ? 'disabled' : '') + '>‹ السابق</button>';
+    for (var p = 1; p <= totalPages; p++) {
+      paginationHtml += '<button class="btn btn-sm ' + (p === currentPage ? 'btn-indigo' : 'btn-ghost') + '" onclick="goPage(' + p + ')">' + p + '</button>';
+    }
+    paginationHtml += '<button class="btn btn-sm btn-ghost" onclick="goPage(' + (currentPage + 1) + ')" ' + (currentPage >= totalPages ? 'disabled' : '') + '>التالي ›</button>';
+  }
+  pagination.innerHTML = paginationHtml;
+}
+
+function goPage(page) {
+  currentPage = page;
+  applyFilters();
+}
+
+function openReview(id) {
+  var r = allReviews.find(function (x) { return x.id === id; });
+  if (!r) return;
+  document.getElementById('reviewId').value = r.id;
+  document.getElementById('reviewModalTitle').textContent = 'مراجعة بصمة ' + (r.employee_name || '#' + r.employee_id);
+  document.getElementById('reviewEmpName').textContent = r.employee_name || '-';
+  document.getElementById('reviewEmpDept').textContent = r.department || '-';
+  document.getElementById('reviewClientTime').textContent = r.client_time ? new Date(r.client_time).toLocaleString('ar-SA') : '-';
+  document.getElementById('reviewServerTime').textContent = r.server_time ? new Date(r.server_time).toLocaleString('ar-SA') : '-';
+  document.getElementById('reviewVariance').textContent = r.time_variance_minutes ? Math.round(r.time_variance_minutes) + ' دقيقة' : '-';
+  document.getElementById('reviewReason').textContent = r.flagged_reason_ar || r.flagged_reason;
+  document.getElementById('reviewAction').value = 'approved';
+  document.getElementById('adjustedTime').value = '';
+  document.getElementById('reviewNotes').value = '';
+  document.getElementById('adjustTimeSection').style.display = 'none';
+  openModal('reviewModal');
+}
+
+function toggleAdjustTime() {
+  var action = document.getElementById('reviewAction').value;
+  document.getElementById('adjustTimeSection').style.display = action === 'adjusted' ? 'block' : 'none';
+  if (action === 'adjusted' && !document.getElementById('adjustedTime').value) {
+    var now = new Date();
+    var iso = now.getFullYear() + '-' +
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0') + 'T' +
+      String(now.getHours()).padStart(2, '0') + ':' +
+      String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('adjustedTime').value = iso;
+  }
+}
+
+function submitReview() {
+  var id = parseInt(document.getElementById('reviewId').value);
+  var action = document.getElementById('reviewAction').value;
+  var adjustedTime = document.getElementById('adjustedTime').value;
+  var notes = document.getElementById('reviewNotes').value.trim();
+
+  var payload = {
+    action: action,
+    notes: notes,
+  };
+  if (action === 'adjusted' && adjustedTime) {
+    payload.adjusted_time = new Date(adjustedTime).toISOString();
+  }
+
+  var btn = document.querySelector('#reviewModal .btn-green');
+  btn.disabled = true;
+  btn.textContent = 'جاري الحفظ...';
+
+  fetch('/api/admin/attendance-reviews/' + id + '/review', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok) {
+        toast('✅ تم حفظ المراجعة بنجاح', 'ok');
+        closeModal('reviewModal');
+        loadReviews();
+      } else {
+        toast(data.msg || 'فشل حفظ المراجعة', 'err');
+      }
+    })
+    .catch(function () {
+      toast('خطأ في الاتصال بالخادم', 'err');
+    })
+    .finally(function () {
+      btn.disabled = false;
+      btn.textContent = 'تأكيد';
+    });
+}
+
+loadReviews();
+setInterval(loadReviews, 60000);
+</script>
+{% endblock %}

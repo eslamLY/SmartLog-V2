@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% set nav_active = 'forecast' %}
+{% block title %}نظام التنبؤ AI - لوحة التحكم{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/forecasting-premium.css">
+<div class="f-header">
+  <h1><i class="ti ti-brain"></i> نظام التنبؤ بالذكاء الاصطناعي <span class="f-badge f-badge-accent">v3.0</span></h1>
+  <div class="f-header-actions">
+    <span class="f-badge" id="liveCount"><i class="ti ti-users"></i> —</span>
+    <button class="f-btn f-btn-accent" onclick="generatePredictions()"><i class="ti ti-refresh"></i> توليد التنبؤات</button>
+  </div>
+</div>
+<div class="f-tabs">
+  <button class="f-tab active" data-tab="dashboard">📊 لوحة التحكم</button>
+  <button class="f-tab" data-tab="predictions">🔮 التنبؤات</button>
+  <button class="f-tab" data-tab="models">🤖 النماذج</button>
+  <button class="f-tab" data-tab="rules">⚙️ القواعد</button>
+  <button class="f-tab" data-tab="anomalies">🚨 الشذوذ</button>
+  <button class="f-tab" data-tab="segments">📊 التقسيم</button>
+  <button class="f-tab" data-tab="correlation">🔗 الارتباط</button>
+</div>
+<div class="f-content active" id="tab-dashboard">
+  <div class="f-grid" id="dashGrid">
+    <div class="f-card f-loading"><div class="f-spinner"></div><p>جاري تحميل لوحة التحكم...</p></div>
+  </div>
+</div>
+<div class="f-content" id="tab-predictions">
+  <div class="f-grid" id="predGrid">
+    <div class="f-card f-loading"><div class="f-spinner"></div><p>جاري تحميل التنبؤات...</p></div>
+  </div>
+</div>
+<div class="f-content" id="tab-models">
+  <div class="f-grid" id="modelGrid">
+    <div class="f-card f-loading"><div class="f-spinner"></div><p>جاري تحميل النماذج...</p></div>
+  </div>
+</div>
+<div class="f-content" id="tab-rules">
+  <div class="f-grid">
+    <div class="f-card" style="grid-column:1/-1">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3><i class="ti ti-adjustments"></i> القواعد المخصصة</h3>
+        <button class="f-btn f-btn-accent f-btn-sm" onclick="showAddRuleModal()">+ قاعدة جديدة</button>
+      </div>
+      <div id="rulesContainer" style="margin-top:12px"><p style="color:var(--muted)">جاري التحميل...</p></div>
+    </div>
+  </div>
+</div>
+<div class="f-content" id="tab-anomalies">
+  <div class="f-grid">
+    <div class="f-card" style="grid-column:1/-1">
+      <h3><i class="ti ti-alert-triangle"></i> كشف الشذوذ</h3>
+      <div style="display:flex;gap:8px;margin:10px 0">
+        <button class="f-btn f-btn-accent f-btn-sm" onclick="scanAnomalies()"><i class="ti ti-search"></i> فحص الآن</button>
+      </div>
+      <div id="anomaliesContainer"><p style="color:var(--muted)">جاري التحميل...</p></div>
+    </div>
+  </div>
+</div>
+<div class="f-content" id="tab-segments">
+  <div class="f-grid">
+    <div class="f-card" style="grid-column:1/-1">
+      <h3><i class="ti ti-category"></i> تقسيم الموظفين</h3>
+      <button class="f-btn f-btn-accent f-btn-sm" onclick="loadSegmentation()"><i class="ti ti-refresh"></i> تحديث</button>
+      <div id="segmentsContainer" style="margin-top:12px"><p style="color:var(--muted)">جاري التحميل...</p></div>
+    </div>
+  </div>
+</div>
+<div class="f-content" id="tab-correlation">
+  <div class="f-grid">
+    <div class="f-card" style="grid-column:1/-1">
+      <h3><i class="ti ti-git-branch"></i> تحليل الارتباط</h3>
+      <div id="correlationContainer" style="margin-top:12px"><p style="color:var(--muted)">جاري التحميل...</p></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/static/js/forecasting-api.js"></script>
+<script src="/static/js/forecasting-charts.js"></script>
+<script src="/static/js/ml-model-info.js"></script>
+{% endblock %}

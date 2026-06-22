@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}مناوباتي{% endblock %}
+{% block layout %}
+<div style="min-height:100vh;background:var(--bg)">
+  <header style="background:var(--card2);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40">
+    <a href="/employee" style="color:var(--muted);text-decoration:none;font-size:22px">←</a>
+    <div style="flex:1">
+      <h1 style="font-size:16px;font-weight:700;color:var(--text)">مناوباتي</h1>
+      <div style="font-size:11px;color:var(--muted)">{{ emp.department }}</div>
+    </div>
+    <select onchange="goMonth(this.value)" style="font-size:12px;padding:5px 8px!important">
+      {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1==month %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+    </select>
+  </header>
+
+  <main class="mobile-pb" style="padding:14px;max-width:560px;margin:0 auto">
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="stat-card" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);padding:12px 10px">
+        <div style="font-size:11px;color:#818cf8;margin-bottom:3px">📅 مناوباتي</div>
+        <div class="stat-val" style="color:#818cf8;font-size:24px">{{ my_schedules|length }}</div>
+        <div style="font-size:10px;color:#818cf8;opacity:.7">هذا الشهر</div>
+      </div>
+      <div class="stat-card" style="background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.25);padding:12px 10px">
+        <div style="font-size:11px;color:#22c55e;margin-bottom:3px">⏱ ساعات العمل</div>
+        <div class="stat-val" style="color:#22c55e;font-size:24px">{{ total_hours }}</div>
+        <div style="font-size:10px;color:#22c55e;opacity:.7">ساعة</div>
+      </div>
+      <div class="stat-card" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);padding:12px 10px">
+        <div style="font-size:11px;color:#f59e0b;margin-bottom:3px">🔄 طلبات تبديل</div>
+        <div class="stat-val" style="color:#f59e0b;font-size:24px">{{ my_swaps_recv|length }}</div>
+        <div style="font-size:10px;color:#f59e0b;opacity:.7">تحتاج ردك</div>
+      </div>
+    </div>
+
+    <!-- Incoming swap requests (need my response) -->
+    {% if my_swaps_recv %}
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;border-color:rgba(245,158,11,.4)">
+      <div style="padding:12px 16px;background:rgba(245,158,11,.1);border-bottom:1px solid rgba(245,158,11,.25);display:flex;align-items:center;gap:6px">
+        <span style="font-size:14px">🔔</span>
+        <span style="font-size:13px;font-weight:600;color:#f59e0b">طلبات تبديل واردة تحتاج ردك</span>
+      </div>
+      {% for swap in my_swaps_recv %}
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border2)" id="rswap-{{ swap.id }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:3px">{{ swap.requester.full_name }} يطلب تبديل مناوبة معك</div>
+            {% if swap.req_sched and swap.tgt_sched %}
+            <div style="font-size:12px;color:var(--muted)">
+              يريد أخذ مناوبتك <strong style="color:var(--text)">{{ swap.tgt_sched.shift_type.name if swap.tgt_sched.shift_type else '؟' }} ({{ swap.tgt_sched.scheduled_date.strftime('%d/%m') }})</strong>
+              مقابل <strong style="color:var(--text)">{{ swap.req_sched.shift_type.name if swap.req_sched.shift_type else '؟' }} ({{ swap.req_sched.scheduled_date.strftime('%d/%m') }})</strong>
+            </div>
+            {% endif %}
+            {% if swap.reason %}<div style="font-size:11px;color:var(--muted);margin-top:3px">💬 {{ swap.reason }}</div>{% endif %}
+          </div>
+          <div style="display:flex;gap:7px">
+            <button class="btn btn-green" style="padding:7px 14px;font-size:13px" onclick="respondSwap({{ swap.id }},'accept')">✓ قبول</button>
+            <button class="btn" style="padding:7px 14px;font-size:13px;background:rgba(239,68,68,.15);color:#ef4444" onclick="respondSwap({{ swap.id }},'decline')">✗ رفض</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Upcoming shifts -->
+    {% if upcoming %}
+    <div class="card" style="overflow:hidden;margin-bottom:14px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-calendar-due" style="font-size:16px;color:#818cf8" aria-hidden="true"></i> المناوبات القادمة
+      </div>
+      {% for ss in upcoming %}
+      {% set st = ss.shift_type %}
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border2)">
+        <div style="width:44px;height:44px;border-radius:10px;background:{{ st.color if st else '#64748b' }}22;border:1px solid {{ st.color if st else '#64748b' }}44;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+          <div style="font-size:15px;font-weight:700;color:{{ st.color if st else '#64748b' }}">{{ ss.scheduled_date.day }}</div>
+          <div style="font-size:9px;color:var(--muted)">{{ ['أح','إث','ثل','أر','خم','جم','سب'][ss.scheduled_date.weekday()] }}</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">{{ st.name if st else '؟' }}</div>
+          <div style="font-size:12px;color:var(--muted);direction:ltr;text-align:right">{{ st.time_range if st else '' }}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:12px;font-weight:600;color:#22c55e">{{ st.duration_hours if st else 0 }}</div>
+          <div style="font-size:10px;color:var(--muted)">ساعة</div>
+        </div>
+        {% if ss.scheduled_date >= today %}
+        <button onclick="openSwapWizard({{ ss.id }},'{{ ss.scheduled_date }}','{{ st.name if st else '' }}')"
+          class="btn btn-ghost" style="padding:6px 10px;font-size:12px" title="طلب تبديل">
+          <i class="ti ti-arrows-exchange" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Shift distribution chart -->
+    {% if shift_counts %}
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-chart-donut" style="font-size:16px" aria-hidden="true"></i> توزيع مناوباتي — {{ month_name }}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        {% for name, count in shift_counts.items() %}
+        {% set pct = (count / my_schedules|length * 100)|round|int if my_schedules else 0 %}
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:var(--text)">{{ name }}</span>
+            <span style="color:var(--muted)">{{ count }} مرة ({{ pct }}%)</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:{{ pct }}%;background:#818cf8"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Monthly schedule -->
+    {% if my_schedules %}
+    <div class="card" style="overflow:hidden;margin-bottom:14px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
+        📋 جدول {{ month_name }} الكامل
+      </div>
+      {% for ss in my_schedules %}
+      {% set st = ss.shift_type %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border2)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:8px;height:8px;border-radius:50%;background:{{ st.color if st else '#64748b' }};flex-shrink:0"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600">{{ ss.scheduled_date.strftime('%d/%m') }} — {{ ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][ss.scheduled_date.weekday()] }}</div>
+            <div style="font-size:11px;color:var(--muted)">{{ st.time_range if st else '' }}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:{{ st.color if st else '#64748b' }}20;color:{{ st.color if st else '#64748b' }}">{{ st.name if st else '؟' }}</span>
+          {% if ss.scheduled_date >= today %}
+          <button onclick="openSwapWizard({{ ss.id }},'{{ ss.scheduled_date }}','{{ st.name if st else '' }}')"
+            class="btn btn-ghost" style="padding:5px 8px;font-size:11px">تبديل</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- My sent swap requests -->
+    {% if my_swaps_sent %}
+    <div class="card" style="overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
+        📤 طلبات التبديل المُرسَلة
+      </div>
+      {% for sw in my_swaps_sent %}
+      <div style="padding:11px 16px;border-bottom:1px solid var(--border2)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:600">→ {{ sw.target.full_name }}</div>
+            <div style="font-size:11px;color:var(--muted)">{{ sw.created_at.strftime('%d/%m/%Y') }}</div>
+            {% if sw.reason %}<div style="font-size:11px;color:var(--muted)">{{ sw.reason[:60] }}{% if sw.reason|length > 60 %}...{% endif %}</div>{% endif %}
+          </div>
+          <span class="badge
+            {% if sw.status=='approved' %}badge-present
+            {% elif sw.status=='rejected' %}badge-absent
+            {% elif sw.status=='target_approved' %}badge-late
+            {% else %}badge-late{% endif %}">
+            {% if sw.status=='pending' %}⏳ انتظار
+            {% elif sw.status=='target_approved' %}✓ قبل الزميل
+            {% elif sw.status=='approved' %}✅ مُعتمد
+            {% elif sw.status=='rejected' %}❌ مرفوض
+            {% else %}{{ sw.status }}{% endif %}
+          </span>
+        </div>
+      </div>
+      {% else %}
+      <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">لا توجد طلبات مُرسَلة</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not my_schedules and not upcoming %}
+    <div style="text-align:center;padding:48px 16px">
+      <div style="font-size:48px;margin-bottom:12px">📅</div>
+      <div style="font-size:14px;color:var(--muted)">لا توجد مناوبات مُعيَّنة لهذا الشهر</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:6px">تواصل مع المدير لمعرفة جدولك</div>
+    </div>
+    {% endif %}
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/employee" class="bottom-nav-item"><i class="ti ti-home-2"></i><span>الرئيسية</span></a>
+    <a href="/employee/shifts" class="bottom-nav-item active"><i class="ti ti-calendar-event"></i><span>المناوبات</span></a>
+    <a href="/employee/history" class="bottom-nav-item"><i class="ti ti-calendar-stats"></i><span>السجل</span></a>
+    <a href="/employee/leaves" class="bottom-nav-item"><i class="ti ti-file-text"></i><span>الطلبات</span></a>
+    <a href="/logout" class="bottom-nav-item"><i class="ti ti-logout"></i><span>خروج</span></a>
+  </nav>
+</div>
+
+<!-- Swap Wizard Modal -->
+<div class="modal-overlay" id="swapModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:4px">🔄 طلب تبديل مناوبة</h3>
+    <div id="swapMyShiftInfo" style="font-size:13px;color:var(--muted);margin-bottom:16px"></div>
+    <input type="hidden" id="swapMySchedId">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label>اختر الزميل</label>
+        <select id="swapColleague" onchange="loadColleagueShifts()" style="margin-bottom:0">
+          <option value="">— اختر زميلاً من قسمك —</option>
+          {% for c in colleagues %}
+          <option value="{{ c.id }}">{{ c.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div id="colleagueShiftsDiv" style="display:none">
+        <label>مناوبة الزميل للتبديل (اختياري)</label>
+        <select id="swapHisSched">
+          <option value="">— أي مناوبة —</option>
+        </select>
+      </div>
+      <div>
+        <label>سبب الطلب</label>
+        <textarea id="swapReason" rows="2" style="resize:none" placeholder="اكتب سبب طلب التبديل..."></textarea>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted)">
+        ℹ️ سيُرسَل الطلب إلى زميلك للموافقة، ثم إلى المدير للاعتماد النهائي.
+      </div>
+      <button class="btn btn-red" onclick="submitSwap()">إرسال طلب التبديل</button>
+      <button class="btn btn-outline" onclick="closeModal('swapModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function goMonth(m){
+  const url=new URL(location.href);url.searchParams.set('month',m);location.href=url.toString();
+}
+
+function openSwapWizard(schedId, schedDate, shiftName){
+  document.getElementById('swapMySchedId').value=schedId;
+  document.getElementById('swapMyShiftInfo').textContent=`مناوبتك: ${shiftName} — ${schedDate}`;
+  document.getElementById('swapColleague').value='';
+  document.getElementById('colleagueShiftsDiv').style.display='none';
+  document.getElementById('swapReason').value='';
+  openModal('swapModal');
+}
+
+async function loadColleagueShifts(){
+  const cid=document.getElementById('swapColleague').value;
+  const div=document.getElementById('colleagueShiftsDiv');
+  const sel=document.getElementById('swapHisSched');
+  sel.innerHTML='<option value="">— أي مناوبة —</option>';
+  if(!cid){div.style.display='none';return;}
+  div.style.display='block';
+  try{
+    const r=await fetch(`/api/shifts/employee/${cid}/{{ month }}/{{ year }}`);
+    const d=await r.json();
+    d.schedules.forEach(s=>{
+      sel.innerHTML+=`<option value="${s.id}">${s.shift_name} — ${s.date_ar} (${s.time_range})</option>`;
+    });
+  }catch{}
+}
+
+async function submitSwap(){
+  const colId=document.getElementById('swapColleague').value;
+  if(!colId){toast('يرجى اختيار الزميل.','err');return;}
+  const r=await api('/employee/shifts/swap/request',{
+    my_schedule_id:document.getElementById('swapMySchedId').value||null,
+    target_employee_id:colId,
+    target_schedule_id:document.getElementById('swapHisSched').value||null,
+    reason:document.getElementById('swapReason').value.trim()
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('swapModal');setTimeout(()=>location.reload(),1500);}
+}
+
+async function respondSwap(id,action){
+  const r=await api(`/employee/shifts/swaps/${id}/respond`,{action});
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){document.getElementById(`rswap-${id}`).style.opacity='.4';setTimeout(()=>location.reload(),1200);}
+}
+</script>
+{% endblock %}

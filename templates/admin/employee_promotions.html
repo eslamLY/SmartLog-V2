@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% set nav_active = 'promotions' %}
+{% block title %}إدارة الترقيات{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-arrow-up-circle" style="color:var(--accent)"></i> إدارة الترقيات</h1>
+</header>
+<div style="padding:20px">
+  <div class="tabs" style="display:flex;gap:4px;background:var(--card);padding:6px;border-radius:12px;margin-bottom:20px;flex-wrap:wrap">
+    <div class="tab active" onclick="switchPromoTab('eligible',this)"><i class="ti ti-check-circle"></i> الموظفون المؤهلون</div>
+    <div class="tab" onclick="switchPromoTab('check',this)"><i class="ti ti-search"></i> التحقق من موظف</div>
+    <div class="tab" onclick="switchPromoTab('execute',this)"><i class="ti ti-arrow-up"></i> تنفيذ ترقية</div>
+    <div class="tab" onclick="switchPromoTab('history',this)"><i class="ti ti-history"></i> سجل الترقيات</div>
+    <div class="tab" onclick="switchPromoTab('grades',this)"><i class="ti ti-stairs"></i> سلم الدرجات</div>
+  </div>
+
+  <!-- TAB: Eligible Employees -->
+  <div class="promo-tab-content active" id="promo-eligible">
+    <div class="section-header"><h2><i class="ti ti-check-circle"></i> الموظفون المؤهلون للترقية</h2>
+      <button class="btn btn-accent btn-sm" onclick="loadEligible()"><i class="ti ti-refresh"></i> تحديث</button>
+    </div>
+    <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="tbl">
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>الدرجة الحالية</th><th>الدرجة المستهدفة</th><th>المتطلبات</th><th>إجراء</th>
+        </tr></thead>
+        <tbody id="eligibleBody">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">اضغط "تحديث" لعرض المؤهلين</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Check Employee -->
+  <div class="promo-tab-content" id="promo-check">
+    <div class="section-header"><h2><i class="ti ti-search"></i> التحقق من أهلية موظف</h2></div>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <input type="text" id="checkEmpId" class="form-input" style="max-width:300px" placeholder="رقم الموظف">
+      <button class="btn btn-accent btn-sm" onclick="checkPromotion()"><i class="ti ti-search"></i> تحقق</button>
+    </div>
+    <div id="checkResult" style="display:none"></div>
+  </div>
+
+  <!-- TAB: Execute Promotion -->
+  <div class="promo-tab-content" id="promo-execute">
+    <div class="section-header"><h2><i class="ti ti-arrow-up"></i> تنفيذ ترقية</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;max-width:700px">
+      <div>
+        <label>رقم الموظف</label>
+        <input type="text" id="execEmpId" class="form-input" placeholder="رقم الموظف">
+      </div>
+      <div>
+        <label>رقم القرار</label>
+        <input type="text" id="execDecisionNo" class="form-input" placeholder="رقم قرار الترقية">
+      </div>
+      <div>
+        <label>تاريخ القرار</label>
+        <input type="date" id="execDecisionDate" class="form-input">
+      </div>
+      <div>
+        <label>تاريخ التفعيل</label>
+        <input type="date" id="execEffectiveDate" class="form-input">
+      </div>
+      <div style="grid-column:span 2">
+        <label>مبررات الترقية</label>
+        <textarea id="execJustification" class="form-input" rows="2" placeholder="المبررات"></textarea>
+      </div>
+      <div>
+        <button class="btn btn-red" onclick="executePromotion()"><i class="ti ti-arrow-up"></i> تنفيذ الترقية</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: History -->
+  <div class="promo-tab-content" id="promo-history">
+    <div class="section-header"><h2><i class="ti ti-history"></i> سجل الترقيات</h2></div>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <input type="text" id="historyEmpId" class="form-input" style="max-width:300px" placeholder="رقم الموظف">
+      <button class="btn btn-accent btn-sm" onclick="loadPromotionHistory()"><i class="ti ti-search"></i> عرض</button>
+    </div>
+    <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="tbl">
+        <thead><tr>
+          <th>من درجة</th><th>إلى درجة</th><th>من راتب</th><th>إلى راتب</th><th>رقم القرار</th><th>تاريخ التفعيل</th><th>الحالة</th>
+        </tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Grade Chain -->
+  <div class="promo-tab-content" id="promo-grades">
+    <div class="section-header"><h2><i class="ti ti-stairs"></i> سلم الدرجات الوظيفية</h2></div>
+    <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="tbl">
+        <thead><tr>
+          <th>الدرجة</th><th>الكود</th><th>المستوى</th><th>الراتب الأساسي</th><th>بدل المسؤولية</th><th>بدل النقل</th><th>بدل السكن</th><th>الدرجة التالية</th>
+        </tr></thead>
+        <tbody id="gradesBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/promotions.js"></script>
+{% endblock %}

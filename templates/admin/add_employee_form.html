@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+{% set nav_active = 'employees' %}
+{% block title %}إضافة موظف - بيانات متقدمة{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-user-plus" style="color:var(--accent)"></i> إضافة موظف - البيانات المتقدمة</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-accent btn-sm" id="saveBtn" onclick="saveAll()"><i class="ti ti-device-floppy"></i> حفظ</button>
+    <a href="/admin/employees" class="btn btn-outline btn-sm"><i class="ti ti-arrow-right"></i> عودة</a>
+  </div>
+</header>
+<div class="form-container">
+  <div class="tabs" id="formTabs">
+    <div class="tab active" data-tab="basic"><i class="ti ti-user"></i> الأساسية</div>
+    <div class="tab" data-tab="contact"><i class="ti ti-phone"></i> الاتصال</div>
+    <div class="tab" data-tab="bank"><i class="ti ti-building-bank"></i> البنك</div>
+    <div class="tab" data-tab="family"><i class="ti ti-users"></i> الأسرة</div>
+    <div class="tab" data-tab="gov"><i class="ti ti-government"></i> حكومي</div>
+    <div class="tab" data-tab="clearance"><i class="ti ti-shield-lock"></i> التصريح</div>
+    <div class="tab" data-tab="insurance"><i class="ti ti-heartbeat"></i> التأمين</div>
+    <div class="tab" data-tab="qual"><i class="ti ti-certificate"></i> المؤهلات</div>
+    <div class="tab" data-tab="grade"><i class="ti ti-stairs"></i> الدرجة</div>
+    <div class="tab" data-tab="leave"><i class="ti ti-calendar"></i> الإجازات</div>
+  </div>
+
+  <form id="employeeForm">
+    <input type="hidden" id="employee_id" name="employee_id" value="{{ request.args.get('eid', '') }}">
+
+    <!-- TAB 1: BASIC -->
+    <div class="tab-content active" id="tab-basic">
+      <div class="section-header"><h2><i class="ti ti-user"></i> المعلومات الأساسية</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>الرقم الوظيفي</label>
+          <input type="text" id="emp_code" class="form-input" placeholder="اختياري">
+        </div>
+        <div>
+          <label>الرقم الوطني</label>
+          <input type="text" id="national_id" class="form-input" placeholder="رقم الهوية">
+        </div>
+        <div>
+          <label>جواز السفر</label>
+          <input type="text" id="passport_number" class="form-input" placeholder="رقم الجواز">
+        </div>
+        <div>
+          <label>تاريخ انتهاء الهوية</label>
+          <input type="date" id="id_expiry_date" class="form-input">
+        </div>
+        <div>
+          <label>جهة الإصدار</label>
+          <input type="text" id="id_issuing_authority" class="form-input" placeholder="جهة إصدار الهوية">
+        </div>
+        <div class="checkbox-cell">
+          <label><input type="checkbox" id="id_verified"> تم التحقق من الهوية</label>
+        </div>
+        <div>
+          <label>الحالة الاجتماعية</label>
+          <select id="marital_status" class="form-input">
+            <option value="single">أعزب</option>
+            <option value="married">متزوج</option>
+            <option value="divorced">مطلق</option>
+            <option value="widowed">أرمل</option>
+          </select>
+        </div>
+        <div>
+          <label>اسم الزوج/الزوجة</label>
+          <input type="text" id="spouse_name" class="form-input">
+        </div>
+        <div>
+          <label>عدد الأطفال</label>
+          <input type="number" id="dependent_children" class="form-input" min="0" value="0">
+        </div>
+        <div>
+          <label>تصنيف الوظيفة</label>
+          <input type="text" id="job_classification" class="form-input" placeholder="مثل: إداري، فني">
+        </div>
+        <div>
+          <label>المسار الوظيفي</label>
+          <input type="text" id="career_path" class="form-input" placeholder="المسار الوظيفي">
+        </div>
+        <div>
+          <label>نوع العقد</label>
+          <select id="contract_type" class="form-input">
+            <option value="permanent">دائم</option>
+            <option value="temporary">مؤقت</option>
+            <option value="contract">عقد</option>
+            <option value="part-time">دوام جزئي</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CONTACT -->
+    <div class="tab-content" id="tab-contact">
+      <div class="section-header"><h2><i class="ti ti-phone"></i> معلومات الاتصال</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>رقم الهاتف الشخصي</label>
+          <input type="text" id="personal_phone" class="form-input" dir="ltr">
+        </div>
+        <div>
+          <label>رقم الهاتف الوظيفي</label>
+          <input type="text" id="work_phone" class="form-input" dir="ltr">
+        </div>
+        <div>
+          <label>البريد الإلكتروني الشخصي</label>
+          <input type="email" id="personal_email" class="form-input" dir="ltr">
+        </div>
+        <div>
+          <label>البريد الإلكتروني الوظيفي</label>
+          <input type="email" id="work_email" class="form-input" dir="ltr">
+        </div>
+        <div class="full-width">
+          <label>العنوان الدائم</label>
+          <textarea id="permanent_address" class="form-input" rows="2"></textarea>
+        </div>
+        <div class="full-width">
+          <label>العنوان الحالي</label>
+          <textarea id="current_address" class="form-input" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="section-header" style="margin-top:20px"><h2><i class="ti ti-ambulance"></i> جهة الاتصال في الطوارئ</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>الاسم</label>
+          <input type="text" id="emergency_name" class="form-input">
+        </div>
+        <div>
+          <label>رقم الهاتف</label>
+          <input type="text" id="emergency_phone" class="form-input" dir="ltr">
+        </div>
+        <div>
+          <label>صلة القرابة</label>
+          <input type="text" id="emergency_relation" class="form-input" placeholder="مثل: زوج، أخ">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: BANK -->
+    <div class="tab-content" id="tab-bank">
+      <div class="section-header"><h2><i class="ti ti-building-bank"></i> البيانات البنكية</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>اسم البنك</label>
+          <input type="text" id="bank_name" class="form-input" placeholder="مصرف الجمهورية">
+        </div>
+        <div>
+          <label>اسم صاحب الحساب</label>
+          <input type="text" id="bank_account_name" class="form-input">
+        </div>
+        <div>
+          <label>رقم IBAN</label>
+          <input type="text" id="iban" class="form-input" dir="ltr" placeholder="LY...">
+        </div>
+        <div>
+          <label>نوع الحساب</label>
+          <select id="bank_account_type" class="form-input">
+            <option value="personal">شخصي</option>
+            <option value="joint">مشترك</option>
+            <option value="savings">توفير</option>
+          </select>
+        </div>
+        <div>
+          <label>فرع البنك</label>
+          <input type="text" id="bank_branch" class="form-input" placeholder="اسم الفرع">
+        </div>
+        <div class="checkbox-cell">
+          <label><input type="checkbox" id="bank_account_verified"> تم التحقق من الحساب</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: FAMILY -->
+    <div class="tab-content" id="tab-family">
+      <div class="section-header"><h2><i class="ti ti-users"></i> بيانات الأسرة</h2>
+        <button type="button" class="btn btn-accent btn-sm" onclick="addChildRow()"><i class="ti ti-plus"></i> إضافة ابن</button>
+      </div>
+      <div id="childrenContainer">
+        <div class="child-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 60px 60px;gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:var(--bg);border-radius:10px">
+          <div><label>الاسم</label><input type="text" class="form-input child-name" placeholder="الاسم الكامل"></div>
+          <div><label>تاريخ الميلاد</label><input type="date" class="form-input child-birth"></div>
+          <div><label>صلة القرابة</label>
+            <select class="form-input child-relation">
+              <option value="child">ابن</option>
+              <option value="daughter">ابنة</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
+          <div class="checkbox-cell" style="padding-bottom:6px"><label style="font-size:11px"><input type="checkbox" class="child-student"> طالب</label></div>
+          <div class="checkbox-cell" style="padding-bottom:6px"><label style="font-size:11px"><input type="checkbox" class="child-disabled"> إعاقة</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: GOVERNMENT -->
+    <div class="tab-content" id="tab-gov">
+      <div class="section-header"><h2><i class="ti ti-government"></i> البيانات الحكومية</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>رقم الملف الحكومي</label>
+          <input type="text" id="gov_file_number" class="form-input" placeholder="رقم الملف في الخدمة المدنية">
+        </div>
+        <div>
+          <label>الرقم المركزي</label>
+          <input type="text" id="gov_central_emp_id" class="form-input" placeholder="رقم الموظف المركزي">
+        </div>
+        <div>
+          <label>المنطقة</label>
+          <input type="text" id="gov_region" class="form-input" placeholder="منطقة العمل">
+        </div>
+        <div>
+          <label>القطاع</label>
+          <input type="text" id="gov_sector" class="form-input" placeholder="قطاع العمل">
+        </div>
+        <div>
+          <label>الجهة الأم</label>
+          <input type="text" id="gov_parent_institution" class="form-input" placeholder="الوزارة أو المؤسسة الأم">
+        </div>
+        <div>
+          <label>الجهة المشرفة</label>
+          <input type="text" id="gov_supervisory_body" class="form-input" placeholder="جهة الإشراف">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: CLEARANCE -->
+    <div class="tab-content" id="tab-clearance">
+      <div class="section-header"><h2><i class="ti ti-shield-lock"></i> التصريح الأمني</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>مستوى التصريح</label>
+          <select id="clearance_level" class="form-input">
+            <option value="public">عام</option>
+            <option value="confidential">سري</option>
+            <option value="secret">سري للغاية</option>
+            <option value="top_secret">سري للغاية - خاص</option>
+          </select>
+        </div>
+        <div>
+          <label>تاريخ التصريح</label>
+          <input type="date" id="clearance_date" class="form-input">
+        </div>
+        <div>
+          <label>تاريخ انتهاء التصريح</label>
+          <input type="date" id="clearance_expiry" class="form-input">
+        </div>
+        <div>
+          <label>جهة الإصدار</label>
+          <input type="text" id="clearance_authority" class="form-input" placeholder="جهة إصدار التصريح">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: INSURANCE -->
+    <div class="tab-content" id="tab-insurance">
+      <div class="section-header"><h2><i class="ti ti-heartbeat"></i> التأمين الصحي والاجتماعي</h2></div>
+      <h3 style="font-size:14px;font-weight:700;margin:0 0 10px;color:var(--accent)">الضمان الاجتماعي</h3>
+      <div class="form-grid">
+        <div>
+          <label>رقم التأمينات</label>
+          <input type="text" id="social_security_number" class="form-input" placeholder="رقم الاشتراك">
+        </div>
+        <div>
+          <label>تاريخ بداية الاشتراك</label>
+          <input type="date" id="social_security_start" class="form-input">
+        </div>
+        <div>
+          <label>نسبة الاشتراك (%)</label>
+          <input type="number" id="social_security_rate" class="form-input" value="8" step="0.1" min="0" max="100">
+        </div>
+        <div>
+          <label>الاشتراكات المتراكمة</label>
+          <input type="number" id="accumulated_contributions" class="form-input" value="0" step="0.01" min="0">
+        </div>
+      </div>
+      <h3 style="font-size:14px;font-weight:700;margin:16px 0 10px;color:var(--accent)">التأمين الصحي</h3>
+      <div class="form-grid">
+        <div>
+          <label>مستوى التأمين الصحي</label>
+          <select id="health_insurance_level" class="form-input">
+            <option value="basic">أساسي</option>
+            <option value="enhanced">ممتاز</option>
+            <option value="premium">مميز</option>
+          </select>
+        </div>
+        <div>
+          <label>عدد المعالين</label>
+          <input type="number" id="health_insurance_dependents" class="form-input" value="0" min="0">
+        </div>
+        <div>
+          <label>قسط التأمين الصحي</label>
+          <input type="number" id="health_insurance_premium" class="form-input" value="0" step="0.01" min="0">
+        </div>
+      </div>
+      <h3 style="font-size:14px;font-weight:700;margin:16px 0 10px;color:var(--accent)">تأمين الحياة</h3>
+      <div class="form-grid">
+        <div>
+          <label>تغطية تأمين الحياة</label>
+          <input type="number" id="life_insurance_coverage" class="form-input" value="0" step="0.01" min="0">
+        </div>
+        <div>
+          <label>المستفيد</label>
+          <input type="text" id="life_insurance_beneficiary" class="form-input" placeholder="اسم المستفيد">
+        </div>
+        <div>
+          <label>قسط التأمين</label>
+          <input type="number" id="life_insurance_premium" class="form-input" value="0" step="0.01" min="0">
+        </div>
+      </div>
+      <h3 style="font-size:14px;font-weight:700;margin:16px 0 10px;color:var(--accent)">تأمين إصابات العمل</h3>
+      <div class="form-grid">
+        <div>
+          <label>تغطية إصابات العمل</label>
+          <input type="number" id="injury_insurance_coverage" class="form-input" value="0" step="0.01" min="0">
+        </div>
+      </div>
+      <h3 style="font-size:14px;font-weight:700;margin:16px 0 10px;color:var(--accent)">التقاعد</h3>
+      <div class="form-grid">
+        <div>
+          <label>سن التقاعد</label>
+          <input type="number" id="retirement_age" class="form-input" value="60" min="45" max="70">
+        </div>
+        <div>
+          <label>نسبة المعاش (%)</label>
+          <input type="number" id="pension_rate" class="form-input" value="2.5" step="0.1" min="0" max="100">
+        </div>
+        <div>
+          <label>سنوات الخدمة</label>
+          <input type="number" id="years_of_service" class="form-input" value="0" step="0.5" min="0">
+        </div>
+        <div>
+          <label>المعاش المتوقع</label>
+          <input type="number" id="expected_pension" class="form-input" value="0" step="0.01" min="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 8: QUALIFICATIONS -->
+    <div class="tab-content" id="tab-qual">
+      <div class="section-header"><h2><i class="ti ti-certificate"></i> المؤهلات الدراسية</h2>
+        <button type="button" class="btn btn-accent btn-sm" onclick="addQualRow()"><i class="ti ti-plus"></i> إضافة مؤهل</button>
+      </div>
+      <div id="qualificationsContainer">
+        <div class="qual-row" style="display:grid;grid-template-columns:1fr 1fr 1fr 80px 80px;gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:var(--bg);border-radius:10px">
+          <div><label>المستوى</label>
+            <select class="form-input qual-level">
+              <option value="primary">ابتدائي</option>
+              <option value="intermediate">إعدادي</option>
+              <option value="secondary">ثانوي</option>
+              <option value="diploma">دبلوم</option>
+              <option value="bachelor">بكالوريوس</option>
+              <option value="master">ماجستير</option>
+              <option value="doctorate">دكتوراه</option>
+            </select>
+          </div>
+          <div><label>التخصص</label><input type="text" class="form-input qual-specialization" placeholder="التخصص"></div>
+          <div><label>المؤسسة</label><input type="text" class="form-input qual-institution" placeholder="الجامعة/المعهد"></div>
+          <div><label>سنة التخرج</label><input type="number" class="form-input qual-year" min="1950" max="2030"></div>
+          <div class="checkbox-cell" style="padding-bottom:6px"><label style="font-size:11px"><input type="checkbox" class="qual-foreign"> خارجي</label></div>
+        </div>
+      </div>
+
+      <div class="section-header" style="margin-top:20px"><h2><i class="ti ti-award"></i> الشهادات المهنية</h2>
+        <button type="button" class="btn btn-accent btn-sm" onclick="addCertRow()"><i class="ti ti-plus"></i> إضافة شهادة</button>
+      </div>
+      <div id="certificationsContainer">
+        <div class="cert-row" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:var(--bg);border-radius:10px">
+          <div><label>نوع الشهادة</label><input type="text" class="form-input cert-type" placeholder="مثل: CMA, PMP"></div>
+          <div><label>رقم الشهادة</label><input type="text" class="form-input cert-number"></div>
+          <div><label>جهة الإصدار</label><input type="text" class="form-input cert-body" placeholder="الجهة المانحة"></div>
+          <div><label>تاريخ الإصدار</label><input type="date" class="form-input cert-issue"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 9: GRADE -->
+    <div class="tab-content" id="tab-grade">
+      <div class="section-header"><h2><i class="ti ti-stairs"></i> الدرجة الوظيفية</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>الدرجة الوظيفية</label>
+          <select id="grade_id" class="form-input">
+            <option value="">اختر الدرجة</option>
+            {% for g in grades %}
+            <option value="{{ g.id }}">{{ g.name_ar }} ({{ g.code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 10: LEAVE -->
+    <div class="tab-content" id="tab-leave">
+      <div class="section-header"><h2><i class="ti ti-calendar"></i> أرصدة الإجازات الافتراضية</h2></div>
+      <div class="form-grid">
+        <div>
+          <label>رصيد الإجازة السنوية (يوم)</label>
+          <input type="number" id="annual_leave_days" class="form-input" value="30" min="0" max="60">
+        </div>
+        <div>
+          <label>رصيد الإجازة المرضية (يوم)</label>
+          <input type="number" id="sick_leave_days" class="form-input" value="15" min="0" max="90">
+        </div>
+        <div>
+          <label>إجازة الأمومة (يوم)</label>
+          <input type="number" id="maternity_leave_days" class="form-input" value="60" min="0" max="180">
+        </div>
+        <div>
+          <label>إجازة الأبوة (يوم)</label>
+          <input type="number" id="paternity_leave_days" class="form-input" value="5" min="0" max="30">
+        </div>
+        <div>
+          <label>إجازة الزواج (يوم)</label>
+          <input type="number" id="marriage_leave_days" class="form-input" value="7" min="0" max="30">
+        </div>
+        <div>
+          <label>إجازة الحج (يوم)</label>
+          <input type="number" id="hajj_leave_days" class="form-input" value="15" min="0" max="30">
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/employee-form-tabs.js"></script>
+{% endblock %}

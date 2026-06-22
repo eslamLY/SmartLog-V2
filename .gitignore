@@ -1,0 +1,57 @@
+# ─── Environment ────────────────────────────────────────────────────────────
+.env
+*.env.local
+*.env.prod
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+*.so
+*.dll
+*.dylib
+
+# ─── Virtualenv ──────────────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.venv/
+
+# ─── IDE / Editor ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Logs & Temp ───────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.pid
+instance/
+
+# ─── Uploads (user-generated content) ─────────────────────────────────────
+uploads/
+backups/
+
+# ─── Testing ───────────────────────────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# ─── Database ──────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+
+# ─── Project-specific ──────────────────────────────────────────────────────
+# Keep .env.example but not .env itself
+!.env.example

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#080c18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <title>الحضور — بنك دم طبرق</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="/static/css/pwa.css">
+  <link rel="stylesheet" href="/static/css/offline-mode.css">
+</head>
+<body>
+  <div id="app">
+    <header id="appHeader">
+      <div class="header-left">
+        <div class="app-logo"><i class="ti ti-heartbeat"></i></div>
+        <div>
+          <div class="app-title">بنك دم طبرق</div>
+          <div class="app-subtitle" id="headerSubtitle">نظام الحضور</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">متصل</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="offlineBanner" class="offline-banner" style="display:none">
+      <i class="ti ti-wifi-off"></i>
+      <span>أنت في وضع بدون إنترنت — يتم حفظ البيانات محلياً</span>
+    </div>
+
+    <div id="syncBanner" class="sync-banner" style="display:none">
+      <div class="sync-banner-content">
+        <div class="sync-spinner"></div>
+        <span id="syncBannerText">جاري مزامنة البيانات...</span>
+      </div>
+    </div>
+
+    <main id="mainContent">
+      <div class="employee-section">
+        <div class="emp-avatar" id="empAvatar">أ</div>
+        <div class="emp-info">
+          <div class="emp-name" id="empName">أحمد محمد</div>
+          <div class="emp-dept" id="empDept">قسم المختبر</div>
+          <div class="emp-id" id="empId">EMP001</div>
+        </div>
+      </div>
+
+      <div class="date-time-section">
+        <div class="current-date" id="currentDate">الخميس, 18 يونيو 2026</div>
+        <div class="current-time" id="currentTime">15:30:00</div>
+      </div>
+
+      <div class="attendance-status-card" id="attendanceCard">
+        <div class="status-icon" id="statusIcon">
+          <i class="ti ti-clock"></i>
+        </div>
+        <div class="status-text" id="statusTextMain">لم تسجل حضور اليوم</div>
+        <div class="status-time" id="statusTime"></div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-primary btn-lg pulse-glow" id="btnCheckIn" onclick="recordAttendance('check_in')">
+          <i class="ti ti-login"></i>
+          <span>تسجيل الحضور</span>
+        </button>
+        <button class="btn btn-secondary btn-lg" id="btnCheckOut" onclick="recordAttendance('check_out')" style="display:none">
+          <i class="ti ti-logout"></i>
+          <span>تسجيل الانصراف</span>
+        </button>
+      </div>
+
+      <div class="gps-status" id="gpsStatus">
+        <i class="ti ti-map-pin"></i>
+        <span id="gpsText">جاري تحديد الموقع...</span>
+      </div>
+
+      <div class="pending-section" id="pendingSection" style="display:none">
+        <div class="section-header">
+          <i class="ti ti-cloud-upload"></i>
+          <span>الحركات قيد المزامنة</span>
+          <span class="pending-count" id="pendingCount">0</span>
+        </div>
+        <div class="pending-list" id="pendingList"></div>
+      </div>
+
+      <div class="synced-section" id="syncedSection" style="display:none">
+        <div class="section-header">
+          <i class="ti ti-circle-check"></i>
+          <span>الحركات المكتملة</span>
+          <span class="synced-count" id="syncedCount">0</span>
+        </div>
+        <div class="synced-list" id="syncedList"></div>
+      </div>
+
+      <div class="today-records-section" id="todaySection" style="display:none">
+        <div class="section-header">
+          <i class="ti ti-calendar-stats"></i>
+          <span>حركات اليوم</span>
+        </div>
+        <div class="today-list" id="todayList"></div>
+      </div>
+    </main>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <nav class="bottom-nav">
+      <a href="/employee" class="bottom-nav-item">
+        <i class="ti ti-home-2"></i>
+        <span>الرئيسية</span>
+      </a>
+      <a href="/employee/attendance-offline" class="bottom-nav-item active">
+        <i class="ti ti-fingerprint"></i>
+        <span>الحضور</span>
+      </a>
+      <a href="/employee/shifts" class="bottom-nav-item">
+        <i class="ti ti-calendar-event"></i>
+        <span>المناوبات</span>
+      </a>
+      <a href="/employee/history" class="bottom-nav-item">
+        <i class="ti ti-calendar-stats"></i>
+        <span>السجل</span>
+      </a>
+      <a href="/logout" class="bottom-nav-item">
+        <i class="ti ti-logout"></i>
+        <span>خروج</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="/static/js/encryption-utils.js"></script>
+  <script src="/static/js/indexeddb-manager.js"></script>
+  <script src="/static/js/offline-sync.js"></script>
+  <script>
+  var currentEmployeeId = '';
+  var currentEmployeeName = '';
+  var currentEmployeeDept = '';
+  var lastRecordType = null;
+  var todayRecords = [];
+  var gpsWatchId = null;
+
+  function getSession() {
+    try {
+      var raw = localStorage.getItem('attendance_session');
+      if (!raw) return null;
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.encrypted) {
+          var decrypted = EncryptionUtils.decryptData(raw);
+          if (decrypted) return JSON.parse(decrypted);
+          return null;
+        }
+      } catch (e) {}
+      var p2 = JSON.parse(raw);
+      if (p2 && p2.employee_id) return p2;
+      return null;
+    } catch (e) { return null; }
+  }
+
+  function init() {
+    var session = getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+    currentEmployeeId = session.employee_id;
+    currentEmployeeName = session.employee_name || 'موظف';
+    currentEmployeeDept = session.department || '';
+    document.getElementById('empAvatar').textContent = currentEmployeeName[0] || 'م';
+    document.getElementById('empName').textContent = currentEmployeeName;
+    document.getElementById('empDept').textContent = currentEmployeeDept;
+    document.getElementById('empId').textContent = currentEmployeeId;
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    startGps();
+    checkTodayRecords();
+    loadPendingRecords();
+    setupSyncListeners();
+    OfflineSync.init();
+    checkConnection();
+    setInterval(checkConnection, 10000);
+  }
+
+  function updateDateTime() {
+    var now = new Date();
+    var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-SA', options);
+    document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function startGps() {
+    if (!navigator.geolocation) {
+      document.getElementById('gpsText').textContent = 'الموقع غير متاح على هذا الجهاز';
+      return;
+    }
+    gpsWatchId = navigator.geolocation.watchPosition(
+      function (pos) {
+        document.getElementById('gpsText').textContent =
+          'الموقع: ' + pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4) +
+          ' (الدقة: ' + Math.round(pos.coords.accuracy) + 'م)';
+        document.getElementById('gpsStatus').className = 'gps-status gps-ok';
+      },
+      function () {
+        document.getElementById('gpsText').textContent = 'تعذر الحصول على الموقع';
+        document.getElementById('gpsStatus').className = 'gps-status gps-err';
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  }
+
+  function getCurrentPosition() {
+    return new Promise(function (resolve) {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: Math.round(pos.coords.accuracy),
+          });
+        },
+        function () { resolve(null); },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
+  }
+
+  async function recordAttendance(type) {
+    var btn = type === 'check_in' ? document.getElementById('btnCheckIn') : document.getElementById('btnCheckOut');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> جاري التسجيل...';
+
+    var now = Date.now();
+    var gps = await getCurrentPosition();
+    var isOnline = await OfflineSync.checkServerConnectivity();
+
+    var record = {
+      employee_id: currentEmployeeId,
+      record_type: type,
+      client_timestamp: now,
+      gps_location: gps,
+      device_id: null,
+      biometric_type: gps ? 'gps' : 'manual',
+      offline_recorded: !isOnline,
+      sync_status: isOnline ? 'synced' : 'pending',
+      retry_count: 0,
+      created_at: now,
+      synced_at: isOnline ? now : null,
+      server_response: null,
+    };
+
+    try {
+      if (isOnline) {
+        var session = getSession();
+        var response = await fetch('/api/attendance/offline-sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (session ? session.token : ''),
+          },
+          body: JSON.stringify({
+            records: [{
+              employee_id: record.employee_id,
+              record_type: record.record_type,
+              client_timestamp: record.client_timestamp,
+              gps_location: record.gps_location,
+              biometric_type: record.biometric_type,
+              retry_count: 0,
+            }]
+          }),
+        });
+        var result = await response.json();
+        if (result.synced_records && result.synced_records.length > 0) {
+          record.server_response = result.synced_records[0];
+        }
+        if (result.failed_records && result.failed_records.length > 0) {
+          record.sync_status = 'failed';
+          record.server_response = result.failed_records[0];
+        }
+      }
+
+      var id = await IndexedDBManager.addAttendanceRecord(record);
+      record.id = id;
+
+      if (record.sync_status === 'pending') {
+        OfflineSync.syncOfflineRecords();
+      }
+
+      showToast(
+        record.sync_status === 'synced'
+          ? '✅ تم تسجيل ' + (type === 'check_in' ? 'الحضور' : 'الانصراف') + ' بنجاح'
+          : '✅ تم حفظ البصمة محلياً\nسيتم رفعها فور توفر الإنترنت',
+        record.sync_status === 'synced' ? 'ok' : 'warning'
+      );
+
+      btn.disabled = false;
+      btn.innerHTML = type === 'check_in'
+        ? '<i class="ti ti-login"></i><span>تسجيل الحضور</span>'
+        : '<i class="ti ti-logout"></i><span>تسجيل الانصراف</span>';
+
+      if (type === 'check_in') {
+        document.getElementById('btnCheckIn').style.display = 'none';
+        document.getElementById('btnCheckOut').style.display = 'block';
+        updateAttendanceStatus('checked_in');
+      } else {
+        document.getElementById('btnCheckOut').style.display = 'none';
+        document.getElementById('btnCheckIn').style.display = 'block';
+        updateAttendanceStatus('checked_out');
+      }
+
+      await checkTodayRecords();
+      await loadPendingRecords();
+
+    } catch (e) {
+      record.offline_recorded = true;
+      record.sync_status = 'pending';
+      try {
+        var id2 = await IndexedDBManager.addAttendanceRecord(record);
+        record.id = id2;
+        OfflineSync.syncOfflineRecords();
+      } catch (e2) {}
+      showToast('✅ تم حفظ البصمة محلياً\nسيتم رفعها فور توفر الإنترنت', 'warning');
+      btn.disabled = false;
+      btn.innerHTML = type === 'check_in'
+        ? '<i class="ti ti-login"></i><span>تسجيل الحضور</span>'
+        : '<i class="ti ti-logout"></i><span>تسجيل الانصراف</span>';
+      if (type === 'check_in') {
+        document.getElementById('btnCheckIn').style.display = 'none';
+        document.getElementById('btnCheckOut').style.display = 'block';
+        updateAttendanceStatus('checked_in');
+      } else {
+        document.getElementById('btnCheckOut').style.display = 'none';
+        document.getElementById('btnCheckIn').style.display = 'block';
+        updateAttendanceStatus('checked_out');
+      }
+      await checkTodayRecords();
+      await loadPendingRecords();
+    }
+  }
+
+  function updateAttendanceStatus(status) {
+    var card = document.getElementById('attendanceCard');
+    var icon = document.getElementById('statusIcon');
+    var text = document.getElementById('statusTextMain');
+    var time = document.getElementById('statusTime');
+    var now = new Date();
+    var timeStr = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+    if (status === 'checked_in') {
+      card.className = 'attendance-status-card status-present';
+      icon.innerHTML = '<i class="ti ti-circle-check"></i>';
+      text.textContent = 'مسجل حضور اليوم';
+      time.textContent = 'وقت الحضور: ' + timeStr;
+    } else if (status === 'checked_out') {
+      card.className = 'attendance-status-card status-present';
+      icon.innerHTML = '<i class="ti ti-logout"></i>';
+      text.textContent = 'تم تسجيل الانصراف';
+      time.textContent = 'وقت الانصراف: ' + timeStr;
+    }
+  }
+
+  async function checkTodayRecords() {
+    try {
+      var records = await IndexedDBManager.getRecordsByEmployee(currentEmployeeId);
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      var todayTs = today.getTime();
+      todayRecords = records.filter(function (r) {
+        return r.created_at >= todayTs;
+      });
+      var checkIn = todayRecords.find(function (r) { return r.record_type === 'check_in'; });
+      var checkOut = todayRecords.find(function (r) { return r.record_type === 'check_out'; });
+      if (checkIn && !checkOut) {
+        document.getElementById('btnCheckIn').style.display = 'none';
+        document.getElementById('btnCheckOut').style.display = 'block';
+        updateAttendanceStatus('checked_in');
+        if (checkIn.server_response && checkIn.server_response.server_id) {
+          var ctime = new Date(checkIn.client_timestamp);
+          document.getElementById('statusTime').textContent =
+            'وقت الحضور: ' + ctime.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+        }
+      } else if (checkIn && checkOut) {
+        document.getElementById('btnCheckIn').style.display = 'none';
+        document.getElementById('btnCheckOut').style.display = 'none';
+        updateAttendanceStatus('checked_out');
+      } else {
+        document.getElementById('btnCheckIn').style.display = 'block';
+        document.getElementById('btnCheckOut').style.display = 'none';
+      }
+      renderTodayRecords();
+    } catch (e) {}
+  }
+
+  async function loadPendingRecords() {
+    try {
+      var pending = await IndexedDBManager.getRecordsByStatus('pending');
+      var section = document.getElementById('pendingSection');
+      var list = document.getElementById('pendingList');
+      var countEl = document.getElementById('pendingCount');
+      if (pending.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = 'block';
+      countEl.textContent = pending.length;
+      list.innerHTML = '';
+      pending.sort(function (a, b) { return b.created_at - a.created_at; });
+      pending.forEach(function (rec) {
+        var time = new Date(rec.client_timestamp || rec.created_at);
+        var timeStr = time.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+        var typeLabel = rec.record_type === 'check_in' ? 'حضور' : 'انصراف';
+        var diff = Date.now() - (rec.client_timestamp || rec.created_at);
+        var diffMin = Math.floor(diff / 60000);
+        var sinceText = diffMin < 1 ? 'منذ لحظات' : 'منذ ' + diffMin + ' دقائق';
+        var retryBadge = rec.retry_count > 0
+          ? '<span class="retry-badge">محاولة ' + rec.retry_count + '</span>'
+          : '';
+        list.innerHTML += '<div class="pending-item">' +
+          '<div class="pending-item-icon"><i class="ti ti-cloud-upload"></i></div>' +
+          '<div class="pending-item-info">' +
+          '<div class="pending-item-time">' + timeStr + '</div>' +
+          '<div class="pending-item-type">' + typeLabel + '</div>' +
+          '</div>' +
+          '<div class="pending-item-status">' +
+          '<span class="sync-badge sync-pending">🔄 قيد المزامنة</span>' +
+          retryBadge +
+          '<div class="pending-item-since">' + sinceText + '</div>' +
+          '</div>' +
+          '</div>';
+      });
+    } catch (e) {}
+  }
+
+  function renderTodayRecords() {
+    var section = document.getElementById('todaySection');
+    var list = document.getElementById('todayList');
+    if (todayRecords.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    list.innerHTML = '';
+    todayRecords.sort(function (a, b) { return b.created_at - a.created_at; });
+    todayRecords.forEach(function (rec) {
+      var time = new Date(rec.client_timestamp || rec.created_at);
+      var timeStr = time.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+      var typeLabel = rec.record_type === 'check_in' ? 'حضور' : 'انصراف';
+      var typeIcon = rec.record_type === 'check_in' ? 'ti-login' : 'ti-logout';
+      var statusIcon = rec.sync_status === 'synced' ? 'ti-circle-check' : 'ti-cloud-upload';
+      var statusLabel = rec.sync_status === 'synced' ? 'مكتمل' : 'معلق';
+      var statusClass = rec.sync_status === 'synced' ? 'status-synced' : 'status-pending';
+      list.innerHTML += '<div class="today-item">' +
+        '<div class="today-item-icon"><i class="ti ' + typeIcon + '"></i></div>' +
+        '<div class="today-item-info">' +
+        '<div class="today-item-time">' + timeStr + '</div>' +
+        '<div class="today-item-type">' + typeLabel + '</div>' +
+        '</div>' +
+        '<div class="today-item-status ' + statusClass + '">' +
+        '<i class="ti ' + statusIcon + '"></i> ' + statusLabel +
+        '</div>' +
+        '</div>';
+    });
+  }
+
+  function setupSyncListeners() {
+    OfflineSync.on('onSyncStart', function (total) {
+      document.getElementById('syncBanner').style.display = 'block';
+      document.getElementById('syncBannerText').textContent = 'جاري مزامنة البيانات... (0/' + total + ')';
+    });
+    OfflineSync.on('onSyncProgress', function (data) {
+      document.getElementById('syncBannerText').textContent =
+        'جاري مزامنة البيانات... (' + (data.synced + data.failed) + '/' + data.total + ')';
+    });
+    OfflineSync.on('onSyncComplete', function (data) {
+      document.getElementById('syncBanner').style.display = 'none';
+      if (data.count > 0) {
+        showToast('✅ تم مزامنة ' + data.count + ' حركات بنجاح', 'ok');
+      }
+      if (data.failed > 0) {
+        showToast('⚠️ تم مزامنة ' + data.count + ' حركات، فشلت ' + data.failed + ' حركة (تحتاج مراجعة)', 'err');
+      }
+      loadPendingRecords();
+      checkTodayRecords();
+    });
+    OfflineSync.on('onSyncError', function (data) {
+      document.getElementById('syncBanner').style.display = 'none';
+      if (data.error === 'no_session') {
+        showToast('⚠️ يرجى تسجيل الدخول أولاً', 'err');
+      }
+    });
+  }
+
+  function checkConnection() {
+    var dot = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    var banner = document.getElementById('offlineBanner');
+    if (!navigator.onLine) {
+      dot.className = 'status-dot offline';
+      text.textContent = 'غير متصل';
+      banner.style.display = 'flex';
+      return;
+    }
+    OfflineSync.checkServerConnectivity().then(function (online) {
+      if (online) {
+        dot.className = 'status-dot online';
+        text.textContent = 'متصل';
+        banner.style.display = 'none';
+      } else {
+        dot.className = 'status-dot offline';
+        text.textContent = 'غير متصل';
+        banner.style.display = 'flex';
+      }
+    });
+  }
+
+  function showToast(msg, type) {
+    var container = document.getElementById('toastContainer');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + (type || 'info');
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(function () {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-10px)';
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 5000);
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) {
+      loadPendingRecords();
+      checkTodayRecords();
+      checkConnection();
+    }
+  });
+
+  window.addEventListener('online', function () {
+    checkConnection();
+    OfflineSync.syncOfflineRecords();
+  });
+
+  window.addEventListener('offline', function () {
+    checkConnection();
+  });
+
+  init();
+  </script>
+</body>
+</html>

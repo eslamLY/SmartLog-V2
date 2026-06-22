@@ -1,0 +1,301 @@
+/**
+ * static/css/forecasting-premium.css — Premium styling for the AI forecasting dashboard.
+ * Dark theme optimized for data-heavy displays.
+ */
+
+:root {
+  --f-bg: var(--bg, #0f172a);
+  --f-card-bg: var(--card, #1e293b);
+  --f-border: var(--border, #2d3748);
+  --f-border2: var(--border2, #1e293b);
+  --f-text: var(--text, #e2e8f0);
+  --f-muted: var(--muted, #94a3b8);
+  --f-muted2: var(--muted2, #64748b);
+  --f-accent: #8b5cf6;
+  --f-green: #22c55e;
+  --f-amber: #f59e0b;
+  --f-red: #ef4444;
+}
+
+/* ─── HEADER ───────────────────────────────────────────── */
+.f-header {
+  background: linear-gradient(135deg, var(--f-card-bg), #111827);
+  border-bottom: 1px solid var(--f-border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-wrap: wrap;
+  gap: 10px;
+  backdrop-filter: blur(12px);
+}
+.f-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.f-header h1 i { color: var(--f-accent); }
+.f-header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ─── BADGES ───────────────────────────────────────────── */
+.f-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.f-badge-accent { background: rgba(139,92,246,.15); color: var(--f-accent); }
+.f-badge-green { background: rgba(34,197,94,.15); color: var(--f-green); }
+.f-badge-red { background: rgba(239,68,68,.15); color: var(--f-red); }
+.f-badge-amber { background: rgba(245,158,11,.15); color: var(--f-amber); }
+.f-badge-gray { background: rgba(148,163,184,.15); color: var(--f-muted); }
+
+/* ─── TABS ─────────────────────────────────────────────── */
+.f-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  background: var(--f-card-bg);
+  border-bottom: 1px solid var(--f-border);
+  overflow-x: auto;
+  position: sticky;
+  top: 57px;
+  z-index: 30;
+  backdrop-filter: blur(12px);
+}
+.f-tab {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  color: var(--f-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+}
+.f-tab:hover { color: var(--f-text); }
+.f-tab.active { color: var(--f-accent); border-bottom-color: var(--f-accent); }
+.f-content { display: none; padding: 0; }
+.f-content.active { display: block; }
+
+/* ─── GRID & CARDS ─────────────────────────────────────── */
+.f-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 20px;
+}
+.f-card {
+  background: var(--f-card-bg);
+  border: 1px solid var(--f-border);
+  border-radius: 16px;
+  padding: 18px;
+  transition: all .25s;
+}
+.f-card:hover { border-color: rgba(139,92,246,.25); }
+.f-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.f-loading {
+  text-align: center;
+  padding: 40px;
+  grid-column: 1 / -1;
+}
+.f-loading p { color: var(--f-muted); font-size: 14px; margin-top: 12px; }
+
+/* ─── STAT CARDS ───────────────────────────────────────── */
+.f-stat-card {
+  text-align: center;
+  padding: 16px;
+}
+.f-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin: 0 auto 8px;
+}
+.f-stat-number {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.f-stat-label {
+  font-size: 11px;
+  color: var(--f-muted);
+  margin-top: 2px;
+}
+.f-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--f-border2);
+  font-size: 13px;
+}
+.f-stat-row:last-child { border-bottom: none; }
+.f-stat-label { color: var(--f-muted); }
+.f-stat-value { font-weight: 700; }
+
+/* ─── BUTTONS ──────────────────────────────────────────── */
+.f-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+}
+.f-btn-accent { background: var(--f-accent); color: #fff; }
+.f-btn-accent:hover { background: #7c3aed; }
+.f-btn-green { background: var(--f-green); color: #fff; }
+.f-btn-outline { background: transparent; border: 1px solid var(--f-border); color: var(--f-text); }
+.f-btn-outline:hover { border-color: var(--f-accent); color: var(--f-accent); }
+.f-btn-red:hover { border-color: var(--f-red); color: var(--f-red); }
+.f-btn-sm { padding: 5px 10px; font-size: 11px; }
+.f-spin { animation: f-spin 1s linear infinite; }
+@keyframes f-spin { to { transform: rotate(360deg); } }
+
+/* ─── INPUTS ───────────────────────────────────────────── */
+.f-input {
+  background: var(--f-card-bg);
+  border: 1px solid var(--f-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--f-text);
+  font-size: 12px;
+}
+.f-input:focus { border-color: var(--f-accent); outline: none; }
+.f-form-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* ─── TABLES ───────────────────────────────────────────── */
+.f-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.f-table th, .f-table td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--f-border2);
+}
+.f-table th { color: var(--f-muted2); font-weight: 600; font-size: 11px; }
+.f-table tr:hover { background: rgba(139,92,246,.04); }
+
+/* ─── SPINNER ──────────────────────────────────────────── */
+.f-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--f-border2);
+  border-top-color: var(--f-accent);
+  border-radius: 50%;
+  animation: f-spin .8s linear infinite;
+}
+
+/* ─── RECOMMENDATIONS ──────────────────────────────────── */
+.f-rec {
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+.f-rec-critical { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.15); }
+.f-rec-high { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.15); }
+.f-rec-medium { background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.15); }
+.f-rec-low { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.15); }
+.f-rec-icon { font-size: 16px; flex-shrink: 0; }
+.f-rec-title { font-weight: 600; }
+.f-rec-msg { color: var(--f-muted); font-size: 11px; margin-top: 2px; }
+
+/* ─── SCENARIO / RESULT CARDS ──────────────────────────── */
+.f-result-card {
+  background: var(--f-card-bg);
+  border: 1px solid var(--f-border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.f-result-icon { font-size: 28px; margin-bottom: 8px; }
+.f-rec-box {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(16,185,129,.1);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.f-preset-card {
+  background: var(--f-card-bg);
+  border: 1px solid var(--f-border);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.f-preset-card:hover { border-color: var(--f-accent); transform: translateY(-2px); }
+
+/* ─── MODEL CARDS ──────────────────────────────────────── */
+.f-model-card {
+  background: var(--f-card-bg);
+  border: 1px solid var(--f-border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 8px;
+}
+.f-model-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.f-model-name { font-weight: 700; font-size: 14px; }
+.f-model-details { font-size: 12px; }
+
+/* ─── BAR TRACK ────────────────────────────────────────── */
+.f-bar-track {
+  height: 6px;
+  background: var(--f-border2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.f-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .6s ease;
+}
+
+/* ─── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .f-grid { grid-template-columns: 1fr; padding: 12px; }
+  .f-tabs { padding: 0 12px; }
+  .f-tab { padding: 8px 10px; font-size: 11px; }
+  .f-header { padding: 10px 12px; }
+}

@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التقارير — بنك دم طبرق</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #080c18;
+      --card: #0f172a;
+      --card2: #141d33;
+      --border: #1e2a45;
+      --border2: #17213a;
+      --text: #f0f4f9;
+      --muted: #8899b4;
+      --muted2: #566580;
+      --red: #dc2626;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --indigo: #6366f1;
+      --accent: #818cf8;
+      --glow: rgba(99,102,241,.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Cairo', 'Arial', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    ::selection { background: rgba(99,102,241,.3); color: #fff; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted2); }
+
+    /* ── Glassmorphic base ── */
+    .glass-card {
+      background: rgba(15,23,42,.72);
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      transition: all .3s cubic-bezier(.16,1,.3,1);
+    }
+    .glass-card:hover {
+      border-color: rgba(99,102,241,.2);
+      box-shadow: 0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(99,102,241,.06);
+      transform: translateY(-2px);
+    }
+
+    /* ── Header / Navbar ── */
+    .dashboard-header {
+      background: rgba(15,23,42,.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .dashboard-header h1 {
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dashboard-header h1 i { color: var(--accent); font-size: 24px; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── Notification Bell ── */
+    .notif-bell-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .notif-bell-btn {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card2);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .25s cubic-bezier(.16,1,.3,1);
+      font-size: 20px;
+    }
+    .notif-bell-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(99,102,241,.08);
+      transform: translateY(-1px);
+    }
+    .notif-bell-btn .badge-count {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+      border: 2px solid var(--card);
+      box-shadow: 0 2px 8px rgba(220,38,38,.4);
+    }
+
+    /* ── Notification Dropdown ── */
+    .notif-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      width: 360px;
+      max-height: 400px;
+      background: rgba(15,23,42,.88);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.6), 0 0 0 1px rgba(99,102,241,.08);
+      overflow: hidden;
+      display: none;
+      z-index: 100;
+      animation: notifSlideIn .25s cubic-bezier(.16,1,.3,1);
+    }
+    .notif-dropdown.open { display: block; }
+    @keyframes notifSlideIn {
+      from { opacity: 0; transform: translateY(-8px) scale(.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .notif-dropdown-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .notif-dropdown-header h3 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .notif-dropdown-header h3 i { color: var(--accent); }
+    .notif-dropdown-header .mark-read {
+      font-size: 12px;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity .2s;
+    }
+    .notif-dropdown-header .mark-read:hover { opacity: .7; }
+    .notif-list {
+      overflow-y: auto;
+      max-height: 320px;
+    }
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border2);
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .notif-item:hover { background: rgba(99,102,241,.06); }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item .notif-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .notif-item .notif-body { flex: 1; min-width: 0; }
+    .notif-item .notif-body .notif-text {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .notif-item .notif-body .notif-time {
+      font-size: 11px;
+      color: var(--muted2);
+      margin-top: 3px;
+    }
+    .notif-empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--muted);
+    }
+    .notif-empty-state i { font-size: 28px; display: block; margin-bottom: 8px; opacity: .5; }
+    .notif-empty-state p { font-size: 13px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 20px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .25s cubic-bezier(.16,1,.3,1);
+      text-decoration: none;
+      white-space: nowrap;
+      background: var(--card2);
+      color: var(--text);
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+    .btn:active { transform: translateY(0); }
+    .btn-green {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(22,163,74,.25);
+    }
+    .btn-indigo {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(99,102,241,.25);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border-color: var(--muted2);
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ── Filter Bar ── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      flex-wrap: wrap;
+      background: rgba(15,23,42,.5);
+      border-bottom: 1px solid var(--border2);
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-group label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .filter-bar input,
+    .filter-bar select {
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Cairo', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: all .2s;
+      min-width: 130px;
+    }
+    .filter-bar input:hover,
+    .filter-bar select:hover { border-color: rgba(255,255,255,.12); }
+    .filter-bar input:focus,
+    .filter-bar select:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--glow); }
+    .filter-bar select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 10px center;
+      padding-left: 30px;
+    }
+
+    /* ── Grid Layout ── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      padding: 20px 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    .report-card { overflow: hidden; }
+    .report-card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .report-card-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .report-card-header h2 i { color: var(--accent); font-size: 18px; }
+    .report-card-body {
+      padding: 14px 18px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    /* ── Status Badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-present { background: rgba(22,163,74,.15); color: var(--green); }
+    .badge-absent  { background: rgba(239,68,68,.15); color: var(--red); }
+    .badge-late    { background: rgba(245,158,11,.15); color: var(--amber); }
+    .badge-leave   { background: rgba(99,102,241,.15); color: var(--accent); }
+    .badge-pending { background: rgba(245,158,11,.12); color: var(--amber); }
+    .badge-approved{ background: rgba(22,163,74,.15); color: var(--green); }
+    .badge-rejected{ background: rgba(239,68,68,.15); color: var(--red); }
+
+    /* ── Tables ── */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl thead th {
+      padding: 10px 12px;
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      background: var(--card2);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .tbl tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border2); }
+    .tbl tbody tr { transition: all .2s; }
+    .tbl tbody tr:hover { background: rgba(99,102,241,.06); }
+    .tbl tbody tr:nth-child(even) { background: rgba(255,255,255,.012); }
+    .tbl tbody tr:nth-child(even):hover { background: rgba(99,102,241,.08); }
+
+    /* ── Stat Tiles ── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-tile {
+      text-align: center;
+      padding: 12px 8px;
+      border-radius: 12px;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+    }
+    .stat-tile .num { font-size: 22px; font-weight: 800; }
+    .stat-tile .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Insights ── */
+    .insight-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .insight-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      font-size: 13px;
+    }
+    .insight-chip i { font-size: 16px; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--muted);
+    }
+    .empty-state i { font-size: 36px; margin-bottom: 8px; opacity: .5; display: block; }
+    .empty-state p { font-size: 13px; }
+
+    /* ── Animations ── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card-animate { animation: fadeInUp .4s cubic-bezier(.16,1,.3,1) both; }
+    .card-animate:nth-child(1) { animation-delay: 0s; }
+    .card-animate:nth-child(2) { animation-delay: .1s; }
+    .card-animate:nth-child(3) { animation-delay: .2s; }
+    .card-animate:nth-child(4) { animation-delay: .3s; }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .export-progress {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── Analytics Section ── */
+    .analytics-section {
+      padding: 20px 24px 0;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .analytics-card {
+      overflow: hidden;
+      animation: fadeInUp .5s cubic-bezier(.16,1,.3,1) both;
+    }
+    .analytics-card:nth-child(1) { animation-delay: .1s; }
+    .analytics-card:nth-child(2) { animation-delay: .25s; }
+    .analytics-card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .analytics-card-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .analytics-card-header h2 i { font-size: 18px; }
+    .analytics-card-body { padding: 14px 18px; }
+    .alert-list { display: flex; flex-direction: column; gap: 10px; }
+    .alert-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      transition: all .3s;
+    }
+    .alert-item.warning {
+      border-color: rgba(245,158,11,.25);
+      background: rgba(245,158,11,.06);
+      animation: alertPulse 3s ease-in-out infinite;
+    }
+    .alert-item.danger {
+      border-color: rgba(220,38,38,.2);
+      background: rgba(220,38,38,.05);
+      animation: alertPulse 3s ease-in-out infinite .5s;
+    }
+    .alert-item.info {
+      border-color: rgba(99,102,241,.2);
+      background: rgba(99,102,241,.05);
+    }
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+      50% { box-shadow: 0 0 16px 2px rgba(245,158,11,.1); }
+    }
+    .alert-item.danger {
+      animation-name: alertPulseRed;
+    }
+    @keyframes alertPulseRed {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+      50% { box-shadow: 0 0 16px 2px rgba(220,38,38,.1); }
+    }
+    .alert-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .alert-body { flex: 1; min-width: 0; }
+    .alert-text { font-size: 13px; line-height: 1.6; }
+    .alert-meta { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+
+    /* ── Time Deficit Totalizer ── */
+    .totalizer-wrap {
+      text-align: center;
+      padding: 20px 12px;
+    }
+    .totalizer-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .totalizer-value {
+      font-size: 42px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--amber), var(--red));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      animation: totalizerGlow 3s ease-in-out infinite;
+    }
+    @keyframes totalizerGlow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.2); }
+    }
+    .totalizer-sub {
+      font-size: 12px;
+      color: var(--muted2);
+      margin-top: 8px;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
+    }
+    .totalizer-meter {
+      margin-top: 14px;
+      height: 6px;
+      background: var(--card2);
+      border-radius: 3px;
+      overflow: hidden;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .totalizer-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--amber), var(--red));
+      width: 0%;
+      transition: width 1.5s cubic-bezier(.16,1,.3,1);
+    }
+
+    /* ── Reports Tab Navigation ── */
+    .reports-tabs-nav {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+    .report-tab-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Cairo', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .25s;
+      white-space: nowrap;
+    }
+    .report-tab-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+      background: rgba(99,102,241,.06);
+    }
+    .report-tab-btn.active {
+      background: linear-gradient(135deg, rgba(99,102,241,.15), transparent);
+      border-color: var(--indigo);
+      color: var(--accent);
+    }
+    .report-table-wrap {
+      overflow-x: auto;
+      padding: 4px 0;
+    }
+
+    /* ── Print Header (hidden on screen) ── */
+    .print-header { display: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .dashboard-grid { padding: 12px; gap: 12px; }
+      .filter-bar { padding: 12px; }
+      .dashboard-header { padding: 12px 16px; }
+      .filter-bar input,
+      .filter-bar select { min-width: 100px; font-size: 12px; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+      .stat-tile .num { font-size: 18px; }
+      .report-card-body { max-height: 320px; padding: 10px 14px; }
+      .tbl { font-size: 12px; }
+      .tbl thead th,
+      .tbl tbody td { padding: 8px 8px; }
+      .notif-dropdown {
+        width: calc(100vw - 32px);
+        left: -80px;
+        right: auto;
+      }
+      .header-actions .btn span { display: none; }
+    }
+    @media (max-width: 400px) {
+      .notif-dropdown {
+        left: -60px;
+      }
+    }
+
+    /* ── Print Styles ── */
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      .dashboard-header,
+      .filter-bar,
+      .header-actions,
+      .btn { display: none !important; }
+      .notif-bell-wrap { display: none !important; }
+      .analytics-section { display: none !important; }
+      .dashboard-grid {
+        display: block !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+      .report-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 18px;
+        border: 1px solid #ddd !important;
+        background: #fff !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+        border-radius: 4px !important;
+        transform: none !important;
+      }
+      .glass-card {
+        background: #fff !important;
+        backdrop-filter: none !important;
+        border: 1px solid #ddd !important;
+      }
+      .print-header {
+        display: block !important;
+        text-align: center;
+        padding: 20px 0 10px;
+        border-bottom: 2px solid #111;
+        margin-bottom: 16px;
+      }
+      .print-header .logo-placeholder {
+        width: 50px;
+        height: 50px;
+        background: #dc2626;
+        border-radius: 10px;
+        margin: 0 auto 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 24px;
+        font-weight: 800;
+      }
+      .print-header h1 { font-size: 20px; color: #000; margin: 4px 0; }
+      .print-header .print-date { font-size: 12px; color: #666; }
+      .report-card-header { background: #f5f5f5 !important; border-bottom: 1px solid #ddd !important; }
+      .report-card-header h2 { color: #000 !important; }
+      .tbl thead th {
+        background: #eee !important;
+        color: #333 !important;
+        border-bottom: 2px solid #999 !important;
+      }
+      .tbl tbody td { color: #333 !important; border-bottom: 1px solid #eee !important; }
+      .tbl tbody tr:nth-child(even) { background: #fafafa !important; }
+      .badge-present, .badge-absent, .badge-late, .badge-leave,
+      .badge-pending, .badge-approved, .badge-rejected {
+        background: #f0f0f0 !important;
+        color: #000 !important;
+        border: 1px solid #ccc;
+      }
+      .stat-tile { background: #f5f5f5 !important; border-color: #ddd !important; }
+      .stat-tile .num, .stat-tile .lbl { color: #333 !important; }
+      .report-card-body { max-height: none !important; overflow: visible !important; }
+      .insight-chip { background: #f5f5f5 !important; border-color: #ddd !important; color: #333 !important; }
+      * { color: #000 !important; }
+      .empty-state i, .report-card-header h2 i { color: #999 !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════ HEADER / NAVBAR ════════ -->
+  <header class="dashboard-header">
+    <h1><i class="ti ti-chart-bar"></i> لوحة التقارير</h1>
+    <div class="header-right">
+      <!-- Notification Bell -->
+      <div class="notif-bell-wrap" id="notifBellWrap">
+        <button class="notif-bell-btn" id="notifBellBtn" onclick="toggleNotifDropdown(event)" aria-label="الإشعارات">
+          <i class="ti ti-bell"></i>
+          <span class="badge-count" id="notifBadgeCount">3</span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-dropdown-header">
+            <h3><i class="ti ti-bell"></i> الإشعارات</h3>
+            <span class="mark-read" onclick="markAllNotifRead(event)">قراءة الكل</span>
+          </div>
+          <div class="notif-list" id="notifList"></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-green" onclick="printReport()"><i class="ti ti-printer"></i> <span>طباعة التقرير</span></button>
+        <button class="btn btn-indigo" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i> <span>تصدير Excel</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════ FILTER BAR ════════ -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>من</label>
+      <input type="date" id="filterDateFrom">
+    </div>
+    <div class="filter-group">
+      <label>إلى</label>
+      <input type="date" id="filterDateTo">
+    </div>
+    <div class="filter-group">
+      <label>الموظف</label>
+      <select id="filterEmployee">
+        <option value="">كل الموظفين</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>القسم</label>
+      <select id="filterDepartment">
+        <option value="">كل الأقسام</option>
+        <option value="بنك الدم">بنك الدم</option>
+        <option value="المختبر">المختبر</option>
+        <option value="الإدارة">الإدارة</option>
+        <option value="التمريض">التمريض</option>
+      </select>
+    </div>
+    <div class="filter-group" id="filterReportEmployeeGroup">
+      <label>الموظف (التقارير)</label>
+      <select id="filterReportEmployee">
+        <option value="">اختر موظفاً</option>
+      </select>
+    </div>
+    <div class="filter-group" id="filterYearGroup">
+      <label>السنة</label>
+      <select id="filterYear">
+      </select>
+    </div>
+  </div>
+
+  <!-- ════════ TAB NAVIGATION ════════ -->
+  <div class="reports-tabs-nav glass-card">
+    <button class="report-tab-btn active" data-tab="daily-dept" onclick="switchReportTab('daily-dept')"><i class="ti ti-building-community"></i> الكشف اليومي للأقسام</button>
+    <button class="report-tab-btn" data-tab="employee-stmt" onclick="switchReportTab('employee-stmt')"><i class="ti ti-user-search"></i> كشف حساب موظف تفصيلي</button>
+    <button class="report-tab-btn" data-tab="monthly-comp" onclick="switchReportTab('monthly-comp')"><i class="ti ti-chart-bar"></i> مقارنة الأشهر التراكمية</button>
+    <button class="btn btn-indigo" onclick="exportReportToExcel()" style="margin-right:auto;padding:6px 12px;font-size:12px"><i class="ti ti-file-spreadsheet"></i> تصدير Excel</button>
+  </div>
+
+  <!-- ════════ ACTIVE REPORT TABLE ════════ -->
+  <div class="glass-card" style="padding:16px;margin-bottom:20px">
+    <div id="active_report_table_container"><p style="color:var(--muted);text-align:center">اختر تقريراً من علامات التبويب أعلاه</p></div>
+  </div>
+
+  <!-- ════════ ANALYTICS SECTION ════════ -->
+  <div class="analytics-section">
+    <div class="analytics-grid">
+
+      <!-- ── Behavioral Alert Cards ── -->
+      <section class="analytics-card glass-card">
+        <div class="analytics-card-header">
+          <h2><i class="ti ti-alert-triangle" style="color:var(--amber)"></i> كاشف الأنماط السلوكية الذكي</h2>
+        </div>
+        <div class="analytics-card-body">
+          <div class="alert-list" id="behavioral_alerts_container"></div>
+        </div>
+      </section>
+
+      <!-- ── Time Deficit Totalizer ── -->
+      <section class="analytics-card glass-card">
+        <div class="analytics-card-header">
+          <h2><i class="ti ti-hourglass" style="color:var(--red)"></i> عداد الفقد الزمني الفعلي للعمل</h2>
+        </div>
+        <div class="analytics-card-body">
+          <div class="totalizer-wrap">
+            <div class="totalizer-label">إجمالي ساعات العمل المهدورة هذا الشهر</div>
+            <div class="totalizer-value" id="totalizerValue">0</div>
+            <div class="totalizer-sub">ساعات عمل مفقودة بسبب التأخير اليومي المتراكم والانصراف المبكر عبر جميع الأقسام</div>
+            <div class="totalizer-meter">
+              <div class="totalizer-fill" id="totalizerFill"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ════════ GRID ════════ -->
+  <div class="dashboard-grid">
+
+    <!-- ─── REPORT 1: Daily Attendance Summary ─── -->
+    <section class="report-card glass-card card-animate">
+      <div class="report-card-header">
+        <h2><i class="ti ti-calendar-stats"></i> التقرير اليومي العام</h2>
+        <span style="font-size:11px;color:var(--muted)" id="dailyDate"></span>
+      </div>
+      <div class="report-card-body">
+        <div class="stat-row">
+          <div class="stat-tile"><div class="num" style="color:var(--green)" id="dailyPresent">0</div><div class="lbl">موجود</div></div>
+          <div class="stat-tile"><div class="num" style="color:var(--red)" id="dailyAbsent">0</div><div class="lbl">غائب</div></div>
+          <div class="stat-tile"><div class="num" style="color:var(--amber)" id="dailyLate">0</div><div class="lbl">متأخر</div></div>
+          <div class="stat-tile"><div class="num" style="color:var(--accent)" id="dailyLeave">0</div><div class="lbl">في إجازة</div></div>
+        </div>
+        <table class="tbl" id="dailyTable">
+          <thead><tr><th>الموظف</th><th>القسم</th><th>الحالة</th><th>الحضور</th><th>الانصراف</th></tr></thead>
+          <tbody id="dailyTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ─── REPORT 2: Detailed Employee Sheet ─── -->
+    <section class="report-card glass-card card-animate">
+      <div class="report-card-header">
+        <h2><i class="ti ti-user-search"></i> كشف الموظف التفصيلي</h2>
+        <select onchange="renderDetailedSheet()" id="detailEmployeeSelect" style="padding:4px 8px;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;outline:none;width:140px">
+          <option value="">اختر موظفاً</option>
+        </select>
+      </div>
+      <div class="report-card-body">
+        <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="insight-chip"><i class="ti ti-clock"></i> إجمالي ساعات العمل: <strong id="detailTotalHours">0</strong></span>
+          <span class="insight-chip"><i class="ti ti-alarm" style="color:var(--amber)"></i> دقائق تأخير: <strong id="detailLateMin">0</strong></span>
+          <span class="insight-chip"><i class="ti ti-logout" style="color:var(--red)"></i> انصراف مبكر: <strong id="detailEarlyMin">0</strong></span>
+        </div>
+        <table class="tbl" id="detailTable">
+          <thead><tr><th>التاريخ</th><th>حضور</th><th>انصراف</th><th>تأخير (د)</th><th>انصراف مبكر (د)</th></tr></thead>
+          <tbody id="detailTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ─── REPORT 3: Total Deficit & Late Minutes ─── -->
+    <section class="report-card glass-card card-animate">
+      <div class="report-card-header">
+        <h2><i class="ti ti-alarm"></i> تقرير إجمالي دقائق التأخير وساعات العمل المفقودة</h2>
+      </div>
+      <div class="report-card-body">
+        <div style="margin-bottom:10px;display:flex;gap:12px;flex-wrap:wrap">
+          <span class="insight-chip"><i class="ti ti-clock-off" style="color:var(--red)"></i> إجمالي دقائق التأخير: <strong id="deficitTotalLateMin">0</strong> دقيقة</span>
+          <span class="insight-chip"><i class="ti ti-logout" style="color:var(--amber)"></i> إجمالي الانصراف المبكر: <strong id="deficitTotalEarlyMin">0</strong> دقيقة</span>
+          <span class="insight-chip"><i class="ti ti-hourglass" style="color:var(--accent)"></i> ساعات العمل المفقودة: <strong id="deficitTotalHours">0</strong></span>
+        </div>
+        <table class="tbl" id="deficitTable">
+          <thead><tr><th>الموظف</th><th>القسم</th><th>دقائق تأخير</th><th>انصراف مبكر (د)</th><th>ساعات مفقودة</th></tr></thead>
+          <tbody id="deficitTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ─── REPORT 4: Leave & Outing Logs ─── -->
+    <section class="report-card glass-card card-animate">
+      <div class="report-card-header">
+        <h2><i class="ti ti-file-description"></i> سجل الإجازات والأذونات</h2>
+      </div>
+      <div class="report-card-body">
+        <table class="tbl" id="leaveTable">
+          <thead><tr><th>الموظف</th><th>النوع</th><th>من</th><th>إلى</th><th>السبب</th><th>الحالة</th></tr></thead>
+          <tbody id="leaveTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ════════ PRINT HEADER (hidden on screen) ════════ -->
+  <div class="print-header">
+    <div class="logo-placeholder">بنك</div>
+    <h1>لوحة التقارير — بنك دم طبرق</h1>
+    <div class="print-date" id="printDate"></div>
+  </div>
+
+  <script>
+    var currentActiveTab = 'daily-dept';
+
+    const statusLabel = { present: 'موجود', absent: 'غائب', late: 'متأخر', leave: 'في إجازة' };
+    const statusIcon = { present: 'circle-check', absent: 'circle-x', late: 'clock', leave: 'calendar' };
+
+    function todayStr() {
+      return new Date().toLocaleDateString('ar-SA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    }
+
+    function fmtDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+    async function loadBehavioralInsights() {
+      var daysLimit = document.getElementById('filterDaysLimit') ? document.getElementById('filterDaysLimit').value : 30;
+      var container = document.getElementById('behavioral_alerts_container');
+      if (!container) return;
+      try {
+        container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px"><span class="spinner" style="margin-left:6px"></span> جاري تحليل الأنماط السلوكية إحصائياً...</div>';
+        var response = await fetch('/api/analytics/behavioral-insights?days=' + daysLimit);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        var insights = await response.json();
+        container.innerHTML = '';
+        var totalAlerts = 0;
+
+        insights.patterns.chronic_late.forEach(function(p) {
+          totalAlerts++;
+          var cardId = 'alert_chronic_' + p.employee_id;
+          var html = '<div class="behavior-alert-card glass-card mb-3" style="padding:12px 16px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.06);border-radius:12px;display:flex;align-items:center;gap:12px">' +
+            '<div style="flex:1;min-width:0">' +
+            '<p style="font-size:13px;color:var(--text)">⚠️ تنبيه سلوكي: الموظف <strong>' + p.employee_name + '</strong> يميل للتأخر بمتوسط <span style="color:var(--amber);font-weight:700">' + p.avg_late_minutes + ' دقيقة</span> بعد فترة السماح.</p>' +
+            '<small style="font-size:11px;color:var(--muted2)">' + p.department + ' · النمط: متكرر مزمن 📈</small>' +
+            '</div>' +
+            '<div class="sparkline-container" id="' + cardId + '" style="width:100px;height:30px;flex-shrink:0"></div></div>';
+          container.insertAdjacentHTML('beforeend', html);
+          renderSparkline(cardId, p.sparkline_data, '#f59e0b', 30, 100);
+        });
+
+        insights.patterns.weekend_friction.forEach(function(p) {
+          totalAlerts++;
+          var cardId = 'alert_weekend_' + p.employee_id;
+          var html = '<div class="behavior-alert-card glass-card mb-3" style="padding:12px 16px;border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.06);border-radius:12px;display:flex;align-items:center;gap:12px">' +
+            '<div style="flex:1;min-width:0">' +
+            '<p style="font-size:13px;color:var(--text)">📅 احتكاك نهاية الأسبوع: <strong>' + p.employee_name + '</strong> يظهر تراجعاً في الالتزام بأيام (الخميس/الأحد).</p>' +
+            '<small style="font-size:11px;color:var(--muted2)">' + p.department + ' · حالة الاستقرار: ثابت →</small>' +
+            '</div>' +
+            '<div class="sparkline-container" id="' + cardId + '" style="width:100px;height:30px;flex-shrink:0"></div></div>';
+          container.insertAdjacentHTML('beforeend', html);
+          renderSparkline(cardId, p.sparkline_data, '#f59e0b', 30, 100);
+        });
+
+        insights.patterns.department_anomalies.forEach(function(p, idx) {
+          totalAlerts++;
+          var isDanger = p.alert_type === 'danger';
+          var bg = isDanger ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)';
+          var border = isDanger ? 'rgba(239,68,68,.25)' : 'rgba(245,158,11,.25)';
+          var html = '<div class="behavior-alert-card glass-card mb-3" style="padding:12px 16px;border:1px solid ' + border + ';background:' + bg + ';border-radius:12px;display:flex;align-items:center;gap:12px">' +
+            '<div style="flex:1;min-width:0">' +
+            '<p style="font-size:13px;color:var(--text)">📉 فجوة دوام: تم رصد انحراف جماعي في <strong>' + p.department + '</strong> (خروج مبكر بمعدل ' + p.avg_deviation + ' د).</p>' +
+            '<small style="font-size:11px;color:var(--muted2)">درجة الشذوذ الإحصائي: Z = ' + p.z_score + ' · احتمال العشوائية أقل من 2%</small>' +
+            '</div></div>';
+          container.insertAdjacentHTML('beforeend', html);
+        });
+
+        if (totalAlerts === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">✅ لا توجد أنماط سلوكية شاذة أو فجوات دوام هذا الشهر. الالتزام ممتاز!</div>';
+        }
+      } catch (err) {
+        console.error('Behavioral insights error:', err);
+        container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--red);font-size:13px">❌ فشل الاتصال بمحرك التحليلات الإحصائي.</div>';
+      }
+    }
+
+    async function renderTotalizer() {
+      try {
+        var resp = await fetch('/api/reports/deficit?' + new URLSearchParams({
+          from_date: document.getElementById('filterDateFrom').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10),
+          to_date: document.getElementById('filterDateTo').value || new Date().toISOString().slice(0,10),
+          department: document.getElementById('filterDepartment').value || '',
+          employee: document.getElementById('filterEmployee').value || ''
+        }));
+        var data = await resp.json();
+        var totalLostMin = (data.total_late_min || 0) + (data.total_early_min || 0);
+        var lostHours = totalLostMin / 60;
+        var displayText = Math.floor(lostHours) + ' ساعة و ' + Math.round((lostHours % 1) * 60) + ' دقيقة عمل مفقودة';
+        if (lostHours < 1) displayText = Math.round(totalLostMin) + ' دقيقة عمل مفقودة';
+        document.getElementById('totalizerValue').textContent = displayText;
+        var maxRef = 240;
+        var pct = Math.min((lostHours / maxRef) * 100, 100);
+        setTimeout(function() { document.getElementById('totalizerFill').style.width = pct + '%'; }, 200);
+      } catch (e) {
+        document.getElementById('totalizerValue').textContent = '—';
+      }
+    }
+
+    /**
+     * محرك رسم خطوط الاتجاه المصغرة (SVG Sparklines) ديناميكياً
+     * @param {string} containerId - معرف العنصر الحاضر للرسم
+     * @param {number[]} dataPoints - مصفوفة البيانات الرقمية (مثلاً دقائق التأخير لآخر 30 يوم)
+     * @param {string} color - لون الخط (مثلاً #f59e0b للتحذير أو #ef4444 للخطر)
+     * @param {number} height - الارتفاع بالبكسل
+     * @param {number} width - العرض بالبكسل
+     */
+    function renderSparkline(containerId, dataPoints, color, height, width) {
+        var container = document.getElementById(containerId);
+        if (!container) return null;
+
+        container.innerHTML = '';
+
+        if (!dataPoints || dataPoints.length < 2) {
+            container.innerHTML = '<span style="font-size:11px;color:var(--muted2)">بيانات غير كافية</span>';
+            return { direction: 'flat' };
+        }
+
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', height);
+        svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+        svg.style.display = 'block';
+        svg.style.overflow = 'visible';
+
+        var max = Math.max.apply(null, dataPoints);
+        var min = Math.min.apply(null, dataPoints);
+        var range = max - min || 1;
+        var padding = 3;
+        var plotH = height - (padding * 2);
+
+        var points = dataPoints.map(function(val, i) {
+            var x = (i / (dataPoints.length - 1)) * (width - (padding * 2)) + padding;
+            var y = plotH - ((val - min) / range) * plotH + padding;
+            return x + ',' + y;
+        }).join(' ');
+
+        var polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', points);
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', color);
+        polyline.setAttribute('stroke-width', '1.8');
+        polyline.setAttribute('stroke-linecap', 'round');
+        polyline.setAttribute('stroke-linejoin', 'round');
+        polyline.style.filter = 'drop-shadow(0px 2px 4px ' + color + '40)';
+
+        svg.appendChild(polyline);
+        container.appendChild(svg);
+
+        var halfLength = Math.floor(dataPoints.length / 2);
+        var recent = dataPoints.slice(-halfLength).reduce(function(a, b) { return a + b; }, 0);
+        var prior = dataPoints.slice(0, halfLength).reduce(function(a, b) { return a + b; }, 0);
+
+        var direction = 'flat';
+        if (recent > prior * 1.05) direction = 'up';
+        if (recent < prior * 0.95) direction = 'down';
+
+        return { direction: direction, max: max, min: min };
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  2. RENDER — ALL FUNCTIONS NOW FETCH FROM LIVE API
+    // ══════════════════════════════════════════════════════════
+
+    function qs(key) { return document.getElementById(key).value; }
+
+    function apiParams(extra) {
+      var p = { department: qs('filterDepartment') || '', employee: qs('filterEmployee') || '' };
+      if (qs('filterDateFrom')) p.from_date = qs('filterDateFrom');
+      if (qs('filterDateTo')) p.to_date = qs('filterDateTo');
+      return Object.assign(p, extra || {});
+    }
+
+    async function renderDailyReport() {
+      try {
+        var resp = await fetch('/api/reports/daily-summary?' + new URLSearchParams(apiParams()));
+        var d = await resp.json();
+        document.getElementById('dailyPresent').textContent = d.present;
+        document.getElementById('dailyAbsent').textContent  = d.absent;
+        document.getElementById('dailyLate').textContent    = d.late;
+        document.getElementById('dailyLeave').textContent   = d.leave;
+        document.getElementById('dailyDate').textContent = todayStr();
+        var tbody = document.getElementById('dailyTableBody'); tbody.innerHTML = '';
+        (d.data || []).forEach(function(r) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td style="font-weight:600">' + r.name + '</td>' +
+            '<td style="color:var(--muted)">' + r.department + '</td>' +
+            '<td><span class="badge badge-' + r.status + '"><i class="ti ti-' + (statusIcon[r.status]||'circle') + '" style="font-size:12px"></i> ' + (statusLabel[r.status]||r.status) + '</span></td>' +
+            '<td style="direction:ltr;text-align:right">' + r.clock_in + '</td>' +
+            '<td style="direction:ltr;text-align:right">' + r.clock_out + '</td>';
+          tbody.appendChild(tr);
+        });
+        if (!d.data || !d.data.length) tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="ti ti-search-off"></i><p>لا توجد بيانات للعرض</p></div></td></tr>';
+      } catch(e) { console.error('daily report error', e); }
+    }
+
+    async function renderDetailedSheet() {
+      var empSelect = document.getElementById('detailEmployeeSelect');
+      var empId = empSelect.value;
+      if (!empId) { document.getElementById('detailTotalHours').textContent = '0'; document.getElementById('detailLateMin').textContent = '0'; document.getElementById('detailEarlyMin').textContent = '0'; var t = document.getElementById('detailTableBody'); t.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="ti ti-search-off"></i><p>اختر موظفاً</p></div></td></tr>'; return; }
+      try {
+        var fromDate = qs('filterDateFrom') || fmtDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+        var toDate = qs('filterDateTo') || fmtDate(new Date());
+        var resp = await fetch('/api/reports/employee-statement?employee_id=' + empId + '&from_date=' + fromDate + '&to_date=' + toDate);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var rows = await resp.json();
+        if (!Array.isArray(rows)) rows = [];
+        var totalLate = rows.reduce(function(s, r) { return s + (r.late_min || 0); }, 0);
+        var totalEarly = rows.reduce(function(s, r) { return s + (r.early_min || 0); }, 0);
+        document.getElementById('detailTotalHours').textContent = (rows.length * 8);
+        document.getElementById('detailLateMin').textContent = totalLate;
+        document.getElementById('detailEarlyMin').textContent = totalEarly;
+        var tbody = document.getElementById('detailTableBody'); tbody.innerHTML = '';
+        rows.forEach(function(r) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + r.date + '</td>' +
+            '<td style="direction:ltr;text-align:right">' + r.clock_in + '</td>' +
+            '<td style="direction:ltr;text-align:right">' + r.clock_out + '</td>' +
+            '<td style="text-align:center">' + (r.late_min ? '<span style="color:var(--amber)">' + r.late_min + '\'</span>' : '<span style="color:var(--muted2)">0</span>') + '</td>' +
+            '<td style="text-align:center">' + (r.early_min ? '<span style="color:var(--red)">' + r.early_min + '\'</span>' : '<span style="color:var(--muted2)">0</span>') + '</td>';
+          tbody.appendChild(tr);
+        });
+        if (!rows.length) tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="ti ti-search-off"></i><p>لا توجد بيانات للفترة المحددة</p></div></td></tr>';
+      } catch(e) { console.error('detail sheet error', e); }
+    }
+
+    async function renderDeficitReport() {
+      try {
+        var params = apiParams();
+        if (!params.from_date) params.from_date = fmtDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+        if (!params.to_date) params.to_date = fmtDate(new Date());
+        var resp = await fetch('/api/reports/deficit?' + new URLSearchParams(params));
+        var d = await resp.json();
+        document.getElementById('deficitTotalLateMin').textContent = d.total_late_min;
+        document.getElementById('deficitTotalEarlyMin').textContent = d.total_early_min;
+        document.getElementById('deficitTotalHours').textContent = d.total_lost_hours + ' ساعة';
+        var tbody = document.getElementById('deficitTableBody'); tbody.innerHTML = '';
+        (d.data || []).forEach(function(r) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td style="font-weight:600">' + r.name + '</td>' +
+            '<td style="color:var(--muted)">' + r.department + '</td>' +
+            '<td style="text-align:center;color:var(--amber)">' + r.late_min + '\'</td>' +
+            '<td style="text-align:center;color:var(--amber)">' + r.early_min + '\'</td>' +
+            '<td style="text-align:center;color:var(--red);font-weight:600">' + r.lost_hours + '</td>';
+          tbody.appendChild(tr);
+        });
+        if (!d.data || !d.data.length) tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="ti ti-search-off"></i><p>لا توجد بيانات للعرض</p></div></td></tr>';
+      } catch(e) { console.error('deficit error', e); }
+    }
+
+    async function renderLeaveReport() {
+      try {
+        var params = new URLSearchParams({
+          department: qs('filterDepartment') || '',
+          employee: qs('filterEmployee') || ''
+        });
+        var resp = await fetch('/api/reports/leave-logs?' + params.toString());
+        var d = await resp.json();
+        var tbody = document.getElementById('leaveTableBody'); tbody.innerHTML = '';
+        var statusMap = { approved: 'مقبولة', pending: 'قيد الانتظار', rejected: 'مرفوضة' };
+        (d.data || []).forEach(function(r) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td style="font-weight:600">' + r.employee_name + '</td>' +
+            '<td style="color:var(--muted)">' + r.type + '</td>' +
+            '<td>' + r.from_date + '</td>' +
+            '<td>' + r.to_date + '</td>' +
+            '<td style="color:var(--muted)">' + r.reason + '</td>' +
+            '<td><span class="badge badge-' + r.status + '">' + (statusMap[r.status] || r.status) + '</span></td>';
+          tbody.appendChild(tr);
+        });
+        if (!d.data || !d.data.length) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="ti ti-search-off"></i><p>لا توجد بيانات للعرض</p></div></td></tr>';
+      } catch(e) { console.error('leave error', e); }
+    }
+
+    async function refreshAll() {
+      await Promise.all([renderDailyReport(), renderDeficitReport(), renderLeaveReport(), renderTotalizer(), loadBehavioralInsights()]);
+      if (currentActiveTab === 'daily-dept') loadDailyDepartmentReport();
+      else if (currentActiveTab === 'employee-stmt') loadEmployeeStatement();
+      else if (currentActiveTab === 'monthly-comp') loadMonthlyComparison();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  3a. POPULATE FILTERS FROM API
+    // ══════════════════════════════════════════════════════════
+
+    async function populateFilters() {
+      try {
+        var resp = await fetch('/api/employees/list');
+        var emps = await resp.json();
+        var empSel = document.getElementById('filterEmployee');
+        var detailSel = document.getElementById('detailEmployeeSelect');
+        var reportSel = document.getElementById('filterReportEmployee');
+        empSel.innerHTML = '<option value="">كل الموظفين</option>';
+        detailSel.innerHTML = '<option value="">اختر موظفاً</option>';
+        reportSel.innerHTML = '<option value="">اختر موظفاً</option>';
+        emps.forEach(function(e) {
+          var opt1 = new Option(e.name, e.name);
+          var opt2 = new Option(e.name, e.id);
+          var opt3 = new Option(e.name, e.name);
+          empSel.appendChild(opt1);
+          detailSel.appendChild(opt2);
+          reportSel.appendChild(opt3);
+        });
+      } catch(e) { console.error('populate employees error', e); }
+    }
+
+    function populateYearFilter() {
+      var sel = document.getElementById('filterYear');
+      var y = new Date().getFullYear();
+      for (var i = y; i >= y - 5; i--) {
+        sel.appendChild(new Option(String(i), String(i)));
+      }
+      sel.value = String(y);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  3b. REPORT TAB FUNCTIONS
+    // ══════════════════════════════════════════════════════════
+
+    function switchReportTab(tabName) {
+      currentActiveTab = tabName;
+      document.querySelectorAll('.report-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelector('.report-tab-btn[data-tab="' + tabName + '"]').classList.add('active');
+      var container = document.getElementById('active_report_table_container');
+      container.innerHTML = '<div class="loading-spinner" style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:24px;animation:spin 1s linear infinite"></i><p style="color:var(--muted);margin-top:8px">جاري التحميل…</p></div>';
+      if (tabName === 'daily-dept') loadDailyDepartmentReport();
+      else if (tabName === 'employee-stmt') loadEmployeeStatement();
+      else if (tabName === 'monthly-comp') loadMonthlyComparison();
+    }
+
+    async function loadDailyDepartmentReport() {
+      try {
+        var dept = qs('filterDepartment') || '';
+        var dateLabel = qs('filterDateFrom') || fmtDate(new Date());
+        var resp = await fetch('/api/reports/daily-department?' + new URLSearchParams({department: dept, date: dateLabel}));
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var d = await resp.json();
+        var container = document.getElementById('active_report_table_container');
+        var html = '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>#</th><th>الموظف</th><th>حضور</th><th>انصراف</th><th>الحالة</th></tr></thead><tbody>';
+        (d.data || []).forEach(function(r, idx) {
+          var s = r.status === 'حاضر' ? 'present' : r.status === 'متأخر' ? 'late' : r.status === 'في إجازة' ? 'leave' : 'absent';
+          var color = s === 'present' ? 'var(--green)' : s === 'late' ? 'var(--amber)' : s === 'leave' ? 'var(--accent)' : 'var(--red)';
+          html += '<tr><td>' + (idx+1) + '</td><td style="font-weight:600">' + r.employee_name + '</td><td>' + r.clock_in + '</td><td>' + r.clock_out + '</td><td style="color:' + color + '">' + r.status + '</td></tr>';
+        });
+        if (!d.data || !d.data.length) html += '<tr><td colspan="5"><div class="empty-state"><i class="ti ti-search-off"></i><p>لا توجد بيانات للعرض</p></div></td></tr>';
+        html += '</tbody></table></div>';
+        html += '<div style="margin-top:10px;font-size:12px;color:var(--muted2);text-align:left">التاريخ: ' + dateLabel + ' | القسم: ' + (dept || 'الكل') + '</div>';
+        container.innerHTML = html;
+      } catch(e) { console.error('daily dept report error', e); }
+    }
+
+    async function loadEmployeeStatement() {
+      var empId = document.getElementById('filterReportEmployee').value;
+      if (!empId) { document.getElementById('active_report_table_container').innerHTML = '<p style="color:var(--muted);text-align:center">الرجاء اختيار موظف من قائمة "الموظف (التقارير)"</p>'; return; }
+      try {
+        var fromDate = qs('filterDateFrom') || fmtDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+        var toDate = qs('filterDateTo') || fmtDate(new Date());
+        var resp = await fetch('/api/reports/employee-statement?employee_name=' + encodeURIComponent(empId) + '&from_date=' + fromDate + '&to_date=' + toDate);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var rows = await resp.json();
+        if (!Array.isArray(rows)) rows = [];
+        var container = document.getElementById('active_report_table_container');
+        var totalLate = rows.reduce(function(s, r) { return s + (r.late_min || 0); }, 0);
+        var totalEarly = rows.reduce(function(s, r) { return s + (r.early_min || 0); }, 0);
+        var html = '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>التاريخ</th><th>حضور</th><th>انصراف</th><th>تأخير (د)</th><th>انصراف مبكر (د)</th></tr></thead><tbody>';
+        rows.forEach(function(r) {
+          html += '<tr><td>' + r.date + '</td><td>' + r.clock_in + '</td><td>' + r.clock_out + '</td><td style="color:var(--amber);text-align:center">' + r.late_min + '\'</td><td style="color:var(--amber);text-align:center">' + r.early_min + '\'</td></tr>';
+        });
+        if (!rows.length) html += '<tr><td colspan="5"><div class="empty-state"><i class="ti ti-search-off"></i><p>لا توجد بيانات للفترة المحددة</p></div></td></tr>';
+        html += '</tbody></table></div>';
+        html += '<div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted2)"><span>إجمالي دقائق التأخير: <strong style="color:var(--amber)">' + totalLate + '\'</strong></span><span>إجمالي الانصراف المبكر: <strong style="color:var(--amber)">' + totalEarly + '\'</strong></span><span>مجموع الفقد: <strong style="color:var(--red)">' + ((totalLate+totalEarly)/60).toFixed(1) + ' ساعة</strong></span></div>';
+        container.innerHTML = html;
+      } catch(e) { console.error('employee stmt error', e); }
+    }
+
+    async function loadMonthlyComparison() {
+      var empName = document.getElementById('filterReportEmployee').value;
+      if (!empName) { document.getElementById('active_report_table_container').innerHTML = '<p style="color:var(--muted);text-align:center">الرجاء اختيار موظف من قائمة "الموظف (التقارير)"</p>'; return; }
+      try {
+        var year = qs('filterYear') || new Date().getFullYear();
+        var resp = await fetch('/api/reports/monthly-comparison?employee_name=' + encodeURIComponent(empName) + '&year=' + year);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var result = await resp.json();
+        var months = result.data || [];
+        var container = document.getElementById('active_report_table_container');
+        var html = '<div class="report-table-wrap"><table class="report-table"><thead><tr><th>الشهر</th><th>أيام الحضور</th><th>إجمالي التأخير (د)</th><th>عجز الساعات</th></tr></thead><tbody>';
+        var totalDays = 0, totalLate = 0, totalDeficit = 0;
+        months.forEach(function(r) {
+          html += '<tr><td style="font-weight:600">' + r.month_name + '</td><td style="text-align:center">' + r.present_days + '</td><td style="text-align:center;color:var(--amber)">' + r.total_late_min + '\'</td><td style="text-align:center;color:var(--red);font-weight:600">' + r.deficit_hours + ' ساعة</td></tr>';
+          totalDays += r.present_days; totalLate += r.total_late_min; totalDeficit += r.deficit_hours;
+        });
+        if (!months.length) html += '<tr><td colspan="4"><div class="empty-state"><i class="ti ti-search-off"></i><p>لا توجد بيانات للسنة المحددة</p></div></td></tr>';
+        html += '</tbody></table></div>';
+        html += '<div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted2)"><span>إجمالي أيام الحضور: <strong>' + totalDays + '</strong></span><span>إجمالي التأخير: <strong style="color:var(--amber)">' + totalLate + '\'</strong></span><span>إجمالي عجز الساعات: <strong style="color:var(--red)">' + totalDeficit.toFixed(1) + ' ساعة</strong></span></div>';
+        container.innerHTML = html;
+      } catch(e) { console.error('monthly comp error', e); }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  3c. FILTER EVENTS
+    // ══════════════════════════════════════════════════════════
+
+    document.getElementById('filterEmployee').addEventListener('change', refreshAll);
+    document.getElementById('filterDepartment').addEventListener('change', refreshAll);
+    document.getElementById('filterDateFrom').addEventListener('change', refreshAll);
+    document.getElementById('filterDateTo').addEventListener('change', refreshAll);
+    document.getElementById('filterReportEmployee').addEventListener('change', function() { switchReportTab(document.querySelector('.report-tab-btn.active').dataset.tab); });
+    document.getElementById('filterYear').addEventListener('change', function() { switchReportTab(document.querySelector('.report-tab-btn.active').dataset.tab); });
+
+    // ══════════════════════════════════════════════════════════
+    //  4. NOTIFICATION BELL — LIVE FROM API
+    // ══════════════════════════════════════════════════════════
+
+    var dropdownOpen = false;
+
+    async function loadUnreadCount() {
+      try {
+        var resp = await fetch('/api/notifications/unread-count');
+        var d = await resp.json();
+        var badge = document.getElementById('notifBadgeCount');
+        var c = d.count || 0;
+        badge.textContent = c;
+        badge.style.display = c > 0 ? 'flex' : 'none';
+      } catch(e) { console.error('unread count error', e); }
+    }
+
+    function typeToIcon(type) {
+      return { warning: 'ti ti-alert-triangle', danger: 'ti ti-circle-x', info: 'ti ti-info-circle' }[type] || 'ti ti-bell';
+    }
+    function typeToColor(type) {
+      return { warning: '#f59e0b', danger: '#ef4444', info: '#818cf8' }[type] || '#818cf8';
+    }
+
+    async function renderNotifications() {
+      var list = document.getElementById('notifList'); list.innerHTML = '<div style="text-align:center;padding:16px"><span class="spinner"></span></div>';
+      try {
+        var resp = await fetch('/api/notifications');
+        var d = await resp.json();
+        var items = d.notifications || [];
+        list.innerHTML = '';
+        if (!items.length) {
+          list.innerHTML = '<div class="notif-empty-state"><i class="ti ti-bell-off"></i><p>لا توجد إشعارات جديدة</p></div>';
+          return;
+        }
+        items.forEach(function(n) {
+          var item = document.createElement('div'); item.className = 'notif-item';
+          var icon = typeToIcon(n.type);
+          var color = typeToColor(n.type);
+          item.innerHTML = '<div class="notif-icon" style="background:' + color + '22;color:' + color + '"><i class="' + icon + '"></i></div>' +
+            '<div class="notif-body"><div class="notif-text">' + n.msg + '</div></div>';
+          if (n.url) item.style.cursor = 'pointer';
+          if (n.url) item.onclick = function() { window.location.href = n.url; };
+          list.appendChild(item);
+        });
+      } catch(e) {
+        list.innerHTML = '<div class="notif-empty-state"><i class="ti ti-bell-off"></i><p>خطأ في تحميل الإشعارات</p></div>';
+      }
+    }
+
+    function toggleNotifDropdown(e) {
+      if (e) e.stopPropagation();
+      var dd = document.getElementById('notifDropdown');
+      dropdownOpen = !dropdownOpen;
+      dd.classList.toggle('open', dropdownOpen);
+      if (dropdownOpen) renderNotifications();
+    }
+
+    async function markAllNotifRead(e) {
+      if (e) e.stopPropagation();
+      document.getElementById('notifBadgeCount').textContent = '0';
+      document.getElementById('notifBadgeCount').style.display = 'none';
+      var list = document.getElementById('notifList');
+      list.innerHTML = '<div class="notif-empty-state"><i class="ti ti-bell-off"></i><p>تم قراءة جميع الإشعارات</p></div>';
+    }
+
+    document.addEventListener('click', function(e) {
+      var wrap = document.getElementById('notifBellWrap');
+      if (dropdownOpen && wrap && !wrap.contains(e.target)) {
+        document.getElementById('notifDropdown').classList.remove('open');
+        dropdownOpen = false;
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && dropdownOpen) {
+        document.getElementById('notifDropdown').classList.remove('open');
+        dropdownOpen = false;
+      }
+    });
+
+    // ══════════════════════════════════════════════════════════
+    //  5. PRINT
+    // ══════════════════════════════════════════════════════════
+
+    function printReport() {
+      document.getElementById('printDate').textContent = todayStr();
+      window.print();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  6. REAL EXCEL EXPORT (SheetJS) with Arabic RTL
+    // ══════════════════════════════════════════════════════════
+
+    function getReportName(report) {
+      var names = {
+        daily: 'التقرير_اليومي',
+        detail: 'كشف_موظف',
+        deficit: 'التأخير_وساعات_مفقودة',
+        leave: 'الإجازات_والأذونات',
+      };
+      return names[report] || 'تقرير';
+    }
+
+    function tableToAOA(tableId) {
+      var table = document.getElementById(tableId);
+      if (!table) return [];
+      var rows = table.querySelectorAll('tr');
+      var data = [];
+      rows.forEach(function(row) {
+        var rowData = [];
+        var cells = row.querySelectorAll('th, td');
+        cells.forEach(function(cell) {
+          var text = cell.textContent.trim();
+          rowData.push(text);
+        });
+        if (rowData.length > 0) data.push(rowData);
+      });
+      return data;
+    }
+
+    function exportExcel() {
+      var btn = event && event.target ? (event.target.tagName === 'BUTTON' ? event.target : event.target.closest('button')) : document.querySelector('.btn-indigo');
+      var origHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="export-progress"><span class="spinner"></span> جاري التصدير...</span>';
+
+      setTimeout(function() {
+        try {
+          if (typeof XLSX === 'undefined') {
+            btn.innerHTML = origHTML; btn.disabled = false;
+            return;
+          }
+
+          var wb = XLSX.utils.book_new();
+          var now = new Date();
+          var dateStr = now.toLocaleDateString('ar-SA').replace(/\//g, '-');
+
+          // ── Sheet 1: Daily Report ──
+          var dailyData = tableToAOA('dailyTable');
+          if (dailyData.length > 0) {
+            var ws1 = XLSX.utils.aoa_to_sheet(dailyData);
+            ws1['!views'] = [{ RTL: true }];
+            ws1['!cols'] = dailyData[0].map(function() { return { wch: 18 }; });
+            XLSX.utils.book_append_sheet(wb, ws1, 'التقرير اليومي');
+          }
+
+          // ── Sheet 2: Detail Report ──
+          var detailData = tableToAOA('detailTable');
+          if (detailData.length > 0) {
+            var ws2 = XLSX.utils.aoa_to_sheet(detailData);
+            ws2['!views'] = [{ RTL: true }];
+            ws2['!cols'] = detailData[0].map(function() { return { wch: 18 }; });
+            XLSX.utils.book_append_sheet(wb, ws2, 'كشف الموظف');
+          }
+
+          // ── Sheet 3: Deficit Report ──
+          var deficitData = tableToAOA('deficitTable');
+          if (deficitData.length > 0) {
+            var ws3 = XLSX.utils.aoa_to_sheet(deficitData);
+            ws3['!views'] = [{ RTL: true }];
+            ws3['!cols'] = deficitData[0].map(function() { return { wch: 18 }; });
+            XLSX.utils.book_append_sheet(wb, ws3, 'التأخير وساعات مفقودة');
+          }
+
+          // ── Sheet 4: Leave Report ──
+          var leaveData = tableToAOA('leaveTable');
+          if (leaveData.length > 0) {
+            var ws4 = XLSX.utils.aoa_to_sheet(leaveData);
+            ws4['!views'] = [{ RTL: true }];
+            ws4['!cols'] = leaveData[0].map(function() { return { wch: 18 }; });
+            XLSX.utils.book_append_sheet(wb, ws4, 'الإجازات والأذونات');
+          }
+
+          var fileName = 'تقارير_الحضور_' + dateStr + '.xlsx';
+          XLSX.writeFile(wb, fileName);
+
+          btn.innerHTML = '<i class="ti ti-check"></i> تم التصدير';
+          btn.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
+          setTimeout(function() {
+            btn.innerHTML = origHTML; btn.disabled = false;
+            btn.style.background = '';
+          }, 2500);
+        } catch (err) {
+          console.error('Export error:', err);
+          btn.innerHTML = origHTML; btn.disabled = false;
+        }
+      }, 400);
+    }
+
+    function exportReportToExcel() {
+      var table = document.querySelector("#active_report_table_container table");
+      if (!table) {
+        Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'لا يوجد بيانات في الجدول لتصديرها!' });
+        return;
+      }
+      try {
+        var wb = XLSX.utils.table_to_book(table, { sheet: "تقرير الحضور" });
+        XLSX.writeFile(wb, 'تقرير_الحضور_' + currentActiveTab + '.xlsx');
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'خطأ', text: 'فشل تصدير الملف: ' + err.message });
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  7. INIT — ALL DATA FROM LIVE API
+    // ══════════════════════════════════════════════════════════
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('dailyDate').textContent = todayStr();
+      document.getElementById('printDate').textContent = todayStr();
+      populateFilters().then(function() {
+        populateYearFilter();
+        refreshAll();
+      });
+      loadUnreadCount();
+    });
+  </script>
+</body>
+</html>

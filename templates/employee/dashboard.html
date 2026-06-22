@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% set is_employee = true %}
+{% set nav_active = 'dashboard' %}
+{% block title %}الرئيسية{% endblock %}
+{% block employee_layout %}
+<div style="min-height:100vh;background:var(--bg)">
+  <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+    <div style="width:38px;height:38px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <i class="ti ti-heartbeat" style="font-size:20px;color:#fff"></i>
+    </div>
+    <div style="flex:1">
+      <h1 style="font-size:16px;font-weight:700;color:var(--text)">مرحباً {{ emp.full_name.split()[0] }}</h1>
+      <div style="font-size:11px;color:var(--muted)">{{ emp.department }} · {{ emp.username }}</div>
+    </div>
+  </header>
+
+  <main class="mobile-pb" style="padding:14px;max-width:560px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+      <div class="stat-card animate-fade-in" style="--i:0;background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.2);padding:14px">
+        <div style="font-size:11px;color:var(--green);margin-bottom:4px"><i class="ti ti-calendar-check"></i> أيام الحضور</div>
+        <div class="stat-val" style="color:var(--green)">{{ present_days }}</div>
+        <div style="font-size:10px;color:var(--green);opacity:.6">هذا الشهر</div>
+      </div>
+      <div class="stat-card animate-fade-in" style="--i:1;background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2);padding:14px">
+        <div style="font-size:11px;color:var(--amber);margin-bottom:4px"><i class="ti ti-clock"></i> تأخير</div>
+        <div class="stat-val" style="color:var(--amber)">{{ total_late }}</div>
+        <div style="font-size:10px;color:var(--amber);opacity:.6">دقيقة هذا الشهر</div>
+      </div>
+    </div>
+
+    {% if log and log.clock_in %}
+    <div class="card animate-fade-in" style="--i:2;padding:16px;margin-bottom:14px;text-align:center;border-color:rgba(22,163,74,.3)">
+      <i class="ti ti-circle-check" style="font-size:36px;color:var(--green);margin-bottom:6px;display:block"></i>
+      <div style="font-size:15px;font-weight:700;color:var(--green)">مسجل حضور اليوم</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">
+        <i class="ti ti-login"></i> {{ log.clock_in.strftime('%H:%M') }}
+        {% if log.clock_out %} · <i class="ti ti-logout"></i> {{ log.clock_out.strftime('%H:%M') }}{% endif %}
+        {% if log.status == 'late' %} · <span style="color:var(--amber)"><i class="ti ti-alert-triangle"></i> متأخر {{ log.late_minutes }} د</span>{% endif %}
+      </div>
+      <div style="margin-top:10px">
+        <span class="badge {% if log.status=='present' %}badge-present{% elif log.status=='late' %}badge-late{% else %}badge-absent{% endif %}">
+          {% if log.status=='present' %}حاضر{% elif log.status=='late' %}متأخر{% else %}غائب{% endif %}
+        </span>
+      </div>
+      {% if not log.clock_out %}
+      <button class="btn btn-red pulse-glow" style="--pulse-c:rgba(220,38,38,.4);margin-top:14px;width:100%" onclick="clockOut(this)">
+        <i class="ti ti-logout"></i> تسجيل الانصراف
+      </button>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card animate-fade-in" style="--i:2;padding:16px;margin-bottom:14px;text-align:center">
+      <i class="ti ti-clock" style="font-size:36px;color:var(--muted);margin-bottom:6px;display:block"></i>
+      <div style="font-size:15px;font-weight:700">لم تسجل حضور اليوم</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">اضغط الزر أدناه لتسجيل الحضور</div>
+      <button class="btn btn-green pulse-glow" style="--pulse-c:rgba(22,163,74,.4);margin-top:14px;width:100%" onclick="clockIn(this)">
+        <i class="ti ti-login"></i> تسجيل الحضور
+      </button>
+    </div>
+    {% endif %}
+
+    {% if deduction > 0 %}
+    <div class="card animate-fade-in" style="--i:3;padding:14px;margin-bottom:14px;background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--text)"><i class="ti ti-coin"></i> خصم التأخير المتراكم</span>
+        <span style="font-size:16px;font-weight:800;color:var(--red)">{{ deduction }} د.ل</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">{{ total_late }} دقيقة تأخير هذا الشهر</div>
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-indigo btn-sm" style="flex:1" onclick="openModal('leaveModal')"><i class="ti ti-file-text"></i> طلب إجازة</button>
+        <button class="btn btn-green btn-sm" style="flex:1" onclick="requestOuting(this)"><i class="ti ti-logout"></i> إذن خروج</button>
+      <button class="btn btn-sm" style="flex:1;background:rgba(99,102,241,.15);color:var(--accent)" onclick="openModal('swapModal')"><i class="ti ti-arrows-exchange"></i> تبديل مناوبة</button>
+      <button class="btn btn-sm pulse-glow" style="--pulse-c:rgba(22,163,74,.4);flex:1;background:rgba(22,163,74,.15);color:var(--green)" onclick="openScanner()"><i class="ti ti-camera"></i> QR</button>
+    </div>
+
+    {% if month_logs %}
+    <div class="card animate-fade-in" style="--i:4;overflow:hidden;margin-bottom:14px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
+        <i class="ti ti-calendar-stats" style="color:var(--accent);margin-left:6px"></i>تقرير الحضور الشهري — {{ month_name }}
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>الحضور</th>
+              <th>الانصراف</th>
+              <th>الساعات</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for l in month_logs %}
+            {% set h = l.clock_out and l.clock_in and ((l.clock_out - l.clock_in).total_seconds() / 3600)|round(1) %}
+            <tr>
+              <td style="font-weight:600">{{ l.log_date.strftime('%d/%m') }}</td>
+              <td dir="ltr" style="text-align:right">{{ l.clock_in.strftime('%H:%M') if l.clock_in else '—' }}</td>
+              <td dir="ltr" style="text-align:right">{{ l.clock_out.strftime('%H:%M') if l.clock_out else '—' }}</td>
+              <td>{{ h if h else '—' }}</td>
+              <td>
+                <span class="badge {% if l.status=='present' %}badge-present{% elif l.status=='late' %}badge-late{% else %}badge-absent{% endif %}" style="font-size:11px">
+                  {% if l.status=='present' %}حاضر{% elif l.status=='late' %}متأخر{% else %}غائب{% endif %}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </main>
+
+  <nav class="bottom-nav" style="display:flex">
+    <a href="/employee" class="bottom-nav-item active"><i class="ti ti-home-2"></i><span>الرئيسية</span></a>
+    <a href="/employee/shifts" class="bottom-nav-item"><i class="ti ti-calendar-event"></i><span>المناوبات</span></a>
+    <a href="/employee/documents" class="bottom-nav-item"><i class="ti ti-files"></i><span>المستندات</span></a>
+    <a href="/employee/history" class="bottom-nav-item"><i class="ti ti-calendar-stats"></i><span>السجل</span></a>
+    <a href="/employee/leaves" class="bottom-nav-item"><i class="ti ti-file-text"></i><span>الطلبات</span></a>
+    <a href="/logout" class="bottom-nav-item"><i class="ti ti-logout"></i><span>خروج</span></a>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="leaveModal">
+  <div class="modal-sheet" style="max-width:460px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-file-text" style="color:var(--accent)"></i> طلب إجازة</h3>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label>نوع الإجازة *</label>
+        <select id="lvType">
+          <option value="اعتيادية">إجازة اعتيادية</option>
+          <option value="مرضية">إجازة مرضية</option>
+          <option value="طارئة">إجازة طارئة</option>
+          <option value="سنوية">إجازة سنوية</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label>تاريخ البداية *</label><input type="date" id="lvStart"></div>
+        <div><label>تاريخ النهاية</label><input type="date" id="lvEnd"></div>
+      </div>
+      <div><label>السبب</label><textarea id="lvReason" rows="2" style="resize:none" placeholder="اختياري..."></textarea></div>
+      <div class="modal-grid" style="border-top:1px solid var(--border);padding-top:14px">
+        <button class="btn btn-red" onclick="submitLeave(this)"><i class="ti ti-send"></i> إرسال الطلب</button>
+        <button class="btn btn-outline" onclick="closeModal('leaveModal')">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="swapModal">
+  <div class="modal-sheet" style="max-width:480px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:4px"><i class="ti ti-arrows-exchange" style="color:var(--accent)"></i> طلب تبديل مناوبة</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">سيظهر فقط زملاء قسمك ({{ emp.department }})</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label><i class="ti ti-calendar" style="color:var(--accent);margin-left:4px"></i> مناوبتي المراد تبديلها</label>
+        <select id="swapMySched">
+          <option value="">— اختر مناوبتك —</option>
+          {% for ss in my_schedules %}
+          <option value="{{ ss.id }}">{{ ss.shift_type.name }} — {{ ss.scheduled_date.strftime('%d/%m/%Y') }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div><label><i class="ti ti-users" style="color:var(--accent);margin-left:4px"></i> اختر الزميل (من قسمك)</label>
+        <select id="swapColleague" onchange="loadColleagueShifts()">
+          <option value="">— اختر زميلاً —</option>
+          {% for c in colleagues %}
+          <option value="{{ c.id }}">{{ c.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div id="colleagueShiftsDiv" style="display:none">
+        <label><i class="ti ti-calendar" style="color:var(--accent);margin-left:4px"></i> مناوبة الزميل (اختياري)</label>
+        <select id="swapHisSched"><option value="">— أي مناوبة —</option></select>
+      </div>
+      <div><label><i class="ti ti-message" style="color:var(--accent);margin-left:4px"></i> سبب الطلب</label>
+        <textarea id="swapReason" rows="2" style="resize:none" placeholder="اكتب سبب طلب التبديل..."></textarea>
+      </div>
+      <div class="modal-grid" style="border-top:1px solid var(--border);padding-top:14px">
+        <button class="btn btn-red" onclick="submitSwap(this)"><i class="ti ti-send"></i> إرسال الطلب</button>
+        <button class="btn btn-outline" onclick="closeModal('swapModal')">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function clockIn(btn){
+  if(btn.disabled)return;
+  loadingBtn(btn);
+  if(!navigator.geolocation){restoreBtn(btn);toast('الموقع الجغرافي غير متاح في متصفحك.','err');return;}
+  toast('جاري تسجيل الحضور...','info');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const r=await api('/employee/clockin',{
+      lat:pos.coords.latitude, lng:pos.coords.longitude,
+      accuracy:Math.round(pos.coords.accuracy)
+    });
+    if(!r.ok) restoreBtn(btn);
+    toast(r.msg,r.ok?'ok':'err');
+    if(r.ok) setTimeout(()=>location.reload(),1500);
+  },()=>{restoreBtn(btn);toast('يرجى السماح بالوصول للموقع الجغرافي.','err');},{enableHighAccuracy:true,timeout:10000});
+}
+function clockOut(btn){
+  if(btn.disabled)return;
+  loadingBtn(btn);
+  if(!navigator.geolocation){restoreBtn(btn);toast('الموقع الجغرافي غير متاح.','err');return;}
+  toast('جاري تسجيل الانصراف...','info');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const r=await api('/employee/clockout',{
+      lat:pos.coords.latitude, lng:pos.coords.longitude
+    });
+    if(!r.ok) restoreBtn(btn);
+    toast(r.msg,r.ok?'ok':'err');
+    if(r.ok) setTimeout(()=>location.reload(),1500);
+  },()=>{restoreBtn(btn);toast('يرجى السماح بالوصول للموقع الجغرافي.','err');},{enableHighAccuracy:true,timeout:10000});
+}
+function submitLeave(btn){
+  if(btn.disabled)return;
+  const sd=document.getElementById('lvStart').value;
+  if(!sd){toast('يرجى اختيار تاريخ البداية.','err');return;}
+  loadingBtn(btn);
+  api('/employee/leaves/new',{
+    type:document.getElementById('lvType').value,
+    start_date:sd,
+    end_date:document.getElementById('lvEnd').value||null,
+    reason:document.getElementById('lvReason').value.trim()
+  }).then(r=>{
+    if(r.ok){closeModal('leaveModal');swalSuccess('✓ تم إرسال الطلب','تم استلام طلب الإجازة وسيتم مراجعته من قِبل الإدارة.');}
+    else{restoreBtn(btn);toast(r.msg,'err');}
+  }).catch(()=>{restoreBtn(btn);toast('خطأ في الاتصال بالخادم.','err');});
+}
+async function requestOuting(btn){
+  if(btn.disabled)return;
+  loadingBtn(btn);
+  try{
+    const r=await api('/employee/permission/outing');
+    if(r.ok){swalSuccess('✓ تم إرسال الطلب','تم إرسال إذن الخروج للمراجعة.');}
+    else{restoreBtn(btn);toast(r.msg,'err');}
+  }catch(e){restoreBtn(btn);toast('خطأ في الاتصال بالخادم.','err');}
+}
+async function loadColleagueShifts(){
+  const cid=document.getElementById('swapColleague').value;
+  const div=document.getElementById('colleagueShiftsDiv');
+  const sel=document.getElementById('swapHisSched');
+  sel.innerHTML='<option value="">— أي مناوبة —</option>';
+  if(!cid){div.style.display='none';return;}
+  div.style.display='block';
+  try{
+    const today=new Date(); const m=today.getMonth()+1; const y=today.getFullYear();
+    const r=await fetch(`/api/shifts/employee/${cid}/${m}/${y}`);
+    const d=await r.json();
+    d.schedules.forEach(s=>{sel.innerHTML+=`<option value="${s.id}">${s.shift_name} — ${s.date_ar} (${s.time_range})</option>`;});
+  }catch{}
+}
+async function submitSwap(btn){
+  if(btn.disabled)return;
+  const sid=document.getElementById('swapMySched').value;
+  const cid=document.getElementById('swapColleague').value;
+  if(!sid){toast('يرجى اختيار مناوبتك.','err');return;}
+  if(!cid){toast('يرجى اختيار الزميل.','err');return;}
+  loadingBtn(btn);
+  try{
+    const r=await api('/employee/shifts/swap/request',{
+      my_schedule_id:sid,
+      target_employee_id:cid,
+      target_schedule_id:document.getElementById('swapHisSched').value||null,
+      reason:document.getElementById('swapReason').value.trim()
+    });
+    if(r.ok){closeModal('swapModal');swalSuccess('✓ تم إرسال الطلب','تم إرسال طلب التبديل إلى الزميل. بانتظار الموافقة.');}
+    else{restoreBtn(btn);toast(r.msg,'err');}
+  }catch(e){restoreBtn(btn);toast('خطأ في الاتصال بالخادم.','err');}
+}
+</script>
+
+<!-- QR Scanner Modal -->
+<div class="modal-overlay" id="qrScannerModal" onclick="if(event.target===this)closeScanner()">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-width:480px">
+    <div class="modal-handle"></div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px"><i class="ti ti-camera" style="color:var(--green)"></i> مسح رمز QR</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">وجّه الكاميرا نحو رمز QR الظاهر على شاشة الإدارة</div>
+    <div id="qrScannerReader" style="width:100%;max-width:400px;margin:0 auto;border-radius:12px;overflow:hidden"></div>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted)" id="qrScannerStatus"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeScanner()">إلغاء</button>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+var html5QrCode = null;
+function openScanner(){
+  document.getElementById('qrScannerModal').classList.add('open');
+  document.getElementById('qrScannerStatus').textContent = 'جارٍ تشغيل الكاميرا...';
+  if(html5QrCode) html5QrCode.stop().catch(function(){});
+  html5QrCode = new Html5Qrcode("qrScannerReader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    function(decodedText){
+      // Success — stop scanner and POST token
+      html5QrCode.stop().catch(function(){});
+      document.getElementById('qrScannerStatus').textContent = '✓ تم المسح — جارٍ التحقق...';
+      fetch('/employee/clock-in/qr', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+        body:JSON.stringify({token: decodedText})
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if(d.ok){ toast(d.msg,'ok'); setTimeout(function(){ location.reload(); }, 1200); }
+        else { swalError('رمز QR غير صالح', d.msg || 'انتهت صلاحية رمز QR أو أنه غير صالح. حاول مسح رمز جديد.'); }
+        closeScanner();
+      }).catch(function(){
+        swalError('خطأ في الاتصال','تعذر الاتصال بالخادم. تأكد من اتصالك بالإنترنت.');
+        closeScanner();
+      });
+    },
+    function(errorMessage){
+      // Ignore continuous scanning errors
+    }
+  ).catch(function(err){
+    document.getElementById('qrScannerStatus').textContent = '⚠️ تعذر الوصول للكاميرا. تأكد من السماح بالصلاحية.';
+    swalError('تعذر تشغيل الكاميرا','تأكد من منح صلاحية الوصول للكاميرا في المتصفح، وحاول مرة أخرى.');
+  });
+}
+function closeScanner(){
+  document.getElementById('qrScannerModal').classList.remove('open');
+  if(html5QrCode){
+    html5QrCode.stop().catch(function(){});
+    html5QrCode = null;
+  }
+}
+</script>
+{% endblock %}

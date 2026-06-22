@@ -1,0 +1,55 @@
+﻿/* backup-premium.css — ONLY backup-specific styles, no conflicts with base.html */
+.backup-container{padding:20px;max-width:1400px;margin:0 auto}
+.backup-container .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.backup-container .stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
+.backup-container .stat-card .stat-val{font-size:24px;font-weight:800;color:var(--accent)}
+.backup-container .stat-card .stat-lbl{font-size:12px;color:var(--muted);margin-top:2px}
+.backup-container .tab-bar{display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:14px 14px 0 0;overflow:hidden}
+.backup-container .tab{flex:1;padding:12px 10px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);background:transparent;border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.backup-container .tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.backup-container .tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--glow)}
+.backup-container .tab-content{display:none;background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 14px 14px;padding:20px}
+.backup-container .tab-content.active{display:block}
+.backup-container .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.backup-container .section-header h2{font-size:15px;font-weight:700}
+.backup-container .badge{border-radius:20px;padding:2px 10px;font-size:11px}
+.backup-container .badge-full{background:rgba(220,38,38,.15);color:var(--red)}
+.backup-container .badge-incremental{background:rgba(99,102,241,.15);color:var(--accent)}
+.backup-container .badge-selective{background:rgba(22,163,74,.15);color:var(--green)}
+.backup-container .badge-success{background:rgba(22,163,74,.15);color:var(--green)}
+.backup-container .badge-muted{background:rgba(136,153,180,.15);color:var(--muted)}
+.backup-container .badge-warning{background:rgba(245,158,11,.15);color:var(--amber)}
+.backup-container .badge-danger{background:rgba(239,68,68,.15);color:var(--red)}
+.backup-container .badge-verified{background:rgba(22,163,74,.15);color:var(--green)}
+.backup-container .badge-completed{background:rgba(99,102,241,.15);color:var(--accent)}
+.backup-container .badge-corrupted{background:rgba(239,68,68,.15);color:var(--red)}
+.backup-container .action-cell{display:flex;gap:4px}
+.backup-container .action-cell .btn-icon{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.backup-container .action-cell .btn-icon:hover{background:var(--card2);color:var(--text)}
+.backup-container .action-cell .btn-icon.text-red:hover{background:rgba(239,68,68,.15);color:var(--red);border-color:var(--red)}
+.backup-container .restore-wizard{display:flex;gap:8px;margin-bottom:16px;padding:12px;background:var(--card2);border-radius:12px}
+.backup-container .wizard-step{flex:1;text-align:center;padding:10px;border-radius:8px;font-size:13px;color:var(--muted);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:6px;transition:all .3s}
+.backup-container .wizard-step.active{background:var(--glow);border-color:var(--accent);color:var(--accent)}
+.backup-container .wizard-step.completed{background:rgba(22,163,74,.12);border-color:var(--green);color:var(--green)}
+.backup-container .step-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--border);color:var(--muted)}
+.backup-container .wizard-step.active .step-num{background:var(--accent);color:#fff}
+.backup-container .wizard-step.completed .step-num{background:var(--green);color:#fff}
+.backup-container .wizard-body{padding:16px;background:var(--card2);border-radius:12px;border:1px solid var(--border)}
+.backup-container .drop-zone{border:2px dashed var(--border);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:12px}
+.backup-container .drop-zone:hover{border-color:var(--accent);background:var(--glow)}
+.backup-container .drop-zone .upload-icon{font-size:40px;color:var(--muted);margin-bottom:10px}
+.backup-container .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:800px){.backup-container .chart-grid{grid-template-columns:1fr}}
+.backup-container .chart-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;height:260px}
+.backup-container .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.backup-container .config-grid{grid-template-columns:1fr}}
+.backup-container .config-field{display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--card2);border-radius:8px;border:1px solid var(--border)}
+.backup-container .config-field label{font-size:12px;color:var(--muted)}
+.backup-container .checkbox-group{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.backup-container .checkbox-group label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin:0}
+.backup-container .confirm-box{padding:16px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);margin-bottom:12px;text-align:center;font-size:14px}
+.backup-container .pagination{display:flex;gap:4px;justify-content:center;margin-top:14px}
+.backup-container .page-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;transition:all .2s}
+.backup-container .page-btn.active,.backup-container .page-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.backup-container .file-name{font-weight:600;color:var(--text)}
+.backup-container .report-actions{display:flex;gap:8px;flex-wrap:wrap}

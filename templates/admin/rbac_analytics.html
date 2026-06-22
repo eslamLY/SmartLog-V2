@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set nav_active = 'rbac' %}
+{% block title %}تحليلات الصلاحيات{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/rbac-premium.css') }}">
+{% endblock %}
+{% block content %}
+<header class="rbac-header">
+  <div><h1><i class="ti ti-chart-bar"></i> تحليلات الصلاحيات</h1><p style="color:var(--muted);font-size:13px">إحصائيات وتقارير نظام الصلاحيات</p></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-ghost btn-sm" onclick="window.location='/admin/rbac'"><i class="ti ti-arrow-right"></i> العودة</button>
+  </div>
+</header>
+<div class="rbac-container">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px">
+    <div class="stat-card"><div class="stat-val" id="statRoles">0</div><div class="stat-lbl">الأدوار</div></div>
+    <div class="stat-card"><div class="stat-val" id="statPermissions">0</div><div class="stat-lbl">الصلاحيات</div></div>
+    <div class="stat-card"><div class="stat-val" id="statAssignments">0</div><div class="stat-lbl">التعيينات</div></div>
+    <div class="stat-card"><div class="stat-val" id="statCoverage">0%</div><div class="stat-lbl">التغطية</div></div>
+    <div class="stat-card"><div class="stat-val" id="statHighRisk">0</div><div class="stat-lbl">صلاحيات خطيرة</div></div>
+    <div class="stat-card"><div class="stat-val" id="statPending">0</div><div class="stat-lbl">طلبات معلقة</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px">توزيع الأدوار</h3><canvas id="rolesChart" height="200"></canvas></div>
+    <div class="card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px">مقارنة الأدوار</h3>
+      <select id="matrixRole1" class="form-input" style="width:48%;margin-left:4%"></select>
+      <select id="matrixRole2" class="form-input" style="width:48%"></select>
+      <button class="btn btn-red btn-sm" style="margin-top:8px" onclick="showMatrix()">مقارنة</button>
+      <div id="matrixResult" style="margin-top:12px"></div>
+    </div>
+    <div class="card" style="grid-column:span 2"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px">من يملك صلاحية</h3>
+      <select id="whoHasPermSelect" class="form-input" style="max-width:300px" onchange="whoHasPermission()"></select>
+      <div id="whoHasResult" style="margin-top:12px"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">الصلاحيات عالية المخاطر</h3>
+    <div id="highRiskList"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/rbac-interactions.js') }}"></script>
+<script src="{{ url_for('static', filename='js/rbac-charts.js') }}"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){loadAnalytics()})</script>
+{% endblock %}

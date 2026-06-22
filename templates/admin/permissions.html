@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% set nav_active = 'permissions' %}
+{% block title %}إدارة الأذونات{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-lock" style="color:var(--accent)"></i> إدارة الأذونات</h1>
+  <button class="btn btn-indigo" onclick="openModal('createRoleModal')"><i class="ti ti-plus"></i> إنشاء دور</button>
+</header>
+<div style="padding:20px">
+  <div class="card" style="padding:16px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="ti ti-shield-lock" style="font-size:20px;color:var(--green)"></i>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">إدارة الأدوار والأذونات</div>
+        <div style="font-size:12px;color:var(--muted)">تحديد صلاحيات الوصول للمستخدمين</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="card-header">الأدوار</div>
+      <div id="rolesList" style="padding:16px">
+        <div style="text-align:center;padding:20px;color:var(--muted)">
+          <i class="ti ti-users-group" style="font-size:32px;display:block;margin-bottom:8px;opacity:.5"></i>
+          لا توجد أدوار
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="card-header">الأذونات المتاحة</div>
+      <div id="permissionsList" style="padding:16px">
+        <div style="text-align:center;padding:20px;color:var(--muted)">
+          <i class="ti ti-key" style="font-size:32px;display:block;margin-bottom:8px;opacity:.5"></i>
+          لا توجد أذونات
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;margin-top:20px">
+    <div class="card-header">أذونات الموظفين</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>الموظف</th>
+          <th>الدور</th>
+          <th>الأذونات</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="employeePermissionsList">
+        <tr>
+          <td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">
+            لا توجد بيانات
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="createRoleModal" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:16px">إنشاء دور جديد</h2>
+    <div style="margin-bottom:16px">
+      <label>اسم الدور</label>
+      <input type="text" id="roleName" placeholder="مثال: مدير قسم">
+    </div>
+    <div style="margin-bottom:16px">
+      <label>الأذونات</label>
+      <div id="permissionsCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-indigo" style="flex:1" onclick="createRole()">إنشاء</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('createRoleModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div id="editPermissionsModal" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:16px">تعديل أذونات الموظف</h2>
+    <div style="margin-bottom:16px">
+      <label>الموظف</label>
+      <select id="employeeSelect" onchange="loadEmployeePermissions()">
+        <option value="">اختر موظف</option>
+        {% for emp in employees %}
+        <option value="{{ emp.id }}">{{ emp.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>الأذونات</label>
+      <div id="employeePermissionsCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-indigo" style="flex:1" onclick="saveEmployeePermissions()">حفظ</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('editPermissionsModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadRoles() {
+  api('/api/admin/roles').then(function(res) {
+    var list = document.getElementById('rolesList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><i class="ti ti-users-group" style="font-size:32px;display:block;margin-bottom:8px;opacity:.5"></i>لا توجد أدوار</div>';
+      return;
+    }
+    list.innerHTML = res.map(function(r) {
+      return '<div style="padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">' +
+        '<div><div style="font-weight:600">' + r.name + '</div><div style="font-size:11px;color:var(--muted)">' + r.permissions.length + ' صلاحية</div></div>' +
+        '<button class="btn btn-sm btn-ghost" onclick="deleteRole(' + r.id + ')"><i class="ti ti-trash"></i></button>' +
+        '</div>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل الأدوار', 'err');
+  });
+}
+
+function loadPermissions() {
+  api('/api/admin/permissions').then(function(res) {
+    var list = document.getElementById('permissionsList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><i class="ti ti-key" style="font-size:32px;display:block;margin-bottom:8px;opacity:.5"></i>لا توجد أذونات</div>';
+      return;
+    }
+    list.innerHTML = res.map(function(p) {
+      return '<div style="padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px">' + p.name + '</div>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل الأذونات', 'err');
+  });
+}
+
+function loadEmployeePermissionsList() {
+  api('/api/admin/employees/permissions').then(function(res) {
+    var list = document.getElementById('employeePermissionsList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد بيانات</td></tr>';
+      return;
+    }
+    list.innerHTML = res.map(function(ep) {
+      return '<tr>' +
+        '<td>' + ep.employee_name + '</td>' +
+        '<td>' + (ep.role_name || '-') + '</td>' +
+        '<td>' + (ep.permissions || []).join(', ') + '</td>' +
+        '<td><button class="btn btn-sm btn-ghost" onclick="openEditPermissions(' + ep.employee_id + ')"><i class="ti ti-edit"></i> تعديل</button></td>' +
+        '</tr>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل أذونات الموظفين', 'err');
+  });
+}
+
+function createRole() {
+  var name = document.getElementById('roleName').value;
+  var checkboxes = document.querySelectorAll('#permissionsCheckboxes input:checked');
+  var permissions = Array.from(checkboxes).map(cb => cb.value);
+  
+  if (!name) {
+    toast('يرجى إدخال اسم الدور', 'err');
+    return;
+  }
+  
+  api('/api/admin/roles', { name: name, permissions: permissions }).then(function(res) {
+    if (res.ok) {
+      toast(res.msg, 'ok');
+      closeModal('createRoleModal');
+      loadRoles();
+    } else {
+      toast(res.msg, 'err');
+    }
+  }).catch(function() {
+    toast('فشل إنشاء الدور', 'err');
+  });
+}
+
+function deleteRole(id) {
+  Swal.fire({
+    icon: 'warning',
+    title: 'حذف الدور',
+    text: 'هل أنت متأكد من حذف هذا الدور؟',
+    confirmButtonText: 'حذف',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    background: 'var(--card)',
+    color: 'var(--text)',
+    customClass: { popup: 'swal2-dark-custom' },
+    showCancelButton: true
+  }).then((result) => {
+    if (result.isConfirmed) {
+      api('/api/admin/roles/' + id + '/delete').then(function(res) {
+        if (res.ok) {
+          toast(res.msg, 'ok');
+          loadRoles();
+        } else {
+          toast(res.msg, 'err');
+        }
+      }).catch(function() {
+        toast('فشل الحذف', 'err');
+      });
+    }
+  });
+}
+
+function openEditPermissions(empId) {
+  document.getElementById('employeeSelect').value = empId;
+  openModal('editPermissionsModal');
+  loadEmployeePermissions();
+}
+
+function loadEmployeePermissions() {
+  var empId = document.getElementById('employeeSelect').value;
+  if (!empId) return;
+  
+  api('/api/admin/employees/' + empId + '/permissions').then(function(res) {
+    var checkboxes = document.getElementById('employeePermissionsCheckboxes');
+    checkboxes.innerHTML = res.permissions.map(function(p) {
+      return '<label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" value="' + p.id + '" ' + (p.assigned ? 'checked' : '') + '> ' + p.name + '</label>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل الأذونات', 'err');
+  });
+}
+
+function saveEmployeePermissions() {
+  var empId = document.getElementById('employeeSelect').value;
+  var checkboxes = document.querySelectorAll('#employeePermissionsCheckboxes input:checked');
+  var permissions = Array.from(checkboxes).map(cb => cb.value);
+  
+  if (!empId) {
+    toast('يرجى اختيار موظف', 'err');
+    return;
+  }
+  
+  api('/api/admin/employees/' + empId + '/permissions', { permissions: permissions }).then(function(res) {
+    if (res.ok) {
+      toast(res.msg, 'ok');
+      closeModal('editPermissionsModal');
+      loadEmployeePermissionsList();
+    } else {
+      toast(res.msg, 'err');
+    }
+  }).catch(function() {
+    toast('فشل حفظ الأذونات', 'err');
+  });
+}
+
+loadRoles();
+loadPermissions();
+loadEmployeePermissionsList();
+</script>
+{% endblock %}

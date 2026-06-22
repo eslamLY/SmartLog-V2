@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% set nav_active = 'gps' %}
+{% block title %}تتبع GPS المتقدم{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/static/css/tracking-premium.css">
+<style>
+  .track-layout { height: calc(100vh - 200px); min-height: 500px; }
+  .track-main { flex: 1; }
+  .track-sidebar { width: 340px; }
+  #trackingMap { height: 100%; width: 100%; border-radius: 12px; }
+  .leaflet-container { font-family: 'Tajawal', sans-serif; }
+</style>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<div id="gpsApp">
+  <header class="track-header">
+    <div class="track-header-row">
+      <div class="track-header-left">
+        <h1><i class="ti ti-map-pin" style="color:var(--accent)"></i> تتبع GPS المتقدم</h1>
+        <span class="track-badge" id="liveCount">0 متصل</span>
+        <span class="track-badge pulse-dot" id="recordingBadge"><span class="pulse-ring"></span> تسجيل مباشر</span>
+      </div>
+      <div class="track-header-actions">
+        <select id="employeeFilter" onchange="filterEmployee(this.value)" style="width:auto;min-width:160px">
+          <option value="">جميع الموظفين</option>
+          {% for e in employees %}
+          <option value="{{ e.id }}">{{ e.full_name }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-sm btn-ghost" onclick="fitMapToAll()"><i class="ti ti-maximize"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="toggleAutoCenter()" id="autoCenterBtn"><i class="ti ti-crosshair"></i> تلقائي</button>
+        <button class="btn btn-sm btn-outline" onclick="refreshNow()"><i class="ti ti-refresh"></i> تحديث</button>
+      </div>
+    </div>
+    <div class="track-header-meta">
+      <span><i class="ti ti-users"></i> <span id="metaOnline">0</span> موظف متصل</span>
+      <span><i class="ti ti-map"></i> <span id="metaZones">{{ geofence_zones|length }}</span> منطقة</span>
+      <span><i class="ti ti-alert-triangle"></i> <span id="metaAlerts">{{ alerts|length }}</span> تنبيه</span>
+      <span><i class="ti ti-clock"></i> <span id="metaUpdated">الآن</span></span>
+    </div>
+  </header>
+
+  <div class="track-layout">
+    <div class="track-main">
+      <div class="track-map-container">
+        <div id="trackingMap" class="track-map"></div>
+        <div class="map-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> نشط</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span> غير نشط</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#22c55e;opacity:0.5"></span> منطقة جغرافية</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ef4444;opacity:0.5"></span> منطقة محظورة</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#6366f1;opacity:0.5"></span> موقع موثوق</div>
+        </div>
+      </div>
+
+      <div class="track-stats-row">
+        <div class="stat-mini-card">
+          <div class="stat-mini-icon" style="background:rgba(34,197,94,0.12);color:#22c55e"><i class="ti ti-users"></i></div>
+          <div><div class="stat-mini-val" id="statOnline">0</div><div class="stat-mini-label">متصلون</div></div>
+        </div>
+        <div class="stat-mini-card">
+          <div class="stat-mini-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6"><i class="ti ti-map-pin"></i></div>
+          <div><div class="stat-mini-val" id="statTotalLogs">{{ recent_logs|length }}</div><div class="stat-mini-label">نقاط اليوم</div></div>
+        </div>
+        <div class="stat-mini-card">
+          <div class="stat-mini-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b"><i class="ti ti-alert-triangle"></i></div>
+          <div><div class="stat-mini-val" id="statAlerts">{{ alerts|length }}</div><div class="stat-mini-label">تنبيهات</div></div>
+        </div>
+        <div class="stat-mini-card">
+          <div class="stat-mini-icon" style="background:rgba(139,92,246,0.12);color:#8b5cf6"><i class="ti ti-ruler"></i></div>
+          <div><div class="stat-mini-val" id="statDistance">0</div><div class="stat-mini-label">كم اليوم</div></div>
+        </div>
+      </div>
+
+      <div class="track-tabs">
+        <button class="track-tab active" data-tab="live" onclick="switchTrackTab('live',this)"><i class="ti ti-broadcast"></i> مباشر</button>
+        <button class="track-tab" data-tab="history" onclick="switchTrackTab('history',this)"><i class="ti ti-clock"></i> السجل</button>
+        <button class="track-tab" data-tab="employees" onclick="switchTrackTab('employees',this)"><i class="ti ti-users"></i> الموظفون</button>
+        <button class="track-tab" data-tab="zones" onclick="switchTrackTab('zones',this)"><i class="ti ti-map"></i> المناطق</button>
+      </div>
+
+      <div class="track-panel active" id="livePanel">
+        <div class="panel-header">
+          <span><i class="ti ti-broadcast"></i> المواقع المباشرة</span>
+          <span class="panel-badge" id="livePanelCount">0</span>
+        </div>
+        <div class="live-grid" id="liveGrid">
+          {% for l in live_logs %}
+          <div class="live-card" data-employee-id="{{ l.employee_id }}" onclick="focusEmployee({{ l.employee_id }})">
+            <div class="live-card-header">
+              <span class="live-indicator online"></span>
+              <span class="live-name">{{ l.employee.full_name }}</span>
+              <span class="live-time" data-ts="{{ l.created_at.isoformat() }}">{{ l.created_at.strftime('%H:%M:%S') }}</span>
+            </div>
+            <div class="live-coords">{{ l.decrypted_lat }}, {{ l.decrypted_lng }}</div>
+            <div class="live-meta">
+              <span title="الدقة">🎯 {{ l.accuracy|default('?') }}م</span>
+              {% if l.battery %}<span title="البطارية">🔋 {{ l.battery }}%</span>{% endif %}
+              <span title="المصدر">{{ l.source }}</span>
+            </div>
+          </div>
+          {% else %}
+          <div class="empty-state-mini">
+            <i class="ti ti-map-off"></i>
+            <p>لا توجد مواقع مباشرة حالياً</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="track-panel" id="historyPanel">
+        <div class="panel-header">
+          <span><i class="ti ti-clock"></i> سجل التتبع</span>
+          <div class="panel-actions">
+            <input type="date" id="historyDate" value="{{ today.isoformat() }}" onchange="loadHistory()" style="width:auto;font-size:12px">
+            <button class="btn btn-sm btn-ghost" onclick="loadHistory()"><i class="ti ti-refresh"></i></button>
+          </div>
+        </div>
+        <div class="history-table-wrap">
+          <table class="track-table">
+            <thead>
+              <tr>
+                <th>الموظف</th><th>خط العرض</th><th>خط الطول</th><th>الدقة</th><th>البطارية</th><th>المصدر</th><th>الوقت</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="historyBody">
+              {% for l in recent_logs %}
+              <tr>
+                <td>{{ l.employee.full_name }}</td>
+                <td style="direction:ltr;font-family:monospace">{{ l.decrypted_lat }}</td>
+                <td style="direction:ltr;font-family:monospace">{{ l.decrypted_lng }}</td>
+                <td>{{ l.accuracy }}م</td>
+                <td>{% if l.battery %}{{ l.battery }}%{% else %}—{% endif %}</td>
+                <td>{{ l.source }}</td>
+                <td style="font-size:11px;direction:ltr">{{ l.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td><button class="btn btn-xs btn-ghost" onclick="showOnMap({{ l.decrypted_lat }},{{ l.decrypted_lng }})"><i class="ti ti-eye"></i></button></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="track-panel" id="employeesPanel">
+        <div class="panel-header">
+          <span><i class="ti ti-users"></i> قائمة الموظفين</span>
+          <span class="panel-badge">{{ employees|length }}</span>
+        </div>
+        <div class="employee-list">
+          {% for e in employees %}
+          <div class="employee-list-item" onclick="focusEmployee({{ e.id }})">
+            <div class="emp-avatar">{{ e.full_name[:2] }}</div>
+            <div class="emp-info">
+              <div class="emp-name">{{ e.full_name }}</div>
+              <div class="emp-dept">{{ e.department }}</div>
+            </div>
+            <div class="emp-status" id="empStatus{{ e.id }}">
+              <span class="status-dot offline"></span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="track-panel" id="zonesPanel">
+        <div class="panel-header">
+          <span><i class="ti ti-map"></i> المناطق الجغرافية</span>
+          <span class="panel-badge">{{ geofence_zones|length }}</span>
+        </div>
+        <div class="zones-grid">
+          {% for z in geofence_zones %}
+          <div class="zone-card" style="border-right:3px solid {{ z.color }}">
+            <div class="zone-card-header">
+              <span class="zone-name">{{ z.name }}</span>
+              <span class="zone-type-badge">{{ z.zone_type }}</span>
+            </div>
+            <div class="zone-detail"><i class="ti ti-target"></i> {{ z.radius|default('—') }}م</div>
+            <div class="zone-detail"><i class="ti ti-users"></i> {{ z.get_assigned_employee_ids()|length }} موظف</div>
+            <div class="zone-detail"><i class="ti ti-clock"></i> {{ z.work_hours_start }} - {{ z.work_hours_end }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="track-sidebar">
+      <div class="sidebar-section">
+        <div class="section-title"><i class="ti ti-alert-triangle"></i> التنبيهات <span class="badge badge-absent" id="alertBadge">{{ alerts|length }}</span></div>
+        <div class="alert-list" id="alertList">
+          {% for a in alerts[:20] %}
+          <div class="alert-item severity-{{ a.severity }}" data-alert-id="{{ a.id }}">
+            <div class="alert-icon">
+              {% if a.is_critical %}<i class="ti ti-alert-circle" style="color:#ef4444"></i>
+              {% elif a.severity == 'high' %}<i class="ti ti-alert-triangle" style="color:#f59e0b"></i>
+              {% else %}<i class="ti ti-info-circle" style="color:#3b82f6"></i>{% endif %}
+            </div>
+            <div class="alert-content">
+              <div class="alert-title">{{ a.description }}</div>
+              <div class="alert-meta">{{ a.created_at.strftime('%H:%M') }} • {{ a.employee_name or '' }}</div>
+            </div>
+            <button class="btn btn-xs btn-ghost" onclick="acknowledgeAlert({{ a.id }})" title="تأكيد"><i class="ti ti-check"></i></button>
+          </div>
+          {% else %}
+          <div class="empty-state-mini">
+            <i class="ti ti-bell-off"></i>
+            <p>لا توجد تنبيهات</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title"><i class="ti ti-ruler"></i> إحصائيات سريعة</div>
+        <div class="quick-stats">
+          <div class="quick-stat"><span class="qs-label">نقاط اليوم</span><span class="qs-value" id="qsPoints">{{ recent_logs|length }}</span></div>
+          <div class="quick-stat"><span class="qs-label">المناطق النشطة</span><span class="qs-value">{{ geofence_zones|length }}</span></div>
+          <div class="quick-stat"><span class="qs-label">الموظفون المتصلون</span><span class="qs-value" id="qsOnline">0</span></div>
+          <div class="quick-stat"><span class="qs-label">متوسط الدقة</span><span class="qs-value" id="qsAccuracy">—</span></div>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-title"><i class="ti ti-settings"></i> الإجراءات السريعة</div>
+        <div class="quick-actions">
+          <a href="/admin/geofence" class="btn btn-sm btn-outline" style="width:100%"><i class="ti ti-map"></i> إدارة المناطق</a>
+          <a href="/admin/location-analytics" class="btn btn-sm btn-outline" style="width:100%;margin-top:6px"><i class="ti ti-chart-line"></i> التحليلات</a>
+          <button class="btn btn-sm btn-outline" style="width:100%;margin-top:6px" onclick="exportGPSCSV()"><i class="ti ti-download"></i> تصدير CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/tracking-map.js"></script>
+<script src="/static/js/tracking-realtime.js"></script>
+<script src="/static/js/tracking-analytics.js"></script>
+<script>
+var TRACKING_DATA = {
+  bloodBankLat: 32.0755,
+  bloodBankLng: 23.9752,
+  zones: {{ geofence_zones | tojson | safe }},
+  employees: {{ employees | tojson | safe }}
+};
+document.addEventListener('DOMContentLoaded', function() {
+  initTrackingMap(TRACKING_DATA);
+  initRealtimeTracking(TRACKING_DATA);
+  loadHistory();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>محظور مؤقتاً</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Cairo',sans-serif;background:#080c18;color:#f0f4f9;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;direction:rtl}
+    .card{background:#0f172a;border:1px solid rgba(239,68,68,.3);border-radius:20px;padding:40px 36px;max-width:460px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(239,68,68,.1)}
+    .icon{width:72px;height:72px;border-radius:50%;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+    .icon i{font-size:36px;color:#dc2626}
+    h1{font-size:22px;font-weight:800;margin-bottom:8px;color:#dc2626}
+    p{font-size:15px;color:#8899b4;margin-bottom:20px;line-height:1.7}
+    .timer{font-size:36px;font-weight:800;color:#f59e0b;margin-bottom:8px}
+    .timer-label{font-size:13px;color:#8899b4;margin-bottom:24px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:10px;background:#1e2a45;color:var(--muted2);border:none;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
+    .btn:hover{background:#dc2626;color:#fff}
+  </style>
+</head><body>
+  <div class="card">
+    <div class="icon"><svg width="36" height="36" fill="#dc2626" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
+    <h1>محظور مؤقتاً</h1>
+    <p>تم حظرك مؤقتاً لمدة 5 دقائق بسبب الإغراق الإلكتروني المفرط.<br>يرجى الانتظار حتى انتهاء المدة المتبقية.</p>
+    <div class="timer" id="timer">{{ remaining // 60 }}:{{ '%02d' % (remaining % 60) }}</div>
+    <div class="timer-label">دقيقة:ثانية متبقية</div>
+    <a href="/logout" class="btn"><i class="ti ti-logout"></i> تسجيل الخروج</a>
+  </div>
+  <script>
+    var secs = {{ remaining }};
+    setInterval(function(){
+      secs--; if(secs<0) secs=0;
+      var m = Math.floor(secs/60), s = secs%60;
+      document.getElementById('timer').textContent = m + ':' + (s<10?'0':'') + s;
+    }, 1000);
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+</body></html>

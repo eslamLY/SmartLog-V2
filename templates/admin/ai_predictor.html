@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% set nav_active = 'ai_predictor' %}
+{% block title %}AI — توقع نقص المناوبات{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-brain" style="color:var(--accent)"></i> AI — توقع الاحتياجات</h1>
+  <button class="btn btn-indigo btn-sm" onclick="scanNow()"><i class="ti ti-refresh"></i> فحص الآن</button>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  <div id="summaryCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:18px"></div>
+  <div id="deptGroups"></div>
+  <div id="emptyState" style="display:none;text-align:center;padding:64px 16px">
+    <div style="font-size:48px;margin-bottom:12px"><i class="ti ti-shield-check" style="font-size:48px;color:#22c55e"></i></div>
+    <div style="font-size:15px;color:var(--muted)">✓ جميع المناوبات مغطاة بالكامل للأيام السبعة القادمة</div>
+  </div>
+  <div id="loadingState" style="text-align:center;padding:64px 16px">
+    <div class="shimmer" style="width:200px;height:24px;margin:0 auto 12px"></div>
+    <div class="shimmer" style="width:140px;height:18px;margin:0 auto"></div>
+  </div>
+</div>
+<style>
+.ai-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px; transition:all .2s; }
+.ai-card:hover { border-color:rgba(255,255,255,.08); }
+.ai-card.red { border-right:4px solid #ef4444; background:rgba(239,68,68,.04); }
+.ai-card.yellow { border-right:4px solid #f59e0b; background:rgba(245,158,11,.04); }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+function scanNow(){
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('deptGroups').innerHTML = '';
+  document.getElementById('summaryCards').innerHTML = '';
+  fetch('/api/admin/ai-predictor').then(function(r){ return r.json(); }).then(function(d){
+    document.getElementById('loadingState').style.display = 'none';
+    if(d.flags.length === 0){
+      document.getElementById('emptyState').style.display = 'block';
+      return;
+    }
+    // Summary cards
+    var s = d.summary;
+    document.getElementById('summaryCards').innerHTML =
+      '<div class="card" style="padding:14px;text-align:center">' +
+        '<div style="font-size:11px;color:var(--muted)">إجمالي النقص</div>' +
+        '<div style="font-size:22px;font-weight:800">' + s.total + '</div></div>' +
+      '<div class="card" style="padding:14px;text-align:center">' +
+        '<div style="font-size:11px;color:var(--muted)">خطر أحمر (0 موظف)</div>' +
+        '<div style="font-size:22px;font-weight:800;color:#ef4444">' + s.red + '</div></div>' +
+      '<div class="card" style="padding:14px;text-align:center">' +
+        '<div style="font-size:11px;color:var(--muted)">تحذير أصفر</div>' +
+        '<div style="font-size:22px;font-weight:800;color:#f59e0b">' + s.yellow + '</div></div>' +
+      '<div class="card" style="padding:14px;text-align:center">' +
+        '<div style="font-size:11px;color:var(--muted)">نطاق الفحص</div>' +
+        '<div style="font-size:22px;font-weight:800">' + s.scan_days + ' أيام</div></div>';
+    // Group by department
+    var groups = {};
+    d.flags.forEach(function(f){
+      if(!groups[f.dept_name]) groups[f.dept_name] = [];
+      groups[f.dept_name].push(f);
+    });
+    var html = '';
+    Object.keys(groups).sort().forEach(function(dept){
+      var items = groups[dept];
+      html += '<div class="ai-card" style="margin-bottom:14px">';
+      html += '<div style="font-size:14px;font-weight:700;margin-bottom:10px"><i class="ti ti-building"></i> ' + dept + ' <span style="font-size:12px;color:var(--muted);font-weight:400">(' + items.length + ' إنذار)</span></div>';
+      items.forEach(function(f){
+        html += '<div class="ai-card ' + f.severity + '" style="margin-bottom:6px;padding:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+        html += '<span style="font-size:13px;font-weight:600">' + f.date + '</span>';
+        html += '<span class="badge ' + (f.severity === 'red' ? 'badge-absent' : 'badge-late') + '">' + f.day_name + '</span>';
+        html += '<span style="font-size:12px;color:var(--muted)">' + f.shift_type + '</span>';
+        html += '</div>';
+        html += '<div style="display:flex;align-items:center;gap:8px">';
+        html += '<span style="font-size:13px">' + f.confirmed + '/' + f.min_required + '</span>';
+        html += '<span class="badge ' + (f.severity === 'red' ? 'badge-absent' : 'badge-late') + '">-' + f.deficit + '</span>';
+        html += '<a href="' + f.action_url + '" class="btn btn-ghost btn-xs"><i class="ti ti-user-plus"></i></a>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    });
+    document.getElementById('deptGroups').innerHTML = html;
+  }).catch(function(){
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('deptGroups').innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--red)"><i class="ti ti-alert-triangle" style="font-size:32px;display:block;margin-bottom:8px"></i>خطأ في الاتصال بالخادم</div>';
+  });
+}
+scanNow();
+</script>
+{% endblock %}

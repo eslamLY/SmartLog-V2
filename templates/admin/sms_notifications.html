@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% set nav_active = 'sms_notifications' %}
+{% block title %}إشعارات SMS{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-message" style="color:var(--accent)"></i> إشعارات SMS</h1>
+  <button class="btn btn-indigo" onclick="openModal('sendSmsModal')"><i class="ti ti-send"></i> إرسال SMS</button>
+</header>
+<div style="padding:20px">
+  <div class="card" style="padding:16px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="ti ti-message-check" style="font-size:20px;color:var(--green)"></i>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">إعدادات SMS</div>
+        <div style="font-size:12px;color:var(--muted)">إرسال إشعارات SMS للموظفين</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>الوقت</th>
+          <th>المستلم</th>
+          <th>الرسالة</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody id="historyList">
+        <tr>
+          <td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">
+            <i class="ti ti-message-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>
+            لا توجد إشعارات مرسلة
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="sendSmsModal" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:16px">إرسال SMS</h2>
+    <div style="margin-bottom:16px">
+      <label>المستلم</label>
+      <select id="smsTo">
+        <option value="">جميع الموظفين</option>
+        {% for emp in employees %}
+        <option value="{{ emp.phone }}">{{ emp.full_name }} ({{ emp.phone }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>الرسالة</label>
+      <textarea id="smsBody" rows="4" placeholder="محتوى الرسالة" maxlength="160"></textarea>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px"><span id="charCount">0</span>/160 حرف</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-indigo" style="flex:1" onclick="sendSms()">إرسال</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('sendSmsModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('smsBody').addEventListener('input', function() {
+  document.getElementById('charCount').textContent = this.value.length;
+});
+
+function loadHistory() {
+  api('/api/admin/sms/history').then(function(res) {
+    var list = document.getElementById('historyList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-message-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>لا توجد إشعارات مرسلة</td></tr>';
+      return;
+    }
+    list.innerHTML = res.map(function(h) {
+      var statusBadge = h.status === 'sent' ? '<span class="badge badge-present">تم الإرسال</span>' : '<span class="badge badge-absent">فشل</span>';
+      return '<tr>' +
+        '<td style="font-size:12px;color:var(--muted)">' + new Date(h.sent_at).toLocaleString('ar-SA') + '</td>' +
+        '<td>' + h.to + '</td>' +
+        '<td>' + h.message + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '</tr>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل السجل', 'err');
+  });
+}
+
+function sendSms() {
+  var data = {
+    to: document.getElementById('smsTo').value,
+    message: document.getElementById('smsBody').value
+  };
+  if (!data.message) {
+    toast('يرجى إدخال الرسالة', 'err');
+    return;
+  }
+  api('/api/admin/sms/send', data).then(function(res) {
+    if (res.ok) {
+      toast(res.msg, 'ok');
+      closeModal('sendSmsModal');
+      loadHistory();
+    } else {
+      toast(res.msg, 'err');
+    }
+  }).catch(function() {
+    toast('فشل الإرسال', 'err');
+  });
+}
+
+loadHistory();
+</script>
+{% endblock %}

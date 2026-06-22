@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% set is_employee = true %}
+{% set nav_active = 'profile' %}
+{% block title %}ملفي الشخصي{% endblock %}
+{% block employee_layout %}
+<div style="min-height:100vh;background:var(--bg)">
+  <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+    <a href="/employee" style="color:var(--muted);text-decoration:none;font-size:22px"><i class="ti ti-arrow-right"></i></a>
+    <div style="flex:1">
+      <h1 style="font-size:16px;font-weight:700;color:var(--text)">ملفي الشخصي</h1>
+      <div style="font-size:11px;color:var(--muted)">{{ employee.full_name }} · {{ employee.department }}</div>
+    </div>
+  </header>
+  <main class="mobile-pb" style="padding:14px;max-width:600px;margin:0 auto">
+    <!-- Header Card -->
+    <div class="card" style="padding:20px;text-align:center;margin-bottom:12px">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--accent)20;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;border:2px solid var(--accent)">
+        <i class="ti ti-user" style="font-size:26px;color:var(--accent)"></i>
+      </div>
+      <div style="font-size:18px;font-weight:800">{{ employee.full_name }}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px">{{ employee.employee_code or employee.username }}</div>
+      {% if employee.extended and employee.extended.grade %}
+      <div style="margin-top:8px"><span class="badge badge-info">{{ employee.extended.grade.name_ar }}</span></div>
+      {% endif %}
+    </div>
+
+    <!-- Quick Stats -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="card" style="padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted)">أيام الإجازة</div>
+        <div style="font-size:20px;font-weight:800;color:var(--accent)" id="myLeaveTotal">—</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted)">الترقيات</div>
+        <div style="font-size:20px;font-weight:800;color:var(--green)" id="myPromoCount">—</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted)">المؤهلات</div>
+        <div style="font-size:20px;font-weight:800;color:var(--amber)" id="myQualCount">—</div>
+      </div>
+    </div>
+
+    <!-- Sections -->
+    {% if employee.extended %}
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-id"></i> معلومات الهوية</div>
+      <div class="info-grid">
+        <div><span class="info-label">الرقم الوطني</span><span class="info-val">{{ employee.extended.national_id or '—' }}</span></div>
+        <div><span class="info-label">جواز السفر</span><span class="info-val">{{ employee.extended.passport_number or '—' }}</span></div>
+        <div><span class="info-label">الحالة الاجتماعية</span><span class="info-val">{{ employee.extended.marital_status or '—' }}</span></div>
+        <div><span class="info-label">عدد الأطفال</span><span class="info-val">{{ employee.extended.dependent_children or 0 }}</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-phone"></i> الاتصال</div>
+      <div class="info-grid">
+        <div><span class="info-label">الهاتف الشخصي</span><span class="info-val">{{ employee.extended.personal_phone or '—' }}</span></div>
+        <div><span class="info-label">البريد الشخصي</span><span class="info-val">{{ employee.extended.personal_email or '—' }}</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-building-bank"></i> الحساب البنكي</div>
+      <div class="info-grid">
+        <div><span class="info-label">البنك</span><span class="info-val">{{ employee.extended.bank_name or '—' }}</span></div>
+        <div><span class="info-label">رقم IBAN</span><span class="info-val" dir="ltr">{{ employee.extended.iban or '—' }}</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-heartbeat"></i> التأمين الصحي والاجتماعي</div>
+      <div class="info-grid">
+        <div><span class="info-label">رقم التأمينات</span><span class="info-val">{{ employee.extended.social_security_number or '—' }}</span></div>
+        <div><span class="info-label">مستوى التأمين الصحي</span><span class="info-val">{{ employee.extended.health_insurance_level or '—' }}</span></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Qualifications -->
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-certificate" id="myQualSection"></i> المؤهلات <span id="myQualBadge" style="font-size:11px;color:var(--muted)"></span></div>
+      <div id="myQualList"><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">جاري التحميل...</div></div>
+    </div>
+
+    <!-- Certifications -->
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-award"></i> الشهادات المهنية <span id="myCertBadge" style="font-size:11px;color:var(--muted)"></span></div>
+      <div id="myCertList"><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">جاري التحميل...</div></div>
+    </div>
+
+    <!-- Leave Balances -->
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-calendar"></i> أرصدة الإجازات <span id="myLeaveYear" style="font-size:11px;color:var(--muted)"></span></div>
+      <div id="myLeaveBalances"><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">جاري التحميل...</div></div>
+    </div>
+
+    <!-- Promotions -->
+    <div class="card" style="padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)"><i class="ti ti-arrow-up-circle"></i> سجل الترقيات <span id="myPromoBadge" style="font-size:11px;color:var(--muted)"></span></div>
+      <div id="myPromoList"><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">جاري التحميل...</div></div>
+    </div>
+  </main>
+</div>
+<style>
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.info-label{display:block;font-size:11px;color:var(--muted)}
+.info-val{font-size:14px;font-weight:600;color:var(--text)}
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+const eid = {{ employee.id }};
+const year = new Date().getFullYear();
+document.getElementById('myLeaveYear').textContent = '(' + year + ')';
+
+api('/admin/employees/' + eid + '/extended').then(data => {
+  if (data.qualifications) {
+    const list = document.getElementById('myQualList');
+    const badge = document.getElementById('myQualBadge');
+    if (data.qualifications.length) {
+      badge.textContent = '(' + data.qualifications.length + ')';
+      list.innerHTML = data.qualifications.map(q =>
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);font-size:13px">
+          <span><strong>${q.level}</strong> — ${q.specialization}</span>
+          <span style="color:var(--muted)">${q.graduation_year}</span>
+        </div>`
+      ).join('');
+    } else { list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">لا توجد مؤهلات</div>'; }
+  }
+  if (data.certifications) {
+    const list = document.getElementById('myCertList');
+    const badge = document.getElementById('myCertBadge');
+    if (data.certifications.length) {
+      badge.textContent = '(' + data.certifications.length + ')';
+      list.innerHTML = data.certifications.map(c =>
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);font-size:13px">
+          <span><strong>${c.cert_type}</strong> — ${c.issuing_body}</span>
+          <span style="color:var(--muted)">${c.issue_date || ''}</span>
+        </div>`
+      ).join('');
+    } else { list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">لا توجد شهادات</div>'; }
+  }
+});
+
+api('/admin/leave-mgmt/balance/' + eid + '?year=' + year).then(data => {
+  const div = document.getElementById('myLeaveBalances');
+  const total = document.getElementById('myLeaveTotal');
+  if (data.balances && data.balances.length) {
+    let sum = 0;
+    div.innerHTML = data.balances.map(b => {
+      sum += b.remaining_days || 0;
+      return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);font-size:13px">
+        <span>${b.leave_type_name}</span>
+        <span><strong>${b.remaining_days}</strong> <span style="color:var(--muted);font-size:11px">/ ${b.total_days}</span></span>
+      </div>`;
+    }).join('');
+    total.textContent = sum;
+  } else { div.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">لا توجد أرصدة</div>'; }
+});
+
+api('/admin/promotions/history/' + eid).then(data => {
+  const list = document.getElementById('myPromoList');
+  const badge = document.getElementById('myPromoBadge');
+  const count = document.getElementById('myPromoCount');
+  if (data.promotions && data.promotions.length) {
+    badge.textContent = '(' + data.promotions.length + ')';
+    count.textContent = data.promotions.length;
+    list.innerHTML = data.promotions.map(p =>
+      `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);font-size:13px">
+        <span><i class="ti ti-arrow-up" style="color:var(--green)"></i> ${p.from_grade_name || '—'} → <strong>${p.to_grade_name}</strong></span>
+        <span style="color:var(--muted)">${p.effective_date || ''}</span>
+      </div>`
+    ).join('');
+  } else {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">لا توجد ترقيات</div>';
+    count.textContent = '0';
+  }
+});
+
+api('/admin/performance/' + eid).then(data => {
+  if (data.evaluations && data.evaluations.length) {
+    const last = data.evaluations[0];
+    document.getElementById('myQualCount').textContent = data.evaluations.length;
+  }
+});
+</script>
+{% endblock %}

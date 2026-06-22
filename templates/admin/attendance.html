@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% set nav_active = 'attendance' %}
+{% block title %}سجل الحضور{% endblock %}
+{% block content %}
+<style>
+  @media print {
+    body * { visibility: hidden; }
+    .print-area, .print-area * { visibility: visible; }
+    .print-area { position: fixed; top: 0; left: 0; width: 100%; }
+    .print-area table { width: 100%; border-collapse: collapse; font-family: 'Cairo', sans-serif; font-size: 12px; }
+    .print-area th, .print-area td { border: 1px solid #444; padding: 6px 8px; text-align: center; }
+    .print-area th { background: #1a1a2e; color: #fff; font-weight: 700; }
+    .no-print { display: none !important; }
+  }
+</style>
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700">سجل الحضور والانصراف</h1>
+  <form method="GET" action="/admin/attendance" style="display:flex;gap:8px;flex-wrap:wrap">
+    <input type="date" name="start_date" id="logDateFrom" value="{{ sel_date }}" style="width:150px;font-size:13px;padding:7px 12px!important">
+    <input type="date" name="end_date" id="logDateTo" value="{{ sel_end_date }}" style="width:150px;font-size:13px;padding:7px 12px!important">
+    <select name="dept" class="btn-sm" style="width:130px">
+      <option value="">كل الأقسام</option>
+      {% for d in departments %}<option value="{{ d }}" {% if d==sel_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+    </select>
+    <select name="status" class="btn-sm" style="width:120px">
+      <option value="">كل الحالات</option>
+      <option value="present" {% if sel_status=='present' %}selected{% endif %}>حاضر</option>
+      <option value="late" {% if sel_status=='late' %}selected{% endif %}>متأخر</option>
+      <option value="absent" {% if sel_status=='absent' %}selected{% endif %}>غائب</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" type="submit"><i class="ti ti-search"></i></button>
+    <button class="btn btn-indigo btn-sm" onclick="document.getElementById('manualClockinModal').classList.add('open')"><i class="ti ti-plus"></i> تسجيل يدوي</button>
+  </form>
+</header>
+<div class="print-area" style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  <div class="no-print" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn btn-indigo btn-sm" onclick="printAttendance()"><i class="ti ti-printer"></i> طباعة سجل الحضور PDF</button>
+    <button class="btn btn-green btn-sm" onclick="exportLogsToExcel()"><i class="ti ti-file-spreadsheet"></i> تصدير السجل إلى Excel</button>
+  </div>
+  {% if logs %}
+  <div class="card" style="overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="tbl" id="attendanceLogTable">
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>المدة</th><th>الحالة</th><th>تأخير</th><th>الموقع</th>
+        </tr></thead>
+        <tbody>
+          {% for log, emp in logs %}
+          <tr data-date="{{ log.log_date }}">
+            <td style="font-weight:600">{{ emp.full_name }}</td>
+            <td style="color:var(--muted)">{{ emp.department }}</td>
+            <td style="text-align:center;direction:ltr">{{ log.log_date.strftime('%Y-%m-%d') }}</td>
+            <td style="direction:ltr;text-align:center">{{ log.clock_in.strftime('%H:%M') if log.clock_in else '—' }}</td>
+            <td style="direction:ltr;text-align:center">{{ log.clock_out.strftime('%H:%M') if log.clock_out else '—' }}</td>
+            <td style="text-align:center">{{ work_hours_str(log) }}</td>
+            <td style="text-align:center"><span class="badge {% if log.status=='present' %}badge-present{% elif log.status=='late' %}badge-late{% else %}badge-absent{% endif %}">{% if log.status=='present' %}حاضر{% elif log.status=='late' %}متأخر{% else %}غائب{% endif %}</span></td>
+            <td style="text-align:center;color:{% if log.late_minutes %}#f59e0b{% else %}var(--muted){% endif %}">{{ log.late_minutes or '—' }}</td>
+            <td style="text-align:center;font-size:11px;color:var(--muted)">
+              {% if log.is_inside_geofence == false %}⚠️ خارج{% else %}✅ داخل{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if page_obj.pages > 1 %}
+  <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:16px 0;flex-wrap:wrap">
+    <a href="?start_date={{ sel_date }}&end_date={{ sel_end_date }}&{% if sel_dept %}dept={{ sel_dept }}&{% endif %}{% if sel_status %}status={{ sel_status }}&{% endif %}page={{ page_obj.prev_num }}" class="btn btn-ghost btn-sm" {% if not page_obj.has_prev %}style="pointer-events:none;opacity:.4"{% endif %}>← السابق</a>
+    {% for p in page_obj.iter_pages() %}
+      {% if p %}
+      <a href="?start_date={{ sel_date }}&end_date={{ sel_end_date }}&{% if sel_dept %}dept={{ sel_dept }}&{% endif %}{% if sel_status %}status={{ sel_status }}&{% endif %}page={{ p }}" class="btn btn-sm" style="min-width:32px;{% if p == page_obj.page %}background:var(--accent);color:#fff{% else %}background:var(--card2){% endif %}">{{ p }}</a>
+      {% else %}
+      <span style="color:var(--muted);padding:0 4px">…</span>
+      {% endif %}
+    {% endfor %}
+    <a href="?start_date={{ sel_date }}&end_date={{ sel_end_date }}&{% if sel_dept %}dept={{ sel_dept }}&{% endif %}{% if sel_status %}status={{ sel_status }}&{% endif %}page={{ page_obj.next_num }}" class="btn btn-ghost btn-sm" {% if not page_obj.has_next %}style="pointer-events:none;opacity:.4"{% endif %}>التالي →</a>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="no-print" style="text-align:center;padding:64px 16px">
+    <div style="font-size:48px;margin-bottom:12px"><i class="ti ti-clock-record" style="font-size:48px;color:var(--muted)"></i></div>
+    <div style="font-size:15px;color:var(--muted)">لا توجد سجلات لهذا اليوم</div>
+  </div>
+  {% endif %}
+</div>
+<div class="modal-overlay" id="manualClockinModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-fingerprint" style="color:var(--accent)"></i> تسجيل حضور يدوي</div>
+    <div style="margin-bottom:10px">
+      <label>الموظف</label>
+      <select id="mciEmpId" style="width:100%">
+        <option value="">اختر موظفاً...</option>
+        {% for log, emp in logs %}
+        {% if not log.clock_in %}<option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.department }})</option>{% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>المبرر <span style="color:var(--red)">*</span></label>
+      <input type="text" id="mciJustification" placeholder="مثال: مهمة عمل خارجية" style="width:100%">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-indigo" style="flex:1" onclick="manualClockin()"><i class="ti ti-device-floppy"></i> تسجيل الحضور</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('manualClockinModal').classList.remove('open')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function manualClockin(){
+  const eid = document.getElementById('mciEmpId').value;
+  const just = document.getElementById('mciJustification').value.trim();
+  if(!eid){toast('يرجى اختيار موظف.','err');return;}
+  if(!just){toast('يرجى إدخال مبرر لتسجيل الحضور.','err');return;}
+  const r = await api('/admin/attendance/manual-clockin', {employee_id: parseInt(eid), justification: just});
+  toast(r.msg, r.ok?'ok':'err');
+  if(r.ok){setTimeout(()=>location.reload(),1200);}
+}
+
+function updateDateRange() {
+  var fromEl = document.getElementById('logDateFrom');
+  var toEl = document.getElementById('logDateTo');
+  var from = fromEl.value;
+  var to = toEl.value;
+  if (!from || !to) return;
+  var rows = document.querySelectorAll('#attendanceLogTable tbody tr');
+  rows.forEach(function(tr) {
+    var rowDate = tr.getAttribute('data-date');
+    tr.style.display = (rowDate >= from && rowDate <= to) ? '' : 'none';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var fromEl = document.getElementById('logDateFrom');
+  var toEl = document.getElementById('logDateTo');
+  if (fromEl) fromEl.addEventListener('change', updateDateRange);
+  if (toEl) toEl.addEventListener('change', updateDateRange);
+});
+
+function printAttendance() {
+  window.print();
+}
+
+function exportLogsToExcel() {
+  var table = document.getElementById('attendanceLogTable');
+  if (!table || !table.querySelector('tbody tr')) {
+    toast('لا توجد بيانات للتصدير!', 'err');
+    return;
+  }
+  try {
+    var wb = XLSX.utils.table_to_book(table, { sheet: 'سجل الحضور' });
+    var ws = wb.Sheets['سجل الحضور'];
+    if (ws) ws['!views'] = [{ RTL: true }];
+    XLSX.writeFile(wb, 'سجل_الحضور_والانصراف.xlsx');
+    toast('تم تصدير الملف بنجاح!', 'ok');
+  } catch (err) {
+    toast('فشل التصدير: ' + err.message, 'err');
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% set nav_active = 'payroll' %}
+{% block title %}إدارة الرواتب — {{ month_name }} {{ year }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/payroll-premium.css">
+<link rel="stylesheet" href="/static/css/payroll-print.css" media="print">
+
+<div id="payrollApp">
+  <header class="payroll-header">
+    <div class="header-row">
+      <div class="header-left">
+        <h1><i class="ti ti-currency-dollar"></i> إدارة الرواتب</h1>
+        <span class="header-badge" id="periodBadge">{{ month_name }} {{ year }}</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-sm btn-ghost" onclick="togglePayrollTheme()" id="payrollThemeToggle"><i class="ti ti-moon"></i></button>
+        <button class="btn btn-sm btn-outline" onclick="bulkSaveAll()"><i class="ti ti-device-floppy"></i> حفظ الكل</button>
+        <button class="btn btn-sm btn-indigo" onclick="exportPayroll('csv')"><i class="ti ti-download"></i> تصدير CSV</button>
+        <div class="payroll-export-dropdown">
+          <button class="btn btn-sm btn-indigo" onclick="togglePayrollExport()"><i class="ti ti-file-export"></i> تصدير</button>
+          <div class="payroll-export-menu" id="payrollExportMenu">
+            <button onclick="exportPayroll('csv')"><i class="ti ti-file-type-csv"></i> CSV</button>
+            <button onclick="exportPayroll('excel')"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+            <button onclick="window.print()"><i class="ti ti-printer"></i> طباعة</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span><i class="ti ti-calendar"></i> <span id="metaPeriod">{{ month_name }} {{ year }}</span></span>
+      <span><i class="ti ti-users"></i> <span id="metaCount">{{ pay_rows|length }}</span> موظف</span>
+      <span><i class="ti ti-clock"></i> آخر تحديث: <span id="metaUpdated">الآن</span></span>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <form method="GET" action="/admin/payroll" class="filter-form" id="payrollFilterForm">
+      <select name="month" onchange="this.form.submit()">
+        {% for i in range(12) %}
+        <option value="{{ i+1 }}" {% if i+1 == month %}selected{% endif %}>{{ months[i] }}</option>
+        {% endfor %}
+      </select>
+      <select name="year" onchange="this.form.submit()">
+        {% for y in range(year-1, year+3) %}
+        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+      <select name="dept" onchange="this.form.submit()">
+        <option value="">كل الأقسام</option>
+        {% for d in departments %}
+        <option value="{{ d }}" {% if d == dept %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="search" placeholder="بحث..." value="{{ search }}" class="filter-search">
+      <button type="submit" class="btn btn-ghost btn-sm"><i class="ti ti-search"></i></button>
+    </form>
+  </div>
+
+  <div class="payroll-tabs" id="payrollTabs">
+    <button class="payroll-tab active" data-tab="1" onclick="switchPayrollTab(1, this)"><i class="ti ti-table"></i> الكشف الشامل</button>
+    <button class="payroll-tab" data-tab="2" onclick="switchPayrollTab(2, this)"><i class="ti ti-file-text"></i> الكشف الفردي</button>
+    <button class="payroll-tab" data-tab="3" onclick="switchPayrollTab(3, this)"><i class="ti ti-chart-line"></i> التحليلات</button>
+    <button class="payroll-tab" data-tab="4" onclick="switchPayrollTab(4, this)"><i class="ti ti-wallet"></i> الأرصدة</button>
+    <button class="payroll-tab" data-tab="5" onclick="switchPayrollTab(5, this)"><i class="ti ti-arrows-left-right"></i> المقارنات</button>
+    <button class="payroll-tab" data-tab="6" onclick="switchPayrollTab(6, this)"><i class="ti ti-check-circle"></i> الموافقات</button>
+    <button class="payroll-tab" data-tab="7" onclick="switchPayrollTab(7, this)"><i class="ti ti-building-bank"></i> البنك</button>
+  </div>
+
+  <div class="payroll-summary" id="summaryGrid">
+    <div class="summary-card"><div class="s-label">عدد الموظفين</div><div class="s-value" id="sEmpCount">{{ summary.total_employees }}</div><div class="s-sub">موظف نشط</div></div>
+    <div class="summary-card"><div class="s-label">إجمالي الأساسي</div><div class="s-value" id="sBaseTotal">{{ summary.total_base }} <small>د.ل</small></div></div>
+    <div class="summary-card"><div class="s-label">إجمالي الإضافات</div><div class="s-value" id="sAllowTotal">{{ summary.total_allowances }} <small>د.ل</small></div><div class="s-sub">{{ summary.allowances_pct }}% من الإجمالي</div></div>
+    <div class="summary-card"><div class="s-label">إجمالي الخصومات</div><div class="s-value" id="sDedTotal">{{ summary.total_deductions }} <small>د.ل</small></div><div class="s-sub">{{ summary.deductions_pct }}% من الإجمالي</div></div>
+    <div class="summary-card"><div class="s-label">الضرائب</div><div class="s-value" id="sTaxTotal">{{ summary.total_tax }} <small>د.ل</small></div><div class="s-sub">{{ summary.tax_pct }}% من الإجمالي</div></div>
+    <div class="summary-card highlight"><div class="s-label">صافي الرواتب</div><div class="s-value" id="sNetTotal">{{ summary.total_net }} <small>د.ل</small></div><div class="s-sub">تحويل بنكي: {{ summary.bank_transfer_total }} نقدي: {{ summary.cash_total }}</div></div>
+  </div>
+
+  <div class="payroll-panel" id="tab1Panel">
+    <div class="table-toolbar">
+      <div class="table-info" id="tab1Info">عرض {{ pay_rows|length }} موظف</div>
+      <div class="table-actions">
+        <select id="tab1PerPage" onchange="changePerPage(this)" style="display:none">
+          <option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="100">100</option>
+        </select>
+      </div>
+    </div>
+    <div class="payroll-table-wrap">
+      <table class="payroll-table" id="mainPayrollTable">
+        <thead>
+          <tr>
+            <th class="sticky-col">#</th>
+            <th class="sticky-col">الموظف</th>
+            <th>القسم</th>
+            <th>نوع التوظيف</th>
+            <th>الأساسي</th>
+            <th>+ البدلات</th>
+            <th>+ العمل الإضافي</th>
+            <th>+ الحوافز</th>
+            <th>= الإجمالي</th>
+            <th>- التأخيرات</th>
+            <th>- الغيابات</th>
+            <th>- خصومات أخرى</th>
+            <th>= إجمالي الخصم</th>
+            <th>- الضرائب</th>
+            <th>= الصافي</th>
+            <th>الحالة</th>
+            <th>طريقة الدفع</th>
+            <th>ملاحظات</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="payrollTableBody">
+          {% for r in pay_rows %}
+          <tr class="payroll-row" onclick="toggleRowDetail(this, {{ r.emp.id }})">
+            <td class="sticky-col">{{ loop.index }}</td>
+            <td class="sticky-col">
+              <div class="emp-info">
+                <span class="emp-avatar">{{ r.emp.full_name[:1] }}</span>
+                <div>
+                  <div class="emp-name">{{ r.emp.full_name }}</div>
+                  <div class="emp-id">{{ r.emp.username }}</div>
+                  <div class="emp-dept-mini">{{ r.emp.department }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="dept-pill">{{ r.emp.department }}</span></td>
+            <td><span class="type-pill type-{{ r.emp.employment_type }}">{{ {'full_time':'دوام كامل','part_time':'دوام جزئي','contract':'عقد'}.get(r.emp.employment_type, r.emp.employment_type) }}</span></td>
+            <td class="num-cell">{{ r.comp.base }}</td>
+            <td class="num-cell">{{ r.comp.total_allowances }} <span class="allow-breakdown" onclick="event.stopPropagation();showAllowBreakdown(this, {{ r.emp.id }})" title="تفاصيل البدلات"><i class="ti ti-notes"></i></span></td>
+            <td class="num-cell">{{ r.comp.overtime_pay }} <small class="sub-text">({{ r.comp.overtime_hours }}س)</small></td>
+            <td class="num-cell">{{ r.comp.other_allowances_total }}</td>
+            <td class="num-cell highlight-blue">{{ r.comp.gross }}</td>
+            <td class="num-cell text-red">{{ r.comp.late_deduction }} <small class="sub-text">({{ r.comp.late_minutes }}د)</small></td>
+            <td class="num-cell text-red">{{ r.comp.absent_deduction }} <small class="sub-text">({{ r.comp.absent_days }}أ)</small></td>
+            <td class="num-cell text-red">0</td>
+            <td class="num-cell text-red bold">{{ r.comp.total_deductions }}</td>
+            <td class="num-cell text-amber">{{ r.comp.total_tax }}</td>
+            <td class="num-cell text-green bold large">{{ r.comp.net }}</td>
+            <td><span class="status-pill status-calculated">محسوب</span></td>
+            <td>{{ {'bank_transfer':'تحويل بنكي','cash':'صرف نقدي','check':'شيك'}.get(r.emp.payment_method, r.emp.payment_method) }}</td>
+            <td class="notes-cell">—</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-icon" onclick="event.stopPropagation();viewPayslip({{ r.emp.id }})" title="عرض كشف الراتب"><i class="ti ti-eye"></i></button>
+                <button class="btn-icon" onclick="event.stopPropagation();openApproval({{ r.emp.id }})" title="طلب موافقة"><i class="ti ti-check"></i></button>
+                <button class="btn-icon" onclick="event.stopPropagation();printPayslip({{ r.emp.id }})" title="طباعة"><i class="ti ti-printer"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr class="row-detail" id="rowDetail{{ r.emp.id }}" style="display:none">
+            <td colspan="19">
+              <div class="row-detail-content">
+                <div class="detail-section">
+                  <div class="detail-title">تفاصيل الراتب</div>
+                  <div class="detail-grid">
+                    <div><span class="dg-label">الراتب الأساسي</span><span class="dg-value">{{ r.comp.base }}</span></div>
+                    <div><span class="dg-label">بدل سكن</span><span class="dg-value">{{ r.comp.housing_allowance }}</span></div>
+                    <div><span class="dg-label">بدل مواصلات</span><span class="dg-value">{{ r.comp.transport_allowance }}</span></div>
+                    {% for a in r.comp.other_allowances %}
+                    <div><span class="dg-label">{{ a.label or 'بدل' }}</span><span class="dg-value">{{ a.amount }}</span></div>
+                    {% endfor %}
+                    <div><span class="dg-label">العمل الإضافي</span><span class="dg-value">{{ r.comp.overtime_pay }} ({{ r.comp.overtime_hours }} س)</span></div>
+                    <div class="total-row"><span class="dg-label">إجمالي الراتب</span><span class="dg-value highlight-blue">{{ r.comp.gross }}</span></div>
+                  </div>
+                </div>
+                <div class="detail-section">
+                  <div class="detail-title">الخصومات</div>
+                  <div class="detail-grid">
+                    <div><span class="dg-label">تأخيرات ({{ r.comp.late_minutes }} د)</span><span class="dg-value text-red">{{ r.comp.late_deduction }}</span></div>
+                    <div><span class="dg-label">غيابات ({{ r.comp.absent_days }} أ)</span><span class="dg-value text-red">{{ r.comp.absent_deduction }}</span></div>
+                    <div><span class="dg-label">ضريبة الدخل</span><span class="dg-value text-amber">{{ r.comp.tax_income }}</span></div>
+                    <div><span class="dg-label">التأمينات</span><span class="dg-value text-amber">{{ r.comp.tax_social }}</span></div>
+                    <div class="total-row"><span class="dg-label">إجمالي الخصومات</span><span class="dg-value text-red bold">{{ r.comp.total_deductions + r.comp.total_tax }}</span></div>
+                  </div>
+                </div>
+                <div class="detail-section net-section">
+                  <div class="detail-title">صافي الراتب</div>
+                  <div class="net-value">{{ r.comp.net }} <small>د.ل</small></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if total_pages > 1 %}
+    <div class="pagination-bar">
+      {% for p in range(1, total_pages + 1) %}
+      <a href="?month={{ month }}&year={{ year }}&{% if dept %}dept={{ dept }}&{% endif %}page={{ p }}{% if search %}&search={{ search }}{% endif %}" class="page-btn {% if p == page %}active{% endif %}">{{ p }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="payroll-panel" id="tab2Panel" style="display:none">
+    <div class="individual-selector">
+      <label>اختر الموظف:</label>
+      <select id="individualEmpSelect" onchange="loadIndividualPayslip()">
+        <option value="">— اختر —</option>
+        {% for r in pay_rows %}
+        <option value="{{ r.emp.id }}">{{ r.emp.full_name }} ({{ r.emp.username }})</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm btn-indigo" onclick="loadIndividualPayslip()"><i class="ti ti-eye"></i> عرض</button>
+      <button class="btn btn-sm btn-outline" onclick="printCurrentPayslip()"><i class="ti ti-printer"></i> طباعة</button>
+    </div>
+    <div id="individualPayslipContainer">
+      <div class="empty-state"><i class="ti ti-file-text"></i><p>اختر موظفاً لعرض كشف الراتب الفردي</p></div>
+    </div>
+  </div>
+
+  <div class="payroll-panel" id="tab3Panel" style="display:none">
+    <div class="analytics-container" id="analyticsContainer">
+      <div class="analytics-header">
+        <div class="analytics-stats" id="analyticsStats"></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-box" id="salaryRangeChart"><div class="chart-title">توزيع الرواتب</div><canvas id="rangeChart"></canvas></div>
+        <div class="chart-box" id="deptCompareChart"><div class="chart-title">مقارنة الأقسام</div><canvas id="deptCompareChartCanvas"></canvas></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-box" id="componentPieChart"><div class="chart-title">توزيع المكونات</div><canvas id="componentPieCanvas"></canvas></div>
+        <div class="chart-box" id="trendChartBox"><div class="chart-title">اتجاه الرواتب</div><canvas id="salaryTrendCanvas"></canvas></div>
+      </div>
+      <div class="analytics-insights" id="analyticsInsights"></div>
+    </div>
+  </div>
+
+  <div class="payroll-panel" id="tab4Panel" style="display:none">
+    <div class="advances-toolbar">
+      <button class="btn btn-sm btn-green" onclick="openAdvanceModal()"><i class="ti ti-plus"></i> سلفة جديدة</button>
+    </div>
+    <div class="advances-summary" id="advancesSummary"></div>
+    <div class="table-wrap"><table class="payroll-table" id="advancesTable"><thead><tr><th>الموظف</th><th>القسم</th><th>المبلغ</th><th>المسدّد</th><th>المتبقي</th><th>% السداد</th><th>الأقساط</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="advancesBody"></tbody></table></div>
+  </div>
+
+  <div class="payroll-panel" id="tab5Panel" style="display:none">
+    <div class="compare-controls">
+      <div class="compare-period">
+        <label>الفترة الحالية</label>
+        <select id="compMonth1" onchange="runComparison()">
+          {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1 == month %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+        </select>
+        <select id="compYear1" onchange="runComparison()">
+          {% for y in range(year-1, year+3) %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="compare-vs"><span>مقابل</span></div>
+      <div class="compare-period">
+        <label>الفترة السابقة</label>
+        <select id="compMonth2">
+          {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1 == (month-1 if month > 1 else 12) %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+        </select>
+        <select id="compYear2">
+          {% for y in range(year-1, year+3) %}<option value="{{ y }}" {% if y == (year if month > 1 else year-1) %}selected{% endif %}>{{ y }}</option>{% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-indigo btn-sm" onclick="runComparison()"><i class="ti ti-search"></i> مقارنة</button>
+    </div>
+    <div class="compare-summary" id="compareSummary"></div>
+    <div class="table-wrap"><table class="payroll-table" id="compareTable"><thead><tr><th>الموظف</th><th>الراتب السابق</th><th>الراتب الحالي</th><th>الفرق</th><th>% التغير</th></tr></thead><tbody id="compareBody"></tbody></table></div>
+  </div>
+
+  <div class="payroll-panel" id="tab6Panel" style="display:none">
+    <div class="approval-summary" id="approvalSummary"></div>
+    <div class="table-wrap"><table class="payroll-table" id="approvalTable"><thead><tr><th>الموظف</th><th>القسم</th><th>الحالي</th><th>المقترح</th><th>التغيير</th><th>الحالة</th><th>الخطوة</th><th>الإجراءات</th></tr></thead><tbody id="approvalBody"></tbody></table></div>
+  </div>
+
+  <div class="payroll-panel" id="tab7Panel" style="display:none">
+    <div class="bank-toolbar">
+      <button class="btn btn-sm btn-indigo" onclick="generateBankPayments()"><i class="ti ti-refresh"></i> إنشاء قيود الدفع</button>
+      <button class="btn btn-sm btn-outline" onclick="exportBankFile('csv')"><i class="ti ti-file-type-csv"></i> CSV</button>
+      <button class="btn btn-sm btn-outline" onclick="exportBankFile('txt')"><i class="ti ti-file-text"></i> TXT</button>
+      <button class="btn btn-sm btn-outline" onclick="validateBankIBAN()"><i class="ti ti-shield-check"></i> التحقق من IBAN</button>
+    </div>
+    <div class="bank-summary" id="bankSummary"></div>
+    <div class="table-wrap"><table class="payroll-table" id="bankTable"><thead><tr><th>الموظف</th><th>القسم</th><th>IBAN</th><th>البنك</th><th>الصافي</th><th>الحالة</th><th>تاريخ الصرف</th><th>إجراءات</th></tr></thead><tbody id="bankBody"></tbody></table></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="allowBreakdownModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet" onclick="event.stopPropagation()"><div class="modal-handle"></div>
+    <h3>تفاصيل البدلات</h3>
+    <div id="allowBreakdownBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="advanceModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet" onclick="event.stopPropagation()"><div class="modal-handle"></div>
+    <h3><i class="ti ti-plus"></i> سلفة جديدة</h3>
+    <div class="advance-form">
+      <div class="form-group"><label>الموظف</label><select id="advEmp"></select></div>
+      <div class="form-group"><label>المبلغ</label><input type="number" id="advAmount" step="0.01"></div>
+      <div class="form-group"><label>عدد الأقساط</label><input type="number" id="advInstallments" value="1" min="1"></div>
+      <div class="form-group"><label>السبب</label><input type="text" id="advReason"></div>
+      <div class="form-group"><label><input type="checkbox" id="advAutoDeduct"> خصم تلقائي من الراتب</label></div>
+      <button class="btn btn-green" onclick="submitAdvance()"><i class="ti ti-check"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="approvalModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet" onclick="event.stopPropagation()"><div class="modal-handle"></div>
+    <h3><i class="ti ti-check-circle"></i> طلب موافقة راتب</h3>
+    <div class="approval-form">
+      <div class="form-group"><label>الموظف</label><span id="apprEmpName"></span></div>
+      <div class="form-group"><label>الراتب الحالي</label><span id="apprCurrent"></span></div>
+      <div class="form-group"><label>الراتب المقترح</label><input type="number" id="apprProposed" step="0.01"></div>
+      <div class="form-group"><label>السبب</label><textarea id="apprReason" rows="3"></textarea></div>
+      <button class="btn btn-indigo" onclick="submitApproval()"><i class="ti ti-send"></i> إرسال للموافقة</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="/static/js/payroll-tabs.js"></script>
+<script src="/static/js/payroll-charts.js"></script>
+<script src="/static/js/payroll-export.js"></script>
+<script>
+const CURRENT_MONTH = {{ month }};
+const CURRENT_YEAR = {{ year }};
+const CURRENT_DEPT = '{{ dept }}';
+const API_BASE = '/admin/payroll';
+
+document.getElementById('metaUpdated').textContent = new Date().toLocaleTimeString('ar-SA');
+</script>
+{% endblock %}

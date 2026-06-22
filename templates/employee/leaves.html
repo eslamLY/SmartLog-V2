@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% set is_employee = true %}
+{% set nav_active = 'leaves' %}
+{% block title %}طلبات الإجازة{% endblock %}
+{% block employee_layout %}
+<div style="min-height:100vh;background:var(--bg)">
+  <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+    <a href="/employee" style="color:var(--muted);text-decoration:none;font-size:22px"><i class="ti ti-arrow-right"></i></a>
+    <div style="flex:1">
+      <h1 style="font-size:16px;font-weight:700;color:var(--text)">طلبات الإجازة</h1>
+    </div>
+    <button class="btn btn-red btn-sm" onclick="openModal('leaveModal')"><i class="ti ti-plus"></i> طلب جديد</button>
+  </header>
+
+  <main class="mobile-pb" style="padding:14px;max-width:560px;margin:0 auto">
+    {% if leaves %}
+    <div style="display:flex;flex-direction:column;gap:10px">
+      {% for lv in leaves %}
+      <div class="card" style="padding:14px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:14px;font-weight:700">{{ lv.request_type }}</div>
+          <span class="badge {% if lv.status=='approved' %}badge-present{% elif lv.status=='rejected' %}badge-absent{% else %}badge-late{% endif %}">
+            {% if lv.status=='approved' %}مُعتمدة{% elif lv.status=='rejected' %}مرفوضة{% else %}قيد الانتظار{% endif %}
+          </span>
+        </div>
+        <div style="font-size:12px;color:var(--muted)"><i class="ti ti-calendar"></i> من {{ lv.start_date.strftime('%d/%m/%Y') }}{% if lv.end_date %} <i class="ti ti-arrow-left" style="opacity:.5;margin:0 4px"></i> {{ lv.end_date.strftime('%d/%m/%Y') }}{% endif %}</div>
+        {% if lv.reason %}<div style="font-size:12px;color:var(--muted);margin-top:4px"><i class="ti ti-message"></i> {{ lv.reason }}</div>{% endif %}
+        <div style="font-size:11px;color:var(--muted2);margin-top:6px">{{ lv.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:48px 16px">
+      <i class="ti ti-file-text" style="font-size:48px;color:var(--muted);margin-bottom:12px;display:block"></i>
+      <div style="font-size:15px;color:var(--muted)">لا توجد طلبات إجازة</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:6px">يمكنك تقديم طلب إجازة جديد من الزر أعلاه</div>
+    </div>
+    {% endif %}
+  </main>
+
+  <nav class="bottom-nav" style="display:flex">
+    <a href="/employee" class="bottom-nav-item"><i class="ti ti-home-2"></i><span>الرئيسية</span></a>
+    <a href="/employee/shifts" class="bottom-nav-item"><i class="ti ti-calendar-event"></i><span>المناوبات</span></a>
+    <a href="/employee/documents" class="bottom-nav-item"><i class="ti ti-files"></i><span>المستندات</span></a>
+    <a href="/employee/history" class="bottom-nav-item"><i class="ti ti-calendar-stats"></i><span>السجل</span></a>
+    <a href="/employee/leaves" class="bottom-nav-item active"><i class="ti ti-file-text"></i><span>الطلبات</span></a>
+    <a href="/logout" class="bottom-nav-item"><i class="ti ti-logout"></i><span>خروج</span></a>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="leaveModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">➕ طلب إجازة جديدة</h3>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label>نوع الإجازة</label>
+        <select id="lvType">
+          <option>إجازة سنوية</option><option>إجازة مرضية</option><option>إجازة طارئة</option><option>إجازة بدون راتب</option>
+        </select></div>
+      <div><label>تاريخ البداية</label><input type="date" id="lvStart"></div>
+      <div><label>تاريخ النهاية (اختياري)</label><input type="date" id="lvEnd"></div>
+      <div><label>السبب</label><textarea id="lvReason" rows="3" placeholder="اذكر سبب طلب الإجازة..."></textarea></div>
+      <button class="btn btn-red" onclick="doLeave()">إرسال الطلب</button>
+      <button class="btn btn-outline" onclick="closeModal('leaveModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function doLeave(){
+  const r=await api('/employee/leaves/new',{
+    start_date:document.getElementById('lvStart').value,
+    end_date:document.getElementById('lvEnd').value||null,
+    type:document.getElementById('lvType').value,
+    reason:document.getElementById('lvReason').value.trim()
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('leaveModal');setTimeout(()=>location.reload(),1200);}
+}
+</script>
+{% endblock %}

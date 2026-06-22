@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% set nav_active = 'reports' %}
+{% block title %}كشف موظف — {{ employee.full_name }}{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/admin/reports/section" class="btn btn-ghost btn-sm"><i class="ti ti-arrow-right"></i></a>
+    <h1 style="font-size:16px;font-weight:700">كشف: {{ employee.full_name }}</h1>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="GET" action="/admin/reports/employee/{{ employee.id }}" style="display:flex;gap:8px">
+      <select name="month" class="btn-sm" style="width:120px">
+        {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1==month %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+      </select>
+      <select name="year" class="btn-sm" style="width:90px">
+        {% for y in range(year-1, year+3) %}<option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-ghost btn-sm" type="submit"><i class="ti ti-search"></i></button>
+    </form>
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px">
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">الراتب الأساسي</div>
+      <div style="font-size:18px;font-weight:700">{{ summary.base }} ل.د</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">عدد الورديات المتوقعة</div>
+      <div style="font-size:18px;font-weight:700">{{ total_shifts }}</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">الورديات المؤداة</div>
+      <div style="font-size:18px;font-weight:700;color:#22c55e">{{ shifts_attended }}</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">دقائق تأخير</div>
+      <div style="font-size:18px;font-weight:700">{{ summary.minutes }}</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">إجمالي الخصم</div>
+      <div style="font-size:18px;font-weight:700;color:#ef4444">{{ summary.deductions }} ل.د</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">صافي الراتب</div>
+      <div style="font-size:18px;font-weight:700;color:#22c55e">{{ summary.net }} ل.د</div>
+    </div>
+  </div>
+  {% if attendance_rows %}
+  <div class="card" style="overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th>#</th><th>التاريخ</th><th style="text-align:center">الحضور</th><th style="text-align:center">الانصراف</th><th style="text-align:center">الحالة</th><th style="text-align:center">دقائق تأخير</th><th style="text-align:center">داخل النطاق</th>
+        </tr></thead>
+        <tbody>
+          {% for r in attendance_rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+            <td style="text-align:center;font-family:monospace;font-size:12px">{{ r.clock_in.strftime('%H:%M') if r.clock_in else '—' }}</td>
+            <td style="text-align:center;font-family:monospace;font-size:12px">{{ r.clock_out.strftime('%H:%M') if r.clock_out else '—' }}</td>
+            <td style="text-align:center">
+              {% if r.status == 'present' %}<span style="color:#22c55e;font-weight:600">حاضر</span>
+              {% elif r.status == 'late' %}<span style="color:#f59e0b;font-weight:600">متأخر</span>
+              {% elif r.status == 'absent' %}<span style="color:#ef4444;font-weight:600">غائب</span>
+              {% else %}<span style="color:var(--muted)">{{ r.status }}</span>{% endif %}
+            </td>
+            <td style="text-align:center">{{ r.late_minutes or 0 }}</td>
+            <td style="text-align:center">{% if r.is_inside_geofence %}<span style="color:#22c55e"><i class="ti ti-circle-check-filled"></i></span>{% else %}<span style="color:#ef4444"><i class="ti ti-circle-x-filled"></i></span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card" style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-clipboard-off" style="font-size:32px;display:block;margin-bottom:10px"></i>لا توجد سجلات حضور للشهر المحدد</div>
+  {% endif %}
+</div>
+{% endblock %}

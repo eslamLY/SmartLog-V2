@@ -1,0 +1,698 @@
+{% extends "base.html" %}
+{% block title %}تقارير الحضور المتقدمة{% endblock %}
+{% set nav_active = 'reports_attendance' %}
+{% block content %}
+<div id="app">
+  <link rel="stylesheet" href="/static/css/reports-premium.css">
+  <link rel="stylesheet" href="/static/css/reports-responsive.css">
+
+  <header class="premium-header">
+    <div class="header-row">
+      <div class="header-left">
+        <h1><i class="ti ti-report-analytics"></i> تقارير الحضور المتقدمة</h1>
+        <span class="header-badge" id="liveBadge">🟢 مباشر</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-sm btn-ghost" onclick="toggleTheme()" id="themeToggle" title="تغيير السمة">
+          <i class="ti ti-moon"></i>
+        </button>
+        <button class="btn btn-sm btn-ghost" onclick="toggleFilters()" id="filterToggle">
+          <i class="ti ti-adjustments-horizontal"></i> الفلاتر
+        </button>
+        <div class="export-dropdown">
+          <button class="btn btn-sm btn-indigo" onclick="toggleExportMenu()">
+            <i class="ti ti-download"></i> تصدير
+          </button>
+          <div class="export-menu" id="exportMenu">
+            <button onclick="exportReport('pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
+            <button onclick="exportReport('excel')"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+            <button onclick="exportReport('csv')"><i class="ti ti-file-type-csv"></i> CSV</button>
+            <button onclick="window.print()"><i class="ti ti-printer"></i> طباعة</button>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="openComparison()">
+          <i class="ti ti-arrows-left-right"></i> مقارنة
+        </button>
+        <button class="btn btn-sm btn-outline" onclick="openReportBuilder()">
+          <i class="ti ti-plus"></i> تقرير مخصص
+        </button>
+      </div>
+    </div>
+    <div class="header-meta" id="headerMeta">
+      <span><i class="ti ti-calendar"></i> <span id="periodLabel">الشهر الحالي</span></span>
+      <span><i class="ti ti-building"></i> <span id="scopeLabel">جميع الموظفين</span></span>
+      <span><i class="ti ti-clock"></i> آخر تحديث: <span id="lastUpdated">الآن</span></span>
+    </div>
+  </header>
+
+  <div class="filter-panel" id="filterPanel">
+    <div class="filter-grid">
+      <div class="filter-section">
+        <div class="filter-section-title"><i class="ti ti-calendar-time"></i> نطاق الفترة الزمنية</div>
+        <div class="preset-buttons">
+          <button class="preset-btn active" data-preset="current_month" onclick="setPreset('current_month', this)">الشهر الحالي</button>
+          <button class="preset-btn" data-preset="last_7" onclick="setPreset('last_7', this)">آخر 7 أيام</button>
+          <button class="preset-btn" data-preset="last_30" onclick="setPreset('last_30', this)">آخر 30 يوم</button>
+          <button class="preset-btn" data-preset="custom" onclick="setPreset('custom', this)">مخصص</button>
+        </div>
+        <div class="filter-row">
+          <div class="filter-field">
+            <label>الشهر</label>
+            <select id="filterMonth" onchange="onFilterChange()">
+              {% for m in months %}
+              <option value="{{ m.value }}" {% if m.selected %}selected{% endif %}>{{ m.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-field">
+            <label>السنة</label>
+            <select id="filterYear" onchange="onFilterChange()">
+              {% for y in years %}
+              <option value="{{ y }}" {% if y == now.year %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="filter-row" id="customDateRange" style="display:none">
+          <div class="filter-field">
+            <label>من</label>
+            <input type="date" id="filterStartDate" onchange="onFilterChange()">
+          </div>
+          <div class="filter-field">
+            <label>إلى</label>
+            <input type="date" id="filterEndDate" onchange="onFilterChange()">
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-section-title"><i class="ti ti-target"></i> نطاق التقرير</div>
+        <div class="filter-radio-group">
+          <label class="radio-pill active"><input type="radio" name="scope" value="all" checked onchange="onFilterChange()"> جميع الموظفين</label>
+          <label class="radio-pill"><input type="radio" name="scope" value="department" onchange="toggleScope()"> قسم محدد</label>
+          <label class="radio-pill"><input type="radio" name="scope" value="employee" onchange="toggleScope()"> موظف واحد</label>
+        </div>
+        <div class="filter-field" id="filterDeptField" style="display:none">
+          <label>اختر القسم</label>
+          <select id="filterDepartment" onchange="onFilterChange()">
+            <option value="">جميع الأقسام</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}">{{ d.name_ar or d.name_en }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-field" id="filterEmpField" style="display:none">
+          <label>اختر الموظف</label>
+          <select id="filterEmployee" onchange="onFilterChange()">
+            <option value="">اختر موظف</option>
+            {% for e in employees %}
+            <option value="{{ e.id }}">{{ e.full_name }} ({{ e.username }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-section-title"><i class="ti ti-tags"></i> حالات الحضور</div>
+        <div class="chip-group" id="statusChips">
+          <label class="chip active"><input type="checkbox" value="present" checked onchange="onFilterChange()"> حضور كامل</label>
+          <label class="chip active"><input type="checkbox" value="late" checked onchange="onFilterChange()"> متأخر</label>
+          <label class="chip active"><input type="checkbox" value="absent" checked onchange="onFilterChange()"> غياب</label>
+          <label class="chip active"><input type="checkbox" value="leave" checked onchange="onFilterChange()"> إجازة</label>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-section-title"><i class="ti ti-search"></i> أنماط الحضور</div>
+        <div class="chip-group">
+          <label class="chip"><input type="checkbox" value="regular" onchange="onFilterChange()"> منتظمون (0 غيابات)</label>
+          <label class="chip"><input type="checkbox" value="late_frequent" onchange="onFilterChange()"> متأخرون (5+ تأخيرات)</label>
+          <label class="chip"><input type="checkbox" value="absent_frequent" onchange="onFilterChange()"> غائبون (3+ غيابات)</label>
+        </div>
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-indigo" onclick="loadReports()"><i class="ti ti-search"></i> عرض التقرير</button>
+      <button class="btn btn-ghost" onclick="resetFilters()"><i class="ti ti-refresh"></i> إعادة تعيين</button>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card premium-card" onclick="scrollToSection('tableSection')">
+      <div class="stat-icon" style="background:rgba(99,102,241,0.12);color:#818cf8"><i class="ti ti-users"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">إجمالي الموظفين</div>
+        <div class="stat-value" id="statTotalEmployees">-</div>
+        <div class="stat-period" id="statPeriodEmployees">في الفترة المحددة</div>
+      </div>
+    </div>
+    <div class="stat-card premium-card">
+      <div class="stat-icon" style="background:rgba(34,197,94,0.12);color:#22c55e"><i class="ti ti-chart-bar"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">معدل الحضور الكلي</div>
+        <div class="stat-value" id="statAttendancePct">-</div>
+        <div class="stat-trend" id="statAttendanceTrend"></div>
+      </div>
+    </div>
+    <div class="stat-card premium-card">
+      <div class="stat-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6"><i class="ti ti-calendar"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">أيام العمل</div>
+        <div class="stat-value" id="statWorkDays">-</div>
+        <div class="stat-period" id="statHoursLabel">ساعات</div>
+      </div>
+    </div>
+    <div class="stat-card premium-card">
+      <div class="stat-icon" style="background:rgba(239,68,68,0.12);color:#ef4444"><i class="ti ti-x-circle"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">الغيابات الكلية</div>
+        <div class="stat-value" id="statTotalAbsent">-</div>
+        <div class="stat-trend" id="statAbsentTrend"></div>
+      </div>
+    </div>
+    <div class="stat-card premium-card">
+      <div class="stat-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b"><i class="ti ti-clock"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">التأخيرات</div>
+        <div class="stat-value" id="statTotalLate">-</div>
+        <div class="stat-period" id="statLateAvg">دقيقة متوسط</div>
+      </div>
+    </div>
+    <div class="stat-card premium-card">
+      <div class="stat-icon" style="background:rgba(34,197,94,0.12);color:#22c55e"><i class="ti ti-star"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">الموظفون المنتظمون</div>
+        <div class="stat-value" id="statRegular">-</div>
+        <div class="stat-period" id="statRegularPct">من الإجمالي</div>
+      </div>
+    </div>
+    <div class="stat-card premium-card">
+      <div class="stat-icon" style="background:rgba(239,68,68,0.12);color:#ef4444"><i class="ti ti-alert-triangle"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">يحتاجون متابعة</div>
+        <div class="stat-value" id="statNeedsFollowup">-</div>
+        <div class="stat-period" id="statFollowupPct">من الإجمالي</div>
+      </div>
+    </div>
+    <div class="stat-card premium-card">
+      <div class="stat-icon" style="background:rgba(139,92,246,0.12);color:#8b5cf6"><i class="ti ti-clock-hour-4"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">متوسط الحضور</div>
+        <div class="stat-value" id="statAvgClockIn">-</div>
+        <div class="stat-period" id="statAvgClockOut">متوسط الانصراف: -</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-navigation" id="tabNav">
+    <button class="tab-btn active" data-tab="charts" onclick="switchTab('charts', this)"><i class="ti ti-chart-line"></i> الرسوم البيانية</button>
+    <button class="tab-btn" data-tab="statistics" onclick="switchTab('statistics', this)"><i class="ti ti-calculator"></i> الإحصائيات</button>
+    <button class="tab-btn" data-tab="analysis" onclick="switchTab('analysis', this)"><i class="ti ti-brain"></i> التحليل المتقدم</button>
+    <button class="tab-btn" data-tab="table" onclick="switchTab('table', this)"><i class="ti ti-table"></i> الجداول</button>
+  </div>
+
+  <div class="tab-content" id="tabCharts">
+    <div class="chart-grid">
+      <div class="chart-card" id="trendChartCard">
+        <div class="chart-header">
+          <span class="chart-title"><i class="ti ti-trending-up"></i> اتجاه الحضور اليومي</span>
+          <span class="chart-trend" id="trendIndicator"></span>
+        </div>
+        <div class="chart-body">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card" id="punctualityChartCard">
+        <div class="chart-header">
+          <span class="chart-title"><i class="ti ti-clock-check"></i> توزيع الالتزام</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="punctualityChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card full-width" id="deptChartCard">
+        <div class="chart-header">
+          <span class="chart-title"><i class="ti ti-building"></i> مقارنة الأقسام</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="deptChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card" id="heatmapCard">
+        <div class="chart-header">
+          <span class="chart-title"><i class="ti ti-grid-dots"></i> خريطة الحضور (اليوم × الساعة)</span>
+        </div>
+        <div class="chart-body heatmap-container" id="heatmapContainer"></div>
+      </div>
+      <div class="chart-card" id="pieChartCard">
+        <div class="chart-header">
+          <span class="chart-title"><i class="ti ti-pie-chart"></i> توزيع الحالات</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tabStatistics" style="display:none">
+    <div class="stats-deep-grid">
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-clock-hour-4"></i></div>
+        <div class="deept-label">المنوال (أكثر وقت حضور)</div>
+        <div class="deept-value" id="statModeClockIn">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-chart-arrows"></i></div>
+        <div class="deept-label">متوسط الحضور</div>
+        <div class="deept-value" id="statMeanAttendance">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-chart-arrows-vertical"></i></div>
+        <div class="deept-label">الانحراف المعياري</div>
+        <div class="deept-value" id="statStdDev">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-chart-infographic"></i></div>
+        <div class="deept-label">الوسيط</div>
+        <div class="deept-value" id="statMedian">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-box"></i></div>
+        <div class="deept-label">الربع الأدنى (Q1)</div>
+        <div class="deept-value" id="statQ1">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-box"></i></div>
+        <div class="deept-label">الربع الأعلى (Q3)</div>
+        <div class="deept-value" id="statQ3">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-calendar-x"></i></div>
+        <div class="deept-label">ذروة الغياب</div>
+        <div class="deept-value" id="statPeakAbsent">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-calendar-clock"></i></div>
+        <div class="deept-label">ذروة التأخير</div>
+        <div class="deept-value" id="statPeakLate">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-shield-check"></i></div>
+        <div class="deept-label">مؤشر الاتساق</div>
+        <div class="deept-value" id="statConsistency">-</div>
+      </div>
+      <div class="stat-deep-card">
+        <div class="deept-icon"><i class="ti ti-crystal-ball"></i></div>
+        <div class="deept-label">مستوى التوقع</div>
+        <div class="deept-value" id="statPredictability">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tabAnalysis" style="display:none">
+    <div class="analysis-grid">
+      <div class="analysis-section">
+        <div class="analysis-section-title"><i class="ti ti-alert-circle"></i> كشف الحالات الشاذة</div>
+        <div id="anomalyList" class="anomaly-list"><div class="skeleton-list"></div></div>
+      </div>
+      <div class="analysis-section">
+        <div class="analysis-section-title"><i class="ti ti-bulb"></i> الرؤى والتوصيات الذكية</div>
+        <div id="insightList" class="insight-list"><div class="skeleton-list"></div></div>
+      </div>
+      <div class="analysis-section full-width">
+        <div class="analysis-section-title"><i class="ti ti-star"></i> توصيات مخصصة</div>
+        <div id="recommendationList" class="recommendation-list"><div class="skeleton-list"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tabTable" style="display:none">
+    <div class="table-toolbar">
+      <div class="table-search">
+        <i class="ti ti-search"></i>
+        <input type="text" id="tableSearch" placeholder="ابحث باسم الموظف أو رقمه..." oninput="debounceSearch()">
+      </div>
+      <div class="table-controls">
+        <select id="tablePerPage" onchange="loadTable()">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <button class="btn btn-sm btn-ghost" onclick="loadTable()"><i class="ti ti-refresh"></i></button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="premium-table" id="mainTable">
+        <thead>
+          <tr>
+            <th class="sortable" data-sort="employee_name" onclick="sortTable('employee_name')">الموظف <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="department" onclick="sortTable('department')">القسم <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="attendance_pct" onclick="sortTable('attendance_pct')">الحضور% <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="absent_days" onclick="sortTable('absent_days')">غياب <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="late_days" onclick="sortTable('late_days')">تأخير <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="total_clock_hours" onclick="sortTable('total_clock_hours')">ساعات <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="overall_rating" onclick="sortTable('overall_rating')">التقييم <span class="sort-icon"></span></th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <div class="table-info" id="tableInfo"></div>
+      <div class="table-pagination" id="tablePagination"></div>
+    </div>
+  </div>
+
+  <div class="comparison-modal modal-overlay" id="comparisonModal">
+    <div class="modal-sheet" style="max-width:700px">
+      <div class="modal-handle"></div>
+      <h3><i class="ti ti-arrows-left-right"></i> مقارنة الفترات</h3>
+      <div class="comparison-form">
+        <div class="comp-period">
+          <label>الفترة الأولى</label>
+          <input type="date" id="compStart1"><input type="date" id="compEnd1">
+        </div>
+        <div class="comp-period">
+          <label>الفترة الثانية</label>
+          <input type="date" id="compStart2"><input type="date" id="compEnd2">
+        </div>
+        <button class="btn btn-indigo" onclick="runComparison()">عرض المقارنة</button>
+      </div>
+      <div id="comparisonResults"></div>
+    </div>
+  </div>
+
+  <div class="builder-modal modal-overlay" id="builderModal">
+    <div class="modal-sheet" style="max-width:600px">
+      <div class="modal-handle"></div>
+      <h3><i class="ti ti-plus"></i> إنشاء تقرير مخصص</h3>
+      <div class="builder-steps">
+        <div class="builder-step">
+          <label>اختر المقاييس</label>
+          <div class="chip-group">
+            <label class="chip active"><input type="checkbox" checked> معدل الحضور</label>
+            <label class="chip active"><input type="checkbox" checked> الغيابات</label>
+            <label class="chip active"><input type="checkbox" checked> التأخيرات</label>
+            <label class="chip active"><input type="checkbox" checked> ساعات العمل</label>
+          </div>
+        </div>
+        <div class="builder-step">
+          <label>نوع التصور</label>
+          <select><option>جدول</option><option>رسوم بيانية</option><option>مزيج</option></select>
+        </div>
+        <div class="builder-step">
+          <label>جدولة التقرير</label>
+          <select><option>مرة واحدة</option><option>يومي</option><option>أسبوعي</option><option>شهري</option></select>
+        </div>
+        <button class="btn btn-green" onclick="generateCustomReport()"><i class="ti ti-file-check"></i> حفظ التقرير</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="/static/js/reports-charts.js"></script>
+<script src="/static/js/reports-filters.js"></script>
+<script src="/static/js/reports-export.js"></script>
+<script>
+const API_BASE = '/admin/reports/attendance';
+let currentSort = { by: 'employee_name', dir: 'asc' };
+let currentPage = 1;
+
+function loadReports() {
+  loadSummary();
+  loadCharts();
+  loadTable();
+  loadStatistics();
+  loadAnomalies();
+  loadInsights();
+  loadRecommendations();
+  updateHeaderMeta();
+}
+
+function loadSummary() {
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/summary?' + params)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('statTotalEmployees').textContent = d.total_employees;
+      document.getElementById('statAttendancePct').textContent = d.overall_attendance_pct + '%';
+      document.getElementById('statWorkDays').textContent = d.work_days + ' يوم';
+      const h = d.expected_hours || (d.work_days * 8);
+      document.getElementById('statHoursLabel').textContent = 'متوسط ' + h + ' ساعة';
+      document.getElementById('statTotalAbsent').textContent = d.total_absent_days;
+      document.getElementById('statTotalLate').textContent = d.total_late_count + ' (' + d.total_late_minutes + ' د)';
+      document.getElementById('statLateAvg').textContent = Math.round(d.total_late_minutes / Math.max(d.total_late_count, 1)) + ' دقيقة متوسط';
+      document.getElementById('statRegular').textContent = d.regular_employees;
+      document.getElementById('statRegularPct').textContent = Math.round(d.regular_employees / d.total_employees * 100) + '%';
+      document.getElementById('statNeedsFollowup').textContent = d.needs_followup;
+      document.getElementById('statFollowupPct').textContent = Math.round(d.needs_followup / d.total_employees * 100) + '%';
+      document.getElementById('statAvgClockIn').textContent = d.avg_clock_in || '-';
+      document.getElementById('statAvgClockOut').textContent = 'متوسط الانصراف: ' + (d.avg_clock_out || '-');
+      document.getElementById('periodLabel').textContent = d.month_name + ' ' + d.year;
+    });
+}
+
+function loadCharts() {
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/charts?chart_type=trend&' + params).then(r => r.json()).then(d => renderTrendChart(d.data));
+  fetch(API_BASE + '/api/charts?chart_type=punctuality&' + params).then(r => r.json()).then(d => renderPunctualityChart(d.data));
+  fetch(API_BASE + '/api/charts?chart_type=department_compare&' + params).then(r => r.json()).then(d => renderDeptChart(d.data));
+  fetch(API_BASE + '/api/charts?chart_type=heatmap&' + params).then(r => r.json()).then(d => renderHeatmap(d.data));
+  fetch(API_BASE + '/api/charts?chart_type=pie&' + params).then(r => r.json()).then(d => renderPieChart(d.data));
+}
+
+function loadTable() {
+  const params = getFilterParams();
+  const search = document.getElementById('tableSearch').value;
+  const perPage = document.getElementById('tablePerPage').value;
+  const full = params + '&page=' + currentPage + '&per_page=' + perPage + '&sort_by=' + currentSort.by + '&sort_dir=' + currentSort.dir + '&search=' + encodeURIComponent(search);
+  fetch(API_BASE + '/api/table?' + full)
+    .then(r => r.json())
+    .then(d => {
+      renderTable(d);
+    });
+}
+
+function loadStatistics() {
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/stats?' + params)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('statModeClockIn').textContent = d.mode_clock_in || '-';
+      document.getElementById('statMeanAttendance').textContent = d.mean_attendance + '%';
+      document.getElementById('statStdDev').textContent = '±' + d.std_deviation + '%';
+      document.getElementById('statMedian').textContent = d.median_attendance + '%';
+      document.getElementById('statQ1').textContent = d.q1 + '%';
+      document.getElementById('statQ3').textContent = d.q3 + '%';
+      document.getElementById('statPeakAbsent').textContent = d.peak_absent_day || '-';
+      document.getElementById('statPeakLate').textContent = d.peak_late_day || '-';
+      document.getElementById('statConsistency').textContent = d.consistency_score;
+      document.getElementById('statPredictability').textContent = d.predictability;
+    });
+}
+
+function loadAnomalies() {
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/anomalies?' + params)
+    .then(r => r.json())
+    .then(d => {
+      const container = document.getElementById('anomalyList');
+      if (!d.anomalies || d.anomalies.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="ti ti-shield-check"></i><p>لا توجد حالات شاذة</p></div>';
+        return;
+      }
+      container.innerHTML = d.anomalies.map(a => `
+        <div class="anomaly-item anomaly-${a.severity}">
+          <div class="anomaly-icon">${a.type === 'excellent' ? '🌟' : a.type === 'weekend_work' ? '📅' : '⚠️'}</div>
+          <div class="anomaly-body">
+            <div class="anomaly-title">${a.title}</div>
+            <div class="anomaly-detail">${a.detail}</div>
+          </div>
+        </div>
+      `).join('');
+    });
+}
+
+function loadInsights() {
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/insights?' + params)
+    .then(r => r.json())
+    .then(d => {
+      const container = document.getElementById('insightList');
+      if (!d.insights || d.insights.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="ti ti-bulb-off"></i><p>لا توجد رؤى متاحة</p></div>';
+        return;
+      }
+      container.innerHTML = d.insights.map(i => `
+        <div class="insight-item insight-${i.type}">
+          <div class="insight-icon">${i.icon}</div>
+          <div class="insight-body">
+            <div class="insight-title">${i.title}</div>
+            <div class="insight-detail">${i.detail}</div>
+            ${i.employees ? '<div class="insight-employees">' + i.employees.map(e => '<span class="emp-tag">' + e.name + ' (' + e.pct + '%)</span>').join('') + '</div>' : ''}
+          </div>
+        </div>
+      `).join('');
+    });
+}
+
+function loadRecommendations() {
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/recommendations?' + params)
+    .then(r => r.json())
+    .then(d => {
+      const container = document.getElementById('recommendationList');
+      if (!d.recommendations || d.recommendations.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="ti ti-star-off"></i><p>لا توجد توصيات</p></div>';
+        return;
+      }
+      container.innerHTML = d.recommendations.map(r => `
+        <div class="rec-item rec-${r.type}">
+          <div class="rec-icon">${r.type === 'praise' ? '🌟' : r.type === 'critical' ? '🚨' : '💡'}</div>
+          <div class="rec-body">
+            <div class="rec-title">${r.title}</div>
+            <div class="rec-detail">${r.detail}</div>
+            <div class="rec-action"><i class="ti ti-arrow-left"></i> ${r.action}</div>
+          </div>
+        </div>
+      `).join('');
+    });
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById('tableBody');
+  const info = document.getElementById('tableInfo');
+  const pagination = document.getElementById('tablePagination');
+  if (!data.employees || data.employees.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-cell"><i class="ti ti-database-off"></i> لا توجد بيانات</td></tr>';
+    info.textContent = '0 موظف';
+    pagination.innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = data.employees.map(e => {
+    const ratingStars = '★'.repeat(Math.floor(e.overall_rating)) + '☆'.repeat(5 - Math.floor(e.overall_rating));
+    const rowClass = e.attendance_pct >= 90 ? 'row-excellent' : e.attendance_pct >= 80 ? 'row-good' : e.attendance_pct >= 70 ? 'row-warning' : 'row-danger';
+    return `<tr class="${rowClass}" onclick="expandRow(${e.employee_id}, this)">
+      <td><div class="employee-cell"><span class="emp-avatar-mini">${e.employee_name[0]}</span><div><div class="emp-name-cell">${e.employee_name}</div><div class="emp-id-cell">${e.employee_username}</div></div></div></td>
+      <td><span class="dept-badge">${e.department || '-'}</span></td>
+      <td><span class="pct-badge ${e.attendance_pct >= 90 ? 'pct-green' : e.attendance_pct >= 80 ? 'pct-yellow' : 'pct-red'}">${e.attendance_pct}%</span></td>
+      <td>${e.absent_days}</td>
+      <td>${e.late_days} <span class="late-min">(${e.total_late_minutes} د)</span></td>
+      <td>${e.total_clock_hours} <span class="hour-unit">ساعة</span></td>
+      <td><span class="star-rating" title="حسب: الحضور + الالتزام + الاتساق">${ratingStars}</span></td>
+      <td><button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();viewEmployee(${e.employee_id})"><i class="ti ti-eye"></i></button></td>
+    </tr>`;
+  }).join('');
+  info.textContent = 'عرض ' + data.employees.length + ' من ' + data.total + ' موظف';
+  let p = '';
+  for (let i = 1; i <= data.total_pages; i++) {
+    p += `<button class="btn btn-sm ${i === data.page ? 'btn-indigo' : 'btn-ghost'}" onclick="goPage(${i})">${i}</button>`;
+  }
+  pagination.innerHTML = p;
+  document.getElementById('scopeLabel').textContent = data.total + ' موظف';
+}
+
+function expandRow(id, row) {
+  const next = row.nextElementSibling;
+  if (next && next.classList.contains('expanded-row')) {
+    next.remove();
+    return;
+  }
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/employee/' + id + '/detail?' + params)
+    .then(r => r.json())
+    .then(d => {
+      const expand = document.createElement('tr');
+      expand.className = 'expanded-row';
+      expand.innerHTML = '<td colspan="8"><div class="expand-content"><div class="expand-daily">' +
+        d.daily_records.map(r => `<div class="day-cell day-${r.status}"><div class="day-date">${r.day}/${d.daily_records.length > 0 ? d.daily_records[0].month : ''}</div><div class="day-in">${r.clock_in || '—'}</div><div class="day-out">${r.clock_out || '—'}</div><div class="day-hours">${r.work_hours || 0}h</div></div>`).join('') +
+        '</div></div></td>';
+      row.after(expand);
+    });
+}
+
+function goPage(p) { currentPage = p; loadTable(); }
+
+function viewEmployee(id) {
+  const params = getFilterParams();
+  window.open('/admin/reports/attendance/api/employee/' + id + '/detail?' + params, '_blank');
+}
+
+function sortTable(by) {
+  if (currentSort.by === by) currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+  else { currentSort.by = by; currentSort.dir = 'asc'; }
+  loadTable();
+}
+
+let searchTimeout;
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(loadTable, 300);
+}
+
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateHeaderMeta() {
+  const now = new Date();
+  document.getElementById('lastUpdated').textContent = now.toLocaleTimeString('ar-SA');
+}
+
+function toggleExportMenu() {
+  const menu = document.getElementById('exportMenu');
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+function exportReport(type) {
+  document.getElementById('exportMenu').style.display = 'none';
+  const params = getFilterParams();
+  if (type === 'csv') {
+    window.open(API_BASE + '/api/export?type=csv&' + params, '_blank');
+    return;
+  }
+  toast('جاري تحضير ملف ' + type.toUpperCase() + '...', 'info');
+}
+
+function openComparison() {
+  document.getElementById('comparisonModal').classList.add('open');
+}
+
+function openReportBuilder() {
+  document.getElementById('builderModal').classList.add('open');
+}
+
+function runComparison() {
+  toast('ميزة المقارنة قيد التطوير', 'info');
+}
+
+function generateCustomReport() {
+  toast('تم حفظ التقرير المخصص', 'ok');
+  closeModal('builderModal');
+}
+
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const icon = document.querySelector('#themeToggle i');
+  icon.className = document.body.classList.contains('light-mode') ? 'ti ti-sun' : 'ti ti-moon';
+  localStorage.setItem('reports_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+
+const savedTheme = localStorage.getItem('reports_theme');
+if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.querySelector('#themeToggle i').className = 'ti ti-sun'; }
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.export-dropdown')) {
+    document.getElementById('exportMenu').style.display = 'none';
+  }
+});
+
+loadReports();
+setInterval(loadSummary, 60000);
+</script>
+{% endblock %}

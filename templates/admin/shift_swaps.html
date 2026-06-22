@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% set nav_active = 'shift_swaps' %}
+{% block title %}طلبات تبديل المناوبات{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-arrows-exchange" style="color:var(--accent)"></i>إدارة طلبات تبديل المناوبات</h1>
+    <button class="btn btn-red btn-sm" onclick="openModal('newSwapModal')"><i class="ti ti-plus"></i> طلب تبديل جديد</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:0;font-size:12px;margin-top:10px">
+    {% for step, count, color in [('طلب الموظف','pending','#f59e0b'),('موافقة الزميل','target_approved','#818cf8'),('موافقة الإدارة','approved','#22c55e'),('مرفوض','rejected','#ef4444')] %}
+    <a href="/admin/shifts/swaps?status={{ count }}"
+      style="display:flex;align-items:center;padding:6px 14px;text-decoration:none;transition:all .2s;
+        background:{% if status==count %}{{ color }}18{% else %}transparent{% endif %};
+        color:{% if status==count %}{{ color }}{% else %}var(--muted){% endif %};
+        border-bottom:2px solid {% if status==count %}{{ color }}{% else %}transparent{% endif %};
+        gap:6px;font-weight:{% if status==count %}600{% else %}400{% endif %}">
+      {{ step }}
+      <span style="background:{% if status==count %}{{ color }}{% else %}var(--border){% endif %};color:{% if status==count %}#fff{% else %}var(--muted){% endif %};border-radius:20px;padding:0 7px;font-size:11px">{{ counts[count] }}</span>
+    </a>
+    {% if not loop.last %}<span style="color:var(--border);padding:0 4px">›</span>{% endif %}
+    {% endfor %}
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 115px)">
+  {% if swaps %}
+  <div style="display:flex;flex-direction:column;gap:12px">
+    {% for swap in swaps %}
+    <div class="card" style="padding:0;overflow:hidden;background:linear-gradient(135deg,rgba(16,21,42,.6),rgba(8,12,24,.6));backdrop-filter:blur(4px);border:1px solid var(--border);box-shadow:0 2px 16px rgba(0,0,0,.15)" id="swap-{{ swap.id }}">
+      <div style="padding:16px 18px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:38px;height:38px;border-radius:50%;background:var(--accent)15;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--accent);border:1px solid var(--accent)30">{{ swap.requester.full_name[0] }}</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--text)">{{ swap.requester.full_name }}</div>
+                <div style="font-size:11px;color:var(--muted)">{{ swap.requester.department }}</div>
+              </div>
+            </div>
+            <i class="ti ti-arrows-exchange" style="font-size:20px;color:var(--muted);opacity:.6"></i>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:38px;height:38px;border-radius:50%;background:rgba(129,140,248,.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#818cf8;border:1px solid rgba(129,140,248,.3)">{{ swap.target.full_name[0] }}</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--text)">{{ swap.target.full_name }}</div>
+                <div style="font-size:11px;color:var(--muted)">{{ swap.target.department }}</div>
+              </div>
+            </div>
+          </div>
+          <span class="badge {% if swap.status=='approved' %}badge-present{% elif swap.status=='rejected' %}badge-absent{% elif swap.status=='target_approved' %}badge-late{% else %}badge-late{% endif %}">
+            {% if swap.status=='pending' %}<i class="ti ti-clock-hour-4"></i> بانتظار الزميل
+            {% elif swap.status=='target_approved' %}<i class="ti ti-circle-check"></i> وافق الزميل
+            {% elif swap.status=='approved' %}<i class="ti ti-circle-check" style="color:var(--green)"></i> مُعتمد
+            {% elif swap.status=='rejected' %}<i class="ti ti-circle-x"></i> مرفوض
+            {% else %}{{ swap.status }}{% endif %}
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;margin-bottom:12px;align-items:center">
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-right:3px solid var(--red)">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:3px"><i class="ti ti-user"></i> مناوبة {{ swap.requester.full_name.split()[0] }}</div>
+            {% if swap.req_sched and swap.req_sched.shift_type %}
+            <div style="font-size:13px;font-weight:600;color:var(--text)">{{ swap.req_sched.shift_type.name }}</div>
+            <div style="font-size:11px;color:var(--muted);direction:ltr">{{ swap.req_sched.scheduled_date.strftime('%d/%m/%Y') }}</div>
+            <div style="font-size:11px;color:var(--muted)">{{ swap.req_sched.shift_type.time_range }}</div>
+            {% else %}<div style="font-size:12px;color:var(--muted)">أي مناوبة</div>{% endif %}
+          </div>
+          <i class="ti ti-arrows-exchange" style="font-size:22px;color:var(--muted);opacity:.5;text-align:center"></i>
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-right:3px solid #818cf8">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:3px"><i class="ti ti-user"></i> مناوبة {{ swap.target.full_name.split()[0] }}</div>
+            {% if swap.tgt_sched and swap.tgt_sched.shift_type %}
+            <div style="font-size:13px;font-weight:600;color:var(--text)">{{ swap.tgt_sched.shift_type.name }}</div>
+            <div style="font-size:11px;color:var(--muted);direction:ltr">{{ swap.tgt_sched.scheduled_date.strftime('%d/%m/%Y') }}</div>
+            <div style="font-size:11px;color:var(--muted)">{{ swap.tgt_sched.shift_type.time_range }}</div>
+            {% else %}<div style="font-size:12px;color:var(--muted)">أي مناوبة</div>{% endif %}
+          </div>
+        </div>
+        {% if swap.reason %}
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--text)"><i class="ti ti-message" style="color:var(--accent);margin-left:6px"></i>{{ swap.reason }}</div>
+        {% endif %}
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div style="font-size:11px;color:var(--muted);opacity:.7">
+            <i class="ti ti-clock"></i> قُدِّم في {{ swap.created_at.strftime('%d/%m/%Y %H:%M') }}
+            {% if swap.admin_notes %} · <span style="color:var(--muted)"><i class="ti ti-notes"></i> {{ swap.admin_notes }}</span>{% endif %}
+          </div>
+          <div style="display:flex;gap:8px">
+          {% if swap.status == 'target_approved' %}
+            <input id="note-{{ swap.id }}" placeholder="ملاحظة" class="btn-sm" style="width:160px;font-size:12px">
+            <button class="btn btn-green btn-sm" onclick="adminSwapAction({{ swap.id }},'approve')"><i class="ti ti-circle-check"></i> اعتماد</button>
+            <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--red)" onclick="adminSwapAction({{ swap.id }},'reject')"><i class="ti ti-circle-x"></i> رفض</button>
+          {% elif swap.status == 'pending' %}
+            <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--red)" onclick="adminSwapAction({{ swap.id }},'reject')"><i class="ti ti-circle-x"></i> رفض مباشر</button>
+          {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:64px 16px">
+    <i class="ti ti-arrows-exchange" style="font-size:48px;color:var(--muted);margin-bottom:14px;display:block"></i>
+    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">لا توجد طلبات تبديل</div>
+    <div style="font-size:13px;color:var(--muted)">
+      {% if status=='pending' %}لا توجد طلبات في الانتظار حالياً{% else %}لا توجد طلبات بهذه الحالة{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="newSwapModal">
+  <div class="modal-sheet" style="max-width:540px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="ti ti-plus" style="color:var(--accent)"></i>طلب تبديل جديد</h3>
+    <div class="modal-grid">
+      <div class="full">
+        <label><i class="ti ti-search" style="color:var(--accent);margin-left:4px"></i>بحث فوري عن الموظف</label>
+        <input id="swapSearchInput" placeholder="ابحث بالاسم أو القسم..." oninput="filterSwapEmps()" style="font-size:13px">
+      </div>
+      <div class="full">
+        <label><i class="ti ti-user" style="color:var(--accent);margin-left:4px"></i>الموظف طالب التبديل</label>
+        <select id="swapRequester" onchange="filterTargetsByDept()" style="font-size:13px">
+          <option value="">— اختر الموظف —</option>
+          {% for e in employees %}
+          <option value="{{ e.id }}" data-dept="{{ e.department }}" data-name="{{ e.full_name }}">{{ e.full_name }} — {{ e.department }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="full">
+        <label><i class="ti ti-arrows-exchange" style="color:#818cf8;margin-left:4px"></i>الموظف المستهدف للتبديل معه</label>
+        <select id="swapTarget" style="font-size:13px">
+          <option value="">— اختر الموظف المستهدف —</option>
+        </select>
+        <div id="swapNoTargets" style="display:none;font-size:12px;color:var(--amber);margin-top:4px"><i class="ti ti-info-circle"></i> لا يوجد زملاء في نفس القسم</div>
+      </div>
+      <div class="full" style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--accent)">
+        <i class="ti ti-info-circle"></i> سيتم تقييد الاختيار تلقائياً بموظفي نفس القسم.
+      </div>
+      <div class="full">
+        <label><i class="ti ti-message" style="color:var(--accent);margin-left:4px"></i>سبب طلب التبديل</label>
+        <textarea id="swapAdminReason" rows="2" style="resize:none;font-size:13px" placeholder="اكتب سبب طلب التبديل..."></textarea>
+      </div>
+    </div>
+    <div class="modal-grid" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-red" onclick="doNewAdminSwap()"><i class="ti ti-send"></i> إرسال طلب التبديل</button>
+      <button class="btn btn-outline" onclick="closeModal('newSwapModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+var allSwapEmps = [];
+document.addEventListener('DOMContentLoaded',function(){
+  var sel=document.getElementById('swapRequester');
+  allSwapEmps=Array.from(sel.options).slice(1).map(o=>({id:o.value,dept:o.getAttribute('data-dept'),name:o.getAttribute('data-name')}));
+});
+function filterSwapEmps(){
+  var q=document.getElementById('swapSearchInput').value.trim().toLowerCase();
+  var sel=document.getElementById('swapRequester');
+  sel.innerHTML='<option value="">— اختر الموظف —</option>';
+  allSwapEmps.forEach(function(e){
+    if(!q||e.name.includes(q)||e.dept.includes(q)){sel.innerHTML+='<option value="'+e.id+'" data-dept="'+e.dept+'" data-name="'+e.name+'">'+e.name+' — '+e.dept+'</option>';}
+  });
+  filterTargetsByDept();
+}
+function filterTargetsByDept(){
+  var reqId=document.getElementById('swapRequester').value;
+  var tgt=document.getElementById('swapTarget');
+  var noT=document.getElementById('swapNoTargets');
+  tgt.innerHTML='<option value="">— اختر الموظف المستهدف —</option>';
+  if(!reqId){tgt.disabled=true;noT.style.display='none';return;}
+  tgt.disabled=false;
+  var reqDept=null;
+  for(var i=0;i<allSwapEmps.length;i++){if(allSwapEmps[i].id==reqId){reqDept=allSwapEmps[i].dept;break;}}
+  var count=0;
+  allSwapEmps.forEach(function(e){
+    if(e.dept==reqDept&&e.id!=reqId){tgt.innerHTML+='<option value="'+e.id+'">'+e.name+'</option>';count++;}
+  });
+  noT.style.display=count?'none':'block';
+}
+async function doNewAdminSwap(){
+  var reqId=document.getElementById('swapRequester').value;
+  var tgtId=document.getElementById('swapTarget').value;
+  var reason=document.getElementById('swapAdminReason').value.trim();
+  if(!reqId||!tgtId){toast('يرجى اختيار الموظف والزميل المستهدف.','err');return;}
+  var r=await api('/admin/shifts/swaps/admin-create',{
+    requester_id:parseInt(reqId),
+    target_id:parseInt(tgtId),
+    reason:reason
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('newSwapModal');setTimeout(()=>location.reload(),1500);}
+}
+async function adminSwapAction(id, action){
+  var notes=document.getElementById(`note-${id}`)?.value||'';
+  var r=await api(`/admin/shifts/swaps/${id}/action`,{action,notes});
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){document.getElementById(`swap-${id}`).style.opacity='.4';setTimeout(()=>location.reload(),1200);}
+}
+</script>
+{% endblock %}

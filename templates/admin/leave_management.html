@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% set nav_active = 'leaves' %}
+{% block title %}إدارة الإجازات{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-calendar" style="color:var(--accent)"></i> إدارة الإجازات</h1>
+</header>
+<div style="padding:20px">
+  <div class="tabs" style="display:flex;gap:4px;background:var(--card);padding:6px;border-radius:12px;margin-bottom:20px;flex-wrap:wrap">
+    <div class="tab active" onclick="switchLeaveTab('pending',this)"><i class="ti ti-clock"></i> الطلبات المعلقة</div>
+    <div class="tab" onclick="switchLeaveTab('request',this)"><i class="ti ti-plus"></i> طلب إجازة</div>
+    <div class="tab" onclick="switchLeaveTab('balance',this)"><i class="ti ti-wallet"></i> الأرصدة</div>
+    <div class="tab" onclick="switchLeaveTab('types',this)"><i class="ti ti-list"></i> أنواع الإجازات</div>
+  </div>
+
+  <!-- TAB: Pending Requests -->
+  <div class="leave-tab-content active" id="leave-pending">
+    <div class="section-header"><h2><i class="ti ti-clock"></i> طلبات الإجازة المعلقة</h2>
+      <button class="btn btn-accent btn-sm" onclick="loadPending()"><i class="ti ti-refresh"></i> تحديث</button>
+    </div>
+    <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="tbl">
+        <thead><tr>
+          <th>الموظف</th><th>النوع</th><th>من</th><th>إلى</th><th>الأيام</th><th>السبب</th><th>إجراء</th>
+        </tr></thead>
+        <tbody id="pendingBody">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">اضغط "تحديث" لعرض الطلبات</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Request Leave -->
+  <div class="leave-tab-content" id="leave-request">
+    <div class="section-header"><h2><i class="ti ti-plus"></i> طلب إجازة جديد</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;max-width:700px">
+      <div>
+        <label>رقم الموظف</label>
+        <input type="text" id="reqEmpId" class="form-input" placeholder="رقم الموظف">
+      </div>
+      <div>
+        <label>نوع الإجازة</label>
+        <select id="reqLeaveType" class="form-input">
+          {% for lt in leave_types %}
+          <option value="{{ lt.id }}">{{ lt.name_ar }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>تاريخ البداية</label>
+        <input type="date" id="reqStart" class="form-input">
+      </div>
+      <div>
+        <label>تاريخ النهاية</label>
+        <input type="date" id="reqEnd" class="form-input">
+      </div>
+      <div style="grid-column:span 2">
+        <label>السبب</label>
+        <textarea id="reqReason" class="form-input" rows="2"></textarea>
+      </div>
+      <div>
+        <button class="btn btn-accent" onclick="submitLeaveRequest()"><i class="ti ti-send"></i> تقديم الطلب</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Balance -->
+  <div class="leave-tab-content" id="leave-balance">
+    <div class="section-header"><h2><i class="ti ti-wallet"></i> أرصدة الإجازات</h2></div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <input type="text" id="balEmpId" class="form-input" style="max-width:200px" placeholder="رقم الموظف">
+      <input type="number" id="balYear" class="form-input" style="max-width:100px">
+      <button class="btn btn-accent btn-sm" onclick="loadBalance()"><i class="ti ti-search"></i> عرض</button>
+      <button class="btn btn-outline btn-sm" onclick="initBalance()"><i class="ti ti-refresh"></i> تهيئة الرصيد</button>
+      <button class="btn btn-outline btn-sm" onclick="carryOver()"><i class="ti ti-transfer"></i> ترحيل الرصيد</button>
+    </div>
+    <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="tbl">
+        <thead><tr>
+          <th>نوع الإجازة</th><th>الإجمالي</th><th>المستخدم</th><th>المتبقي</th><th>المرحل</th>
+        </tr></thead>
+        <tbody id="balanceBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Leave Types -->
+  <div class="leave-tab-content" id="leave-types">
+    <div class="section-header"><h2><i class="ti ti-list"></i> أنواع الإجازات</h2></div>
+    <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="tbl">
+        <thead><tr>
+          <th>الكود</th><th>الاسم</th><th>الأيام الافتراضية</th><th>مدفوعة</th><th>مستمر</th><th>أقصى حد</th>
+        </tr></thead>
+        <tbody id="typesBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const NOW = new Date();
+document.getElementById('balYear').value = NOW.getFullYear();
+
+function api(url, data) {
+  return fetch(url, {
+    method: data ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: data ? JSON.stringify(data) : undefined
+  }).then(r => r.json());
+}
+
+function switchLeaveTab(tabId, el) {
+  document.querySelectorAll('.leave-tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('leave-' + tabId).classList.add('active');
+  el.classList.add('active');
+}
+
+function loadPending() {
+  api('/admin/leave-mgmt/pending').then(data => {
+    const tbody = document.getElementById('pendingBody');
+    if (!data.requests || data.requests.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">لا توجد طلبات معلقة</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.requests.map(r => `<tr>
+      <td>${r.employee_name || 'N/A'}</td>
+      <td>${r.leave_type_name || 'N/A'}</td>
+      <td>${r.start_date}</td>
+      <td>${r.end_date}</td>
+      <td>${r.total_days}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.reason || ''}</td>
+      <td>
+        <button class="btn btn-green btn-xs" onclick="approveLeave(${r.id})"><i class="ti ti-check"></i></button>
+        <button class="btn btn-red btn-xs" onclick="rejectLeave(${r.id})"><i class="ti ti-x"></i></button>
+      </td>
+    </tr>`).join('');
+  });
+}
+
+function approveLeave(rid) {
+  api('/admin/leave-mgmt/approve/' + rid, {}).then(data => {
+    if (data.success) { toast('تم اعتماد الإجازة', 'ok'); loadPending(); }
+    else { toast(data.error || 'فشل الاعتماد', 'err'); }
+  });
+}
+
+function rejectLeave(rid) {
+  api('/admin/leave-mgmt/reject/' + rid, {}).then(data => {
+    if (data.success) { toast('تم رفض الإجازة', 'info'); loadPending(); }
+    else { toast(data.error || 'فشل الرفض', 'err'); }
+  });
+}
+
+function submitLeaveRequest() {
+  const eid = parseInt(document.getElementById('reqEmpId').value);
+  if (!eid) { toast('الرجاء إدخال رقم الموظف', 'err'); return; }
+  api('/admin/leave-mgmt/request', {
+    employee_id: eid,
+    leave_type_id: parseInt(document.getElementById('reqLeaveType').value),
+    start_date: document.getElementById('reqStart').value,
+    end_date: document.getElementById('reqEnd').value,
+    reason: document.getElementById('reqReason').value,
+  }).then(data => {
+    if (data.success) { toast('تم تقديم الطلب', 'ok'); }
+    else { toast(data.error || 'فشل تقديم الطلب', 'err'); }
+  });
+}
+
+function loadBalance() {
+  const eid = parseInt(document.getElementById('balEmpId').value);
+  if (!eid) { toast('الرجاء إدخال رقم الموظف', 'err'); return; }
+  const year = parseInt(document.getElementById('balYear').value) || NOW.getFullYear();
+  api('/admin/leave-mgmt/balance/' + eid + '?year=' + year).then(data => {
+    const tbody = document.getElementById('balanceBody');
+    if (!data.balances || data.balances.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">لا توجد أرصدة</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.balances.map(b => `<tr>
+      <td>${b.leave_type_name || 'N/A'}</td>
+      <td>${b.total_days}</td>
+      <td>${b.used_days}</td>
+      <td>${b.remaining_days}</td>
+      <td>${b.carried_over || 0}</td>
+    </tr>`).join('');
+  });
+}
+
+function initBalance() {
+  const eid = parseInt(document.getElementById('balEmpId').value);
+  if (!eid) { toast('الرجاء إدخال رقم الموظف', 'err'); return; }
+  const year = parseInt(document.getElementById('balYear').value) || NOW.getFullYear();
+  api('/admin/leave-mgmt/init-balance/' + eid + '?year=' + year).then(data => {
+    if (data.ok) { toast('تم تهيئة الرصيد', 'ok'); loadBalance(); }
+    else { toast('فشل تهيئة الرصيد', 'err'); }
+  });
+}
+
+function carryOver() {
+  const eid = parseInt(document.getElementById('balEmpId').value);
+  if (!eid) { toast('الرجاء إدخال رقم الموظف', 'err'); return; }
+  const year = parseInt(document.getElementById('balYear').value) || NOW.getFullYear();
+  api('/admin/leave-mgmt/carry-over/' + eid, { from_year: year - 1, to_year: year }).then(data => {
+    if (data.ok) { toast('تم ترحيل الرصيد', 'ok'); loadBalance(); }
+    else { toast('فشل الترحيل', 'err'); }
+  });
+}
+
+// Load leave types on page load
+api('/admin/leave-mgmt/leave-types').then(data => {
+  const tbody = document.getElementById('typesBody');
+  if (!data.leave_types || data.leave_types.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">لا توجد أنواع إجازات</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.leave_types.map(t => `<tr>
+    <td>${t.code}</td>
+    <td>${t.name_ar}</td>
+    <td>${t.default_days}</td>
+    <td>${t.is_paid ? 'نعم' : 'لا'}</td>
+    <td>${t.is_recurring ? 'نعم' : 'لا'}</td>
+    <td>${t.max_consecutive || 'غير محدد'}</td>
+  </tr>`).join('');
+});
+
+loadPending();
+</script>
+{% endblock %}

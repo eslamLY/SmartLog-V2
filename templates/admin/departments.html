@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+{% set nav_active = 'departments' %}
+{% block title %}إدارة الأقسام{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/departments.css') }}">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <div style="display:flex;align-items:center;gap:12px">
+    <h1 style="font-size:16px;font-weight:700">إدارة الأقسام</h1>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-ghost btn-sm" onclick="switchView('grid')" id="viewGrid" title="شبكة"><i class="ti ti-grid-dots"></i></button>
+      <button class="btn btn-ghost btn-sm" onclick="switchView('list')" id="viewList" title="قائمة"><i class="ti ti-list"></i></button>
+      <button class="btn btn-ghost btn-sm" onclick="showOrgChart()" id="viewOrg" title="هيكل تنظيمي"><i class="ti ti-hierarchy-2"></i></button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-outline btn-sm" onclick="importModal()"><i class="ti ti-upload"></i> استيراد</button>
+    <button class="btn btn-outline btn-sm onclick=&quot;window.location.href='/admin/departments/api/export'&quot;"><i class="ti ti-download"></i> تصدير</button>
+    <button class="btn btn-red btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> قسم جديد</button>
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  <div id="deptGridView" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px"></div>
+  <div id="deptListView" style="display:none"></div>
+  <div id="orgChartView" style="display:none"></div>
+</div>
+<div class="modal-overlay" id="addDeptModal"><div class="modal-sheet modal-lg"><div class="modal-handle"></div>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
+    <div style="width:40px;height:40px;border-radius:10px;background:var(--accent)15;display:flex;align-items:center;justify-content:center"><i class="ti ti-plus" style="color:var(--accent);font-size:18px"></i></div>
+    <div><h3 style="font-size:15px;font-weight:700">إضافة قسم جديد</h3><span style="font-size:11px;color:var(--muted)">املأ جميع الحقول المطلوبة</span></div>
+    <div style="margin-right:auto;display:flex;gap:6px;align-items:center">
+      <span id="addStepIndicator" style="font-size:11px;color:var(--muted)">الخطوة 1 من 5</span>
+      <div class="step-dots" id="addStepDots"><span class="step-dot active"></span><span class="step-dot"></span><span class="step-dot"></span><span class="step-dot"></span><span class="step-dot"></span></div>
+    </div>
+  </div>
+  <div id="addDeptForm" style="max-height:65vh;overflow-y:auto;padding:4px 0">
+    <div class="dept-step" id="addStep1">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">1. الهوية والعلامة التجارية</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>رمز القسم <span class="field-req">*</span></label>
+          <div style="display:flex;gap:6px"><input id="adCode" placeholder="DEPT-001" style="flex:1;direction:ltr;text-align:left" oninput="checkDeptCode(this.value)">
+            <button class="btn btn-ghost btn-sm" onclick="autoGenerateCode()" title="توليد تلقائي"><i class="ti ti-refresh"></i></button></div>
+          <span id="adCodeStatus" style="font-size:11px"></span></div>
+        <div><label>اسم القسم (عربي) <span class="field-req">*</span></label><input id="adNameAr" placeholder="مثال: مختبر التحليل"></div>
+        <div><label>اسم القسم (إنجليزي)</label><input id="adNameEn" placeholder="Analysis Lab"></div>
+        <div><label>نوع القسم</label>
+          <div class="pill-group" id="adTypeGroup">
+            <span class="pill active" data-value="operational" onclick="selectPill(this,'adTypeGroup')">تشغيلي</span>
+            <span class="pill" data-value="administrative" onclick="selectPill(this,'adTypeGroup')">إداري</span>
+            <span class="pill" data-value="medical" onclick="selectPill(this,'adTypeGroup')">طبي</span>
+            <span class="pill" data-value="technical" onclick="selectPill(this,'adTypeGroup')">فني</span>
+            <span class="pill" data-value="support" onclick="selectPill(this,'adTypeGroup')">دعم</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>اللون</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="adColor" value="#e53935" style="width:40px;height:40px;border-radius:8px;border:2px solid var(--border);padding:2px;cursor:pointer">
+            <div id="adColorPreview" style="width:40px;height:40px;border-radius:8px;background:#e53935;border:2px solid var(--border)"></div>
+          </div>
+        </div>
+        <div><label>الأيقونة</label>
+          <div class="icon-grid" id="adIconGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;max-height:120px;overflow-y:auto"></div>
+          <div id="adIconPreview" style="margin-top:6px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--accent)10;font-size:13px;font-weight:600">
+            <i class="ti ti-building" id="adIconPreviewIcon"></i> <span id="adIconPreviewText">مختبر التحليل</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>الوصف (عربي)</label>
+          <textarea id="adDescAr" maxlength="200" rows="2" placeholder="وصف القسم بالعربية" oninput="updateCharCount(this,'adDescArCount',200)"></textarea>
+          <span id="adDescArCount" class="char-count">0/200</span>
+        </div>
+        <div><label>الوصف (إنجليزي)</label>
+          <textarea id="adDescEn" maxlength="200" rows="2" placeholder="Department description in English" oninput="updateCharCount(this,'adDescEnCount',200)"></textarea>
+          <span id="adDescEnCount" class="char-count">0/200</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="adIsActive" checked onchange="toggleInactiveReason()"> نشط</label>
+      </div>
+      <div id="adInactiveReasonGroup" style="display:none;margin-top:8px"><label>سبب الإيقاف <span class="field-req">*</span></label><input id="adInactiveReason" placeholder="اذكر سبب الإيقاف"></div>
+    </div>
+    <div class="dept-step" id="addStep2" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">2. الهيكل التنظيمي</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>القسم الأم</label>
+          <select id="adParentId" onchange="updateDeptLevel()"><option value="">لا يوجد (مستوى أعلى)</option></select>
+          <div id="adHierarchyPreview" style="margin-top:6px;padding:8px 12px;border-radius:8px;background:var(--bg);font-size:12px;color:var(--muted);min-height:20px"></div>
+        </div>
+        <div><label>مستوى القسم</label><input id="adDeptLevel" readonly style="background:var(--bg);font-weight:600" value="المستوى 1 - رئيسي"></div>
+        <div><label>مدير القسم</label>
+          <div class="search-select"><input id="adManagerSearch" placeholder="ابحث عن موظف..." oninput="searchManager(this.value,'adManagerId','adManagerPreview')">
+            <select id="adManagerId" size="4" style="margin-top:4px"><option value="">غير معين</option></select>
+            <div id="adManagerPreview" style="margin-top:4px;padding:6px 10px;border-radius:6px;background:var(--bg);font-size:12px;display:none"></div>
+          </div>
+        </div>
+        <div><label>نائب المدير</label>
+          <div class="search-select"><input id="adDeputySearch" placeholder="ابحث عن موظف..." oninput="searchManager(this.value,'adDeputyId','adDeputyPreview')">
+            <select id="adDeputyId" size="4" style="margin-top:4px"><option value="">غير معين</option></select>
+            <div id="adDeputyPreview" style="margin-top:4px;padding:6px 10px;border-radius:6px;background:var(--bg);font-size:12px;display:none"></div>
+          </div>
+        </div>
+        <div><label>كود مركز التكلفة</label><input id="adCostCenter" placeholder="أرقام فقط" pattern="[0-9]*" style="direction:ltr;text-align:left"></div>
+      </div>
+    </div>
+    <div class="dept-step" id="addStep3" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">3. الموظفين والسعة</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>الحد الأدنى للموظفين</label><input type="number" id="adMinStaff" value="2" min="0"></div>
+        <div><label>الحد الأقصى للسعة</label><input type="number" id="adMaxStaff" value="50" min="1"></div>
+      </div>
+      <div style="margin-top:12px"><label>أنواع التوظيف المسموح بها</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="emp-type-cb" value="full_time" checked> دوام كامل</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="emp-type-cb" value="part_time" checked> دوام جزئي</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="emp-type-cb" value="contract"> عقد</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="emp-type-cb" value="temporary"> مؤقت</label>
+        </div>
+      </div>
+      <div style="margin-top:12px"><label>الشهادات المطلوبة</label>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input id="adCertInput" placeholder="أضف شهادة مطلوبة..." style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addCertTag()}">
+          <button class="btn btn-ghost btn-sm" onclick="addCertTag()"><i class="ti ti-plus"></i></button>
+        </div>
+        <div id="adCertTags" class="tags-container" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+    </div>
+    <div class="dept-step" id="addStep4" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">4. الحضور والورديات</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>الوردية الافتراضية</label><select id="adShiftId"><option value="">بدون</option></select></div>
+        <div><label>مهلة السماح (دقائق)</label><input type="number" id="adGracePeriod" placeholder="افتراضي" min="0"></div>
+        <div><label>مدة الاستراحة (دقائق)</label><input type="number" id="adBreakDuration" value="60" min="0"></div>
+        <div><label>الحد الأقصى للإضافي أسبوعياً</label><input type="number" id="adOvertimeMax" value="12" min="0"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="adRemoteWork"> دوام عن بعد مسموح</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="adOvertimeApproval" checked> الإضافي يتطلب موافقة</label>
+      </div>
+      <div style="margin-top:12px"><label>الأجهزة المسموح بها</label>
+        <div class="device-check-grid" id="adDeviceGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;max-height:120px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <div class="dept-step" id="addStep5" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">5. الإشعارات والتنبيهات</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>معرف مجموعة واتساب</label><input id="adWhatsAppGroup" placeholder="معرف المجموعة" style="direction:ltr;text-align:left"></div>
+        <div><label>حد التأخير (دقائق) لإرسال إنذار</label><input type="number" id="adAlertThreshold" value="15" min="0"></div>
+        <div><label>إنذار نقص الموظفين عند</label><input type="number" id="adUnderstaffThreshold" placeholder="نفس الحد الأدنى" min="0"></div>
+      </div>
+      <div style="margin-top:12px"><label>المستلمون للتنبيهات</label>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input id="adRecipientSearch" placeholder="ابحث عن موظف..." style="flex:1" oninput="searchAlertRecipient(this.value)">
+          <select id="adRecipientSelect" size="4" style="flex:1;display:none" onchange="addAlertRecipient()"></select>
+        </div>
+        <div id="adRecipientTags" class="tags-container" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div style="margin-top:12px"><label>تفعيل التنبيهات</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="alert-cb" value="absent" checked> تغيب موظف</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="alert-cb" value="late" checked> تأخر موظف</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="alert-cb" value="understaffing" checked> نقص الموظفين</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="alert-cb" value="document_expiry" checked> انتهاء مستند</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="alert-cb" value="shift_change" checked> تغيير وردية</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="alert-cb" value="daily_summary"> تقرير يومي</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="alert-cb" value="weekly_report"> تقرير أسبوعي</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+    <button class="btn btn-outline" id="addPrevBtn" onclick="addPrevStep()" style="display:none">السابق</button>
+    <button class="btn btn-outline" id="addNextBtn" onclick="addNextStep()">التالي</button>
+    <button class="btn btn-red" id="addSaveBtn" onclick="doAddDept()" style="display:none"><i class="ti ti-check"></i> حفظ القسم</button>
+    <button class="btn btn-outline" onclick="closeModal('addDeptModal');clearAddForm()">إلغاء</button>
+  </div>
+</div></div>
+<div class="modal-overlay" id="editDeptModal"><div class="modal-sheet modal-lg"><div class="modal-handle"></div>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
+    <div style="width:40px;height:40px;border-radius:10px;background:var(--warning)15;display:flex;align-items:center;justify-content:center"><i class="ti ti-edit" style="color:var(--warning);font-size:18px"></i></div>
+    <div><h3 style="font-size:15px;font-weight:700">تعديل القسم</h3><span id="editDeptName" style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="margin-right:auto;display:flex;gap:6px;align-items:center">
+      <span id="editStepIndicator" style="font-size:11px;color:var(--muted)">الخطوة 1 من 5</span>
+      <div class="step-dots" id="editStepDots"><span class="step-dot active"></span><span class="step-dot"></span><span class="step-dot"></span><span class="step-dot"></span><span class="step-dot"></span></div>
+    </div>
+  </div>
+  <div id="editDeptForm" style="max-height:65vh;overflow-y:auto;padding:4px 0">
+    <div class="dept-step" id="editStep1">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">1. الهوية والعلامة التجارية</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>رمز القسم <span class="field-req">*</span></label>
+          <div style="display:flex;gap:6px"><input id="edCode" placeholder="DEPT-001" style="flex:1;direction:ltr;text-align:left" oninput="checkDeptCode(this.value)">
+            <button class="btn btn-ghost btn-sm" onclick="autoGenerateCodeEdit()" title="توليد تلقائي"><i class="ti ti-refresh"></i></button></div>
+          <span id="edCodeStatus" style="font-size:11px"></span></div>
+        <div><label>اسم القسم (عربي) <span class="field-req">*</span></label><input id="edNameAr" placeholder="مثال: مختبر التحليل"></div>
+        <div><label>اسم القسم (إنجليزي)</label><input id="edNameEn" placeholder="Analysis Lab"></div>
+        <div><label>نوع القسم</label>
+          <div class="pill-group" id="edTypeGroup">
+            <span class="pill" data-value="operational" onclick="selectPill(this,'edTypeGroup')">تشغيلي</span>
+            <span class="pill" data-value="administrative" onclick="selectPill(this,'edTypeGroup')">إداري</span>
+            <span class="pill" data-value="medical" onclick="selectPill(this,'edTypeGroup')">طبي</span>
+            <span class="pill" data-value="technical" onclick="selectPill(this,'edTypeGroup')">فني</span>
+            <span class="pill" data-value="support" onclick="selectPill(this,'edTypeGroup')">دعم</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>اللون</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="edColor" value="#e53935" style="width:40px;height:40px;border-radius:8px;border:2px solid var(--border);padding:2px;cursor:pointer" onchange="document.getElementById('edColorPreview').style.background=this.value">
+            <div id="edColorPreview" style="width:40px;height:40px;border-radius:8px;background:#e53935;border:2px solid var(--border)"></div>
+          </div>
+        </div>
+        <div><label>الأيقونة</label>
+          <div class="icon-grid" id="edIconGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;max-height:120px;overflow-y:auto"></div>
+          <div id="edIconPreview" style="margin-top:6px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--accent)10;font-size:13px;font-weight:600">
+            <i class="ti ti-building" id="edIconPreviewIcon"></i> <span id="edIconPreviewText"></span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>الوصف (عربي)</label><textarea id="edDescAr" maxlength="200" rows="2" oninput="updateCharCount(this,'edDescArCount',200)"></textarea><span id="edDescArCount" class="char-count">0/200</span></div>
+        <div><label>الوصف (إنجليزي)</label><textarea id="edDescEn" maxlength="200" rows="2" oninput="updateCharCount(this,'edDescEnCount',200)"></textarea><span id="edDescEnCount" class="char-count">0/200</span></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="edIsActive" checked onchange="toggleEditInactiveReason()"> نشط</label>
+      </div>
+      <div id="edInactiveReasonGroup" style="display:none;margin-top:8px"><label>سبب الإيقاف <span class="field-req">*</span></label><input id="edInactiveReason" placeholder="اذكر سبب الإيقاف"></div>
+    </div>
+    <div class="dept-step" id="editStep2" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">2. الهيكل التنظيمي</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>القسم الأم</label><select id="edParentId" onchange="updateEditDeptLevel()"><option value="">لا يوجد (مستوى أعلى)</option></select>
+          <div id="edHierarchyPreview" style="margin-top:6px;padding:8px 12px;border-radius:8px;background:var(--bg);font-size:12px;color:var(--muted);min-height:20px"></div>
+        </div>
+        <div><label>مستوى القسم</label><input id="edDeptLevel" readonly style="background:var(--bg);font-weight:600"></div>
+        <div><label>مدير القسم</label>
+          <div class="search-select"><input id="edManagerSearch" placeholder="ابحث عن موظف..." oninput="searchManager(this.value,'edManagerId','edManagerPreview')">
+            <select id="edManagerId" size="4" style="margin-top:4px"><option value="">غير معين</option></select>
+            <div id="edManagerPreview" style="margin-top:4px;padding:6px 10px;border-radius:6px;background:var(--bg);font-size:12px;display:none"></div>
+          </div>
+        </div>
+        <div><label>نائب المدير</label>
+          <div class="search-select"><input id="edDeputySearch" placeholder="ابحث عن موظف..." oninput="searchManager(this.value,'edDeputyId','edDeputyPreview')">
+            <select id="edDeputyId" size="4" style="margin-top:4px"><option value="">غير معين</option></select>
+            <div id="edDeputyPreview" style="margin-top:4px;padding:6px 10px;border-radius:6px;background:var(--bg);font-size:12px;display:none"></div>
+          </div>
+        </div>
+        <div><label>كود مركز التكلفة</label><input id="edCostCenter" placeholder="أرقام فقط" pattern="[0-9]*" style="direction:ltr;text-align:left"></div>
+      </div>
+    </div>
+    <div class="dept-step" id="editStep3" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">3. الموظفين والسعة</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>الحد الأدنى للموظفين</label><input type="number" id="edMinStaff" min="0"></div>
+        <div><label>الحد الأقصى للسعة</label><input type="number" id="edMaxStaff" min="1"></div>
+      </div>
+      <div style="margin-top:12px"><div id="edHeadcountBar" style="margin-bottom:6px"></div></div>
+      <div style="margin-top:12px"><label>أنواع التوظيف المسموح بها</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="edit-emp-type" value="full_time"> دوام كامل</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="edit-emp-type" value="part_time"> دوام جزئي</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="edit-emp-type" value="contract"> عقد</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="edit-emp-type" value="temporary"> مؤقت</label>
+        </div>
+      </div>
+      <div style="margin-top:12px"><label>الشهادات المطلوبة</label>
+        <div style="display:flex;gap:6px;margin-bottom:6px"><input id="edCertInput" placeholder="أضف شهادة..." style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addEditCertTag()}"><button class="btn btn-ghost btn-sm" onclick="addEditCertTag()"><i class="ti ti-plus"></i></button></div>
+        <div id="edCertTags" class="tags-container" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+    </div>
+    <div class="dept-step" id="editStep4" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">4. الحضور والورديات</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>الوردية الافتراضية</label><select id="edShiftId"><option value="">بدون</option></select></div>
+        <div><label>مهلة السماح (دقائق)</label><input type="number" id="edGracePeriod" min="0"></div>
+        <div><label>مدة الاستراحة (دقائق)</label><input type="number" id="edBreakDuration" min="0"></div>
+        <div><label>الحد الأقصى للإضافي أسبوعياً</label><input type="number" id="edOvertimeMax" min="0"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="edRemoteWork"> دوام عن بعد مسموح</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="edOvertimeApproval"> الإضافي يتطلب موافقة</label>
+      </div>
+      <div style="margin-top:12px"><label>الأجهزة المسموح بها</label><div class="device-check-grid" id="edDeviceGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;max-height:120px;overflow-y:auto"></div></div>
+    </div>
+    <div class="dept-step" id="editStep5" style="display:none">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">5. الإشعارات والتنبيهات</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>معرف مجموعة واتساب</label><input id="edWhatsAppGroup" style="direction:ltr;text-align:left"></div>
+        <div><label>حد التأخير (دقائق)</label><input type="number" id="edAlertThreshold" min="0"></div>
+        <div><label>إنذار نقص الموظفين</label><input type="number" id="edUnderstaffThreshold" min="0"></div>
+      </div>
+      <div style="margin-top:12px"><label>المستلمون للتنبيهات</label>
+        <div style="display:flex;gap:6px;margin-bottom:6px"><input id="edRecipientSearch" placeholder="ابحث..." style="flex:1" oninput="searchAlertRecipient(this.value,'ed')"><select id="edRecipientSelect" size="4" style="flex:1;display:none" onchange="addEditAlertRecipient()"></select></div>
+        <div id="edRecipientTags" class="tags-container" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div style="margin-top:12px"><label>تفعيل التنبيهات</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="edit-alert-cb" value="absent"> تغيب موظف</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="edit-alert-cb" value="late"> تأخر موظف</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="edit-alert-cb" value="understaffing"> نقص الموظفين</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="edit-alert-cb" value="document_expiry"> انتهاء مستند</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="edit-alert-cb" value="shift_change"> تغيير وردية</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="edit-alert-cb" value="daily_summary"> تقرير يومي</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" class="edit-alert-cb" value="weekly_report"> تقرير أسبوعي</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+    <button class="btn btn-outline" id="editPrevBtn" onclick="editPrevStep()" style="display:none">السابق</button>
+    <button class="btn btn-outline" id="editNextBtn" onclick="editNextStep()">التالي</button>
+    <button class="btn btn-amber" id="editSaveBtn" onclick="doEditDept()" style="display:none"><i class="ti ti-check"></i> حفظ التعديلات</button>
+    <button class="btn btn-outline" onclick="closeModal('editDeptModal')">إلغاء</button>
+  </div>
+</div></div>
+<div class="modal-overlay" id="viewDeptModal"><div class="modal-sheet modal-lg"><div class="modal-handle"></div>
+  <div id="viewDeptContent" style="max-height:80vh;overflow-y:auto;padding:4px 0"></div>
+  <div style="display:flex;gap:8px;margin-top:16px;border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap" id="viewDeptActions"></div>
+</div></div>
+<div class="modal-overlay" id="announceModal"><div class="modal-sheet"><div class="modal-handle"></div>
+  <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">📢 إرسال إعلان للقسم</h3>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div><label>الرسالة <span class="field-req">*</span></label><textarea id="annMessage" rows="3" placeholder="نص الإعلان..."></textarea></div>
+    <div><label>الأولوية</label>
+      <div class="pill-group" id="annPriorityGroup">
+        <span class="pill active" data-value="normal" onclick="selectPill(this,'annPriorityGroup')">عادي</span>
+        <span class="pill" data-value="urgent" onclick="selectPill(this,'annPriorityGroup')">عاجل</span>
+        <span class="pill" data-value="critical" onclick="selectPill(this,'annPriorityGroup')">حرج</span>
+      </div>
+    </div>
+    <div><label>طريقة التسليم</label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="ann-delivery" value="in_app" checked> إشعار داخلي</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="ann-delivery" value="whatsapp"> واتساب</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" class="ann-delivery" value="email"> إيميل</label>
+      </div>
+    </div>
+    <div><label>الاستهداف</label>
+      <div class="pill-group" id="annTargetGroup">
+        <span class="pill active" data-value="all" onclick="selectPill(this,'annTargetGroup')">كل القسم</span>
+        <span class="pill" data-value="specific" onclick="selectPill(this,'annTargetGroup')">موظفين محددين</span>
+      </div>
+    </div>
+    <div id="annTargetSelect" style="display:none"><label>اختر الموظفين</label><select id="annEmployeeSelect" multiple size="4" style="width:100%"></select></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" id="annScheduleLater"> جدولة لوقت لاحق</label>
+      <input type="datetime-local" id="annScheduledAt" style="display:none;flex:1">
+    </div>
+    <button class="btn btn-red" onclick="doSendAnnouncement()"><i class="ti ti-send"></i> إرسال الإعلان</button>
+    <button class="btn btn-outline" onclick="closeModal('announceModal')">إلغاء</button>
+  </div>
+</div></div>
+<div class="modal-overlay" id="transferModal"><div class="modal-sheet"><div class="modal-handle"></div>
+  <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">🔄 نقل موظف</h3>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div><label>الموظف <span class="field-req">*</span></label>
+      <input id="trEmployeeSearch" placeholder="ابحث عن اسم الموظف..." oninput="searchTransferEmployee(this.value)">
+      <select id="trEmployeeId" size="4" style="width:100%;margin-top:4px;display:none"></select>
+    </div>
+    <div><label>القسم الجديد <span class="field-req">*</span></label>
+      <select id="trDepartmentId"><option value="">اختر القسم...</option></select>
+    </div>
+    <div><label>تاريخ النقل</label><input type="date" id="trDate"></div>
+    <div><label>سبب النقل</label>
+      <select id="trReason"><option value="">اختر سبب...</option><option value="promotion">ترقية</option><option value="restructuring">إعادة هيكلة</option><option value="transfer_request">طلب نقل</option><option value="operational_need">حاجة تشغيلية</option><option value="other">أخرى</option></select>
+    </div>
+    <div><label>ملاحظات</label><textarea id="trNotes" rows="2"></textarea></div>
+    <button class="btn btn-red" onclick="doCreateTransfer()"><i class="ti ti-exchange"></i> بدء النقل</button>
+    <button class="btn btn-outline" onclick="closeModal('transferModal')">إلغاء</button>
+  </div>
+</div></div>
+<div class="modal-overlay" id="importModal"><div class="modal-sheet"><div class="modal-handle"></div>
+  <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">📥 استيراد أقسام من CSV</h3>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <p style="font-size:12px;color:var(--muted)">قم بتحميل ملف CSV بالأعمدة: code, name_ar, name_en, dept_type, parent_code, manager_id, min_staff_required, max_staff_capacity, default_shift_id, is_active</p>
+    <a href="/admin/departments/api/import-template" class="btn btn-outline btn-sm" style="text-align:center;text-decoration:none"><i class="ti ti-download"></i> تحميل نموذج الاستيراد</a>
+    <input type="file" id="importFile" accept=".csv" style="padding:8px;border:1px dashed var(--border);border-radius:8px;background:var(--bg)">
+    <button class="btn btn-red" onclick="doImport()"><i class="ti ti-upload"></i> استيراد</button>
+    <button class="btn btn-outline" onclick="closeModal('importModal')">إلغاء</button>
+  </div>
+</div></div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/departments.js') }}"></script>
+{% endblock %}

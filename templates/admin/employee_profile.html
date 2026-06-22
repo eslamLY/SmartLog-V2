@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% set nav_active = 'employees' %}
+{% block title %}{{ employee.full_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-user" style="color:var(--accent)"></i> {{ employee.full_name }}</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="/admin/employees/{{ employee.id }}/performance" class="btn btn-outline btn-sm"><i class="ti ti-chart-bar"></i> تقييم</a>
+    <a href="/admin/employees/{{ employee.id }}/training" class="btn btn-outline btn-sm"><i class="ti ti-book"></i> تدريب</a>
+    <a href="/admin/employees/{{ employee.id }}/discipline" class="btn btn-outline btn-sm"><i class="ti ti-gavel"></i> تأديب</a>
+    <a href="/admin/employees/{{ employee.id }}/delegations" class="btn btn-outline btn-sm"><i class="ti ti-briefcase"></i> مهام</a>
+    <a href="/admin/employees/add-form?eid={{ employee.id }}" class="btn btn-accent btn-sm"><i class="ti ti-file-plus"></i> بيانات متقدمة</a>
+    <a href="/admin/employees" class="btn btn-outline btn-sm"><i class="ti ti-arrow-right"></i> عودة</a>
+  </div>
+</header>
+<div style="padding:20px">
+  <div class="tabs" style="display:flex;gap:4px;background:var(--card);padding:6px;border-radius:12px;margin-bottom:20px;flex-wrap:wrap;overflow-x:auto">
+    <div class="tab active" onclick="switchProfTab('info',this)"><i class="ti ti-info-circle"></i> المعلومات</div>
+    <div class="tab" onclick="switchProfTab('contact',this)"><i class="ti ti-phone"></i> الاتصال</div>
+    <div class="tab" onclick="switchProfTab('family',this)"><i class="ti ti-users"></i> الأسرة</div>
+    <div class="tab" onclick="switchProfTab('gov',this)"><i class="ti ti-government"></i> حكومي</div>
+    <div class="tab" onclick="switchProfTab('insurance',this)"><i class="ti ti-heartbeat"></i> التأمين</div>
+    <div class="tab" onclick="switchProfTab('qual',this)"><i class="ti ti-certificate"></i> المؤهلات</div>
+    <div class="tab" onclick="switchProfTab('leave',this)"><i class="ti ti-calendar"></i> الإجازات</div>
+    <div class="tab" onclick="switchProfTab('promo',this)"><i class="ti ti-arrow-up-circle"></i> الترقيات</div>
+  </div>
+
+  <div class="prof-tab-content active" id="prof-info">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">الرقم الوظيفي</div>
+        <div style="font-size:15px;font-weight:700">{{ employee.employee_code or employee.username }}</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">القسم</div>
+        <div style="font-size:15px;font-weight:700">{{ employee.department or '—' }}</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">الوظيفة</div>
+        <div style="font-size:15px;font-weight:700">{{ employee.job_title or '—' }}</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">الحالة</div>
+        <div><span class="badge {% if employee.is_active %}badge-present{% else %}badge-absent{% endif %}">{{ 'نشط' if employee.is_active else 'غير نشط' }}</span></div>
+      </div>
+      {% if employee.extended and employee.extended.grade %}
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">الدرجة الوظيفية</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">{{ employee.extended.grade.name_ar }}</div>
+        <div style="font-size:12px;color:var(--muted)">{{ employee.extended.grade.code }} · مستوى {{ employee.extended.grade.level }}</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">الراتب الأساسي</div>
+        <div style="font-size:15px;font-weight:700">{{ employee.extended.grade.base_salary }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% if employee.extended %}
+    <div style="margin-top:16px">
+      <div class="card" style="padding:16px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-id"></i> وثائق الهوية</h3>
+        <div class="profile-grid">
+          <div><span class="label">الرقم الوطني</span><span class="value">{{ employee.extended.national_id or '—' }}</span></div>
+          <div><span class="label">جواز السفر</span><span class="value">{{ employee.extended.passport_number or '—' }}</span></div>
+          <div><span class="label">تاريخ انتهاء الهوية</span><span class="value">{{ employee.extended.id_expiry_date or '—' }}</span></div>
+          <div><span class="label">جهة الإصدار</span><span class="value">{{ employee.extended.id_issuing_authority or '—' }}</span></div>
+          <div><span class="label">التحقق</span><span class="value">{{ 'متحقق' if employee.extended.id_verified else 'غير متحقق' }}</span></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="prof-tab-content" id="prof-contact">
+    <div class="card" style="padding:16px;max-width:600px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-phone"></i> معلومات الاتصال</h3>
+      {% if employee.extended %}
+      <div class="profile-grid">
+        <div><span class="label">الهاتف الشخصي</span><span class="value">{{ employee.extended.personal_phone or '—' }}</span></div>
+        <div><span class="label">الهاتف الوظيفي</span><span class="value">{{ employee.extended.work_phone or '—' }}</span></div>
+        <div><span class="label">البريد الشخصي</span><span class="value">{{ employee.extended.personal_email or '—' }}</span></div>
+        <div><span class="label">البريد الوظيفي</span><span class="value">{{ employee.extended.work_email or '—' }}</span></div>
+        <div style="grid-column:span 2"><span class="label">العنوان الدائم</span><span class="value">{{ employee.extended.permanent_address or '—' }}</span></div>
+        <div style="grid-column:span 2"><span class="label">العنوان الحالي</span><span class="value">{{ employee.extended.current_address or '—' }}</span></div>
+      </div>
+      {% else %}
+      <div style="color:var(--muted);padding:20px;text-align:center">لا توجد بيانات اتصال إضافية</div>
+      {% endif %}
+    </div>
+    {% if employee.extended %}
+    <div class="card" style="padding:16px;max-width:600px;margin-top:12px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-ambulance"></i> جهة الاتصال في الطوارئ</h3>
+      <div class="profile-grid">
+        <div><span class="label">الاسم</span><span class="value">{{ employee.extended.emergency_name or '—' }}</span></div>
+        <div><span class="label">الهاتف</span><span class="value">{{ employee.extended.emergency_phone or '—' }}</span></div>
+        <div><span class="label">صلة القرابة</span><span class="value">{{ employee.extended.emergency_relation or '—' }}</span></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="prof-tab-content" id="prof-family">
+    <div class="card" style="padding:16px;max-width:600px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-users"></i> بيانات الأسرة</h3>
+      {% if employee.extended %}
+      <div class="profile-grid">
+        <div><span class="label">الحالة الاجتماعية</span><span class="value">{{ employee.extended.marital_status or '—' }}</span></div>
+        <div><span class="label">اسم الزوج/الزوجة</span><span class="value">{{ employee.extended.spouse_name or '—' }}</span></div>
+        <div><span class="label">عدد الأطفال</span><span class="value">{{ employee.extended.dependent_children or 0 }}</span></div>
+      </div>
+      {% endif %}
+      {% if employee.children %}
+      <h4 style="font-size:13px;font-weight:600;margin:16px 0 8px;color:var(--muted)">الأبناء</h4>
+      <table class="tbl">
+        <thead><tr><th>الاسم</th><th>تاريخ الميلاد</th><th>صلة القرابة</th><th>طالب</th><th>إعاقة</th></tr></thead>
+        <tbody>
+          {% for c in employee.children %}
+          <tr><td>{{ c.full_name }}</td><td>{{ c.birth_date }}</td><td>{{ c.relation }}</td><td>{{ 'نعم' if c.is_student else 'لا' }}</td><td>{{ 'نعم' if c.is_disabled else 'لا' }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="prof-tab-content" id="prof-gov">
+    {% if employee.extended %}
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-government"></i> البيانات الحكومية</h3>
+      <div class="profile-grid">
+        <div><span class="label">رقم الملف الحكومي</span><span class="value">{{ employee.extended.gov_file_number or '—' }}</span></div>
+        <div><span class="label">الرقم المركزي</span><span class="value">{{ employee.extended.gov_central_emp_id or '—' }}</span></div>
+        <div><span class="label">المنطقة</span><span class="value">{{ employee.extended.gov_region or '—' }}</span></div>
+        <div><span class="label">القطاع</span><span class="value">{{ employee.extended.gov_sector or '—' }}</span></div>
+        <div style="grid-column:span 2"><span class="label">الجهة الأم</span><span class="value">{{ employee.extended.gov_parent_institution or '—' }}</span></div>
+        <div style="grid-column:span 2"><span class="label">الجهة المشرفة</span><span class="value">{{ employee.extended.gov_supervisory_body or '—' }}</span></div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px;margin-top:12px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-shield-lock"></i> التصريح الأمني</h3>
+      <div class="profile-grid">
+        <div><span class="label">مستوى التصريح</span><span class="value">{{ employee.extended.clearance_level or '—' }}</span></div>
+        <div><span class="label">تاريخ التصريح</span><span class="value">{{ employee.extended.clearance_date or '—' }}</span></div>
+        <div><span class="label">تاريخ الانتهاء</span><span class="value">{{ employee.extended.clearance_expiry or '—' }}</span></div>
+        <div><span class="label">جهة الإصدار</span><span class="value">{{ employee.extended.clearance_authority or '—' }}</span></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="prof-tab-content" id="prof-insurance">
+    {% if employee.extended %}
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-shield"></i> الضمان الاجتماعي</h3>
+      <div class="profile-grid">
+        <div><span class="label">رقم التأمينات</span><span class="value">{{ employee.extended.social_security_number or '—' }}</span></div>
+        <div><span class="label">تاريخ الاشتراك</span><span class="value">{{ employee.extended.social_security_start or '—' }}</span></div>
+        <div><span class="label">نسبة الاشتراك</span><span class="value">{{ employee.extended.social_security_rate }}%</span></div>
+        <div><span class="label">الاشتراكات المتراكمة</span><span class="value">{{ employee.extended.accumulated_contributions }}</span></div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px;margin-top:12px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-heartbeat"></i> التأمين الصحي</h3>
+      <div class="profile-grid">
+        <div><span class="label">المستوى</span><span class="value">{{ employee.extended.health_insurance_level }}</span></div>
+        <div><span class="label">المعالون</span><span class="value">{{ employee.extended.health_insurance_dependents }}</span></div>
+        <div><span class="label">القسط</span><span class="value">{{ employee.extended.health_insurance_premium }}</span></div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px;margin-top:12px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-bolt"></i> تأمين الحياة وإصابات العمل</h3>
+      <div class="profile-grid">
+        <div><span class="label">تغطية الحياة</span><span class="value">{{ employee.extended.life_insurance_coverage }}</span></div>
+        <div><span class="label">المستفيد</span><span class="value">{{ employee.extended.life_insurance_beneficiary or '—' }}</span></div>
+        <div><span class="label">قسط الحياة</span><span class="value">{{ employee.extended.life_insurance_premium }}</span></div>
+        <div><span class="label">تغطية إصابات العمل</span><span class="value">{{ employee.extended.injury_insurance_coverage }}</span></div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px;margin-top:12px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-clock"></i> التقاعد</h3>
+      <div class="profile-grid">
+        <div><span class="label">سن التقاعد</span><span class="value">{{ employee.extended.retirement_age }}</span></div>
+        <div><span class="label">نسبة المعاش</span><span class="value">{{ employee.extended.pension_rate }}%</span></div>
+        <div><span class="label">سنوات الخدمة</span><span class="value">{{ employee.extended.years_of_service }}</span></div>
+        <div><span class="label">المعاش المتوقع</span><span class="value">{{ employee.extended.expected_pension }}</span></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="prof-tab-content" id="prof-qual">
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-certificate"></i> المؤهلات الدراسية</h3>
+      {% if employee.qualifications %}
+      <table class="tbl">
+        <thead><tr><th>المستوى</th><th>التخصص</th><th>المؤسسة</th><th>سنة التخرج</th><th>خارجي</th></tr></thead>
+        <tbody>
+          {% for q in employee.qualifications %}
+          <tr><td>{{ q.level }}</td><td>{{ q.specialization }}</td><td>{{ q.institution }}</td><td>{{ q.graduation_year }}</td><td>{{ 'نعم' if q.is_foreign else 'لا' }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="color:var(--muted);padding:20px;text-align:center">لا توجد مؤهلات</div>
+      {% endif %}
+    </div>
+    <div class="card" style="padding:16px;margin-top:12px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-award"></i> الشهادات المهنية</h3>
+      {% if employee.certifications %}
+      <table class="tbl">
+        <thead><tr><th>النوع</th><th>الرقم</th><th>جهة الإصدار</th><th>تاريخ الإصدار</th><th>تاريخ الانتهاء</th></tr></thead>
+        <tbody>
+          {% for c in employee.certifications %}
+          <tr><td>{{ c.cert_type }}</td><td>{{ c.cert_number or '—' }}</td><td>{{ c.issuing_body }}</td><td>{{ c.issue_date }}</td><td>{{ c.expiry_date or '—' }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="color:var(--muted);padding:20px;text-align:center">لا توجد شهادات مهنية</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="prof-tab-content" id="prof-leave">
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-calendar"></i> أرصدة الإجازات <span id="leaveYear" style="font-size:12px;color:var(--muted)"></span></h3>
+      <table class="tbl">
+        <thead><tr><th>النوع</th><th>الإجمالي</th><th>المستخدم</th><th>المتبقي</th></tr></thead>
+        <tbody id="profileLeaveBalances"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">جاري التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="prof-tab-content" id="prof-promo">
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-arrow-up-circle"></i> سجل الترقيات</h3>
+      <table class="tbl">
+        <thead><tr><th>من درجة</th><th>إلى درجة</th><th>من راتب</th><th>إلى راتب</th><th>رقم القرار</th><th>تاريخ التفعيل</th></tr></thead>
+        <tbody id="profilePromotions"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">جاري التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.profile-grid .label{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+.profile-grid .value{font-size:14px;font-weight:600;color:var(--text)}
+.prof-tab-content{display:none}
+.prof-tab-content.active{display:block}
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+function switchProfTab(tabId, el) {
+  document.querySelectorAll('.prof-tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('prof-' + tabId).classList.add('active');
+  el.classList.add('active');
+}
+const eid = {{ employee.id }};
+const year = new Date().getFullYear();
+document.getElementById('leaveYear').textContent = '(' + year + ')';
+api('/admin/leave-mgmt/balance/' + eid + '?year=' + year).then(data => {
+  const tbody = document.getElementById('profileLeaveBalances');
+  if (!data.balances || data.balances.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">لا توجد أرصدة</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.balances.map(b => `<tr>
+    <td>${b.leave_type_name}</td>
+    <td>${b.total_days}</td>
+    <td>${b.used_days}</td>
+    <td><strong>${b.remaining_days}</strong></td>
+  </tr>`).join('');
+});
+api('/admin/promotions/history/' + eid).then(data => {
+  const tbody = document.getElementById('profilePromotions');
+  if (!data.promotions || data.promotions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">لا توجد ترقيات</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.promotions.map(p => `<tr>
+    <td>${p.from_grade_name || '—'}</td>
+    <td><strong>${p.to_grade_name}</strong></td>
+    <td>${p.from_salary || 0}</td>
+    <td>${p.to_salary || 0}</td>
+    <td>${p.decision_number || '—'}</td>
+    <td>${p.effective_date || '—'}</td>
+  </tr>`).join('');
+});
+</script>
+{% endblock %}

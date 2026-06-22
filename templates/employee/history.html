@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% set is_employee = true %}
+{% set nav_active = 'history' %}
+{% block title %}سجل الحضور{% endblock %}
+{% block employee_layout %}
+<div style="min-height:100vh;background:var(--bg)">
+  <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+    <a href="/employee" style="color:var(--muted);text-decoration:none;font-size:22px"><i class="ti ti-arrow-right"></i></a>
+    <div style="flex:1">
+      <h1 style="font-size:16px;font-weight:700;color:var(--text)">سجل الحضور</h1>
+    </div>
+    <select onchange="goMonth(this.value)" class="btn-sm" style="width:auto;font-size:12px">
+      {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1==month %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+    </select>
+  </header>
+
+  <main class="mobile-pb" style="padding:14px;max-width:560px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="stat-card" style="background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.2);padding:12px">
+        <div style="font-size:11px;color:var(--green)">أيام الحضور</div>
+        <div class="stat-val" style="color:var(--green)">{{ present_days }}</div>
+      </div>
+      <div class="stat-card" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2);padding:12px">
+        <div style="font-size:11px;color:var(--amber)">التأخير (د)</div>
+        <div class="stat-val" style="color:var(--amber)">{{ total_late }}</div>
+      </div>
+      <div class="stat-card" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);padding:12px">
+        <div style="font-size:11px;color:var(--red)">الغياب</div>
+        <div class="stat-val" style="color:var(--red)">{{ absent_days }}</div>
+      </div>
+    </div>
+
+    {% if deduction > 0 %}
+    <div style="background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;font-size:13px">
+      <span><i class="ti ti-coin"></i> خصم التأخير</span>
+      <span style="font-weight:700;color:var(--red)">{{ deduction }} د.ل</span>
+    </div>
+    {% endif %}
+
+    {% if logs %}
+    <div class="card" style="overflow:hidden">
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700"><i class="ti ti-calendar-stats" style="color:var(--accent);margin-left:6px"></i>سجل {{ month_name }}</div>
+      {% for l in logs %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border2)">
+        <div>
+          <div style="font-size:13px;font-weight:600">{{ l.log_date.strftime('%d/%m/%Y') }}</div>
+          <div style="font-size:11px;color:var(--muted);direction:ltr">{{ l.clock_in.strftime('%H:%M') if l.clock_in else '—' }} → {{ l.clock_out.strftime('%H:%M') if l.clock_out else '—' }}</div>
+        </div>
+        <div style="text-align:left">
+          <span class="badge {% if l.status=='present' %}badge-present{% elif l.status=='late' %}badge-late{% else %}badge-absent{% endif %}">
+            {% if l.status=='present' %}حاضر{% elif l.status=='late' %}متأخر{% else %}غائب{% endif %}
+          </span>
+          {% if l.late_minutes %}<div style="font-size:10px;color:#f59e0b;margin-top:2px">{{ l.late_minutes }}د تأخير</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:48px 16px">
+      <i class="ti ti-calendar-off" style="font-size:48px;color:var(--muted);margin-bottom:12px;display:block"></i>
+      <div style="font-size:15px;color:var(--muted)">لا توجد سجلات لهذا الشهر</div>
+    </div>
+    {% endif %}
+  </main>
+
+  <nav class="bottom-nav" style="display:flex">
+    <a href="/employee" class="bottom-nav-item"><i class="ti ti-home-2"></i><span>الرئيسية</span></a>
+    <a href="/employee/shifts" class="bottom-nav-item"><i class="ti ti-calendar-event"></i><span>المناوبات</span></a>
+    <a href="/employee/documents" class="bottom-nav-item"><i class="ti ti-files"></i><span>المستندات</span></a>
+    <a href="/employee/history" class="bottom-nav-item active"><i class="ti ti-calendar-stats"></i><span>السجل</span></a>
+    <a href="/employee/leaves" class="bottom-nav-item"><i class="ti ti-file-text"></i><span>الطلبات</span></a>
+    <a href="/logout" class="bottom-nav-item"><i class="ti ti-logout"></i><span>خروج</span></a>
+  </nav>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function goMonth(m){const url=new URL(location.href);url.searchParams.set('month',m);location.href=url.toString();}
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% set nav_active = 'device_security' %}
+{% block title %}أمن الأجهزة{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-shield-lock" style="color:var(--accent)"></i>أمن الأجهزة الموثوقة</h1>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 115px)">
+  <div class="card" style="padding:16px;margin-bottom:16px;background:linear-gradient(135deg,rgba(220,38,38,.06),rgba(185,28,28,.03));border-color:rgba(220,38,38,.2)">
+    <h3 style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px"><i class="ti ti-shield-off"></i> المحو عن بُعد</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">يمكنك مسح جميع أجهزة الموظف المرتبطة بحسابه، مما يمنع أي وصول غير مصرّح به.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="wipeEmp" style="width:auto;min-width:200px;font-size:13px">
+        <option value="">— اختر الموظف —</option>
+        {% for e in employees %}
+        <option value="{{ e.id }}">{{ e.full_name }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--red)" onclick="remoteWipe()"><i class="ti ti-shield-off"></i> محو الأجهزة</button>
+    </div>
+  </div>
+  <div class="card" style="padding:16px">
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:10px"><i class="ti ti-devices"></i> الأجهزة الموثوقة ({{ trusted|length }})</h3>
+    <div style="max-height:400px;overflow-y:auto">
+      <table class="tbl">
+        <thead><tr><th>الموظف</th><th>اسم الجهاز</th><th>بصمة الجهاز</th><th>OS</th><th>IP</th><th>آخر استخدام</th></tr></thead>
+        <tbody>
+          {% for d in trusted %}
+          <tr>
+            <td>{{ d.employee.full_name }}</td>
+            <td>{{ d.device_name }}</td>
+            <td style="font-size:11px;direction:ltr;font-family:monospace">{{ d.device_fingerprint[:20] }}...</td>
+            <td>{{ d.device_os or '—' }}</td>
+            <td>{{ d.ip_address or '—' }}</td>
+            <td style="font-size:11px;direction:ltr">{{ d.last_used.strftime('%Y-%m-%d %H:%M') }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد أجهزة موثوقة بعد</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function remoteWipe(){
+  var eid=document.getElementById('wipeEmp').value;
+  if(!eid){toast('يرجى اختيار موظف.','err');return;}
+  if(!confirm('هل أنت متأكد؟ سيتم محو جميع أجهزة هذا الموظف عن بُعد.'))return;
+  var r=await api('/admin/employees/'+eid+'/remote-wipe');
+  toast(r.msg,r.ok?'ok':'err');
+}
+</script>
+{% endblock %}

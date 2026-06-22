@@ -1,0 +1,811 @@
+{% extends "base.html" %}
+{% set nav_active = 'employees' %}
+{% block title %}إدارة الموظفين{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employees.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700">الموظفون</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="GET" action="/admin/employees" style="display:flex;gap:8px;flex-wrap:wrap">
+      <input name="q" placeholder="بحث بالاسم أو الرقم الوظيفي أو رقم وطني" value="{{ q }}" style="width:220px;font-size:13px;padding:7px 12px!important">
+      <select name="dept" class="btn-sm" style="width:130px">
+        <option value="">كل الأقسام</option>
+        {% for d in departments %}<option value="{{ d }}" {% if d==dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-ghost btn-sm" type="submit"><i class="ti ti-search"></i></button>
+    </form>
+    <button class="btn btn-red btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> موظف جديد</button>
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  {% if employees %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
+    {% for emp in employees %}
+    <div class="card emp-card" data-id="{{ emp.id }}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div class="emp-avatar" style="width:44px;height:44px;border-radius:50%;background:var(--accent)15;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent);border:1px solid var(--accent)30;overflow:hidden;flex-shrink:0">
+          {% if emp.profile_photo %}
+          <img src="/uploads/{{ emp.profile_photo }}" style="width:100%;height:100%;object-fit:cover">
+          {% else %}
+          {{ emp.full_name[0] }}
+          {% endif %}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ emp.full_name }}</div>
+          <div style="font-size:11px;color:var(--muted)">{{ emp.department }} · {{ emp.username }}</div>
+        </div>
+        <div>
+          <span class="badge {% if emp.clocked_in %}badge-present{% else %}badge-absent{% endif %}">
+            {{ emp.today_status }}
+          </span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;font-size:11px;color:var(--muted2)">
+        <div><span style="color:var(--text);font-weight:600">{{ "%.0f"|format(emp.base_salary or 0) }}</span> د.ل</div>
+        <div>
+          {% if emp.sync_status == 'synced' %}<span style="color:#22c55e">✅ متزامن</span>
+          {% elif emp.sync_status == 'failed' %}<span style="color:#ef4444">❌ فشل</span>
+          {% else %}<span style="color:var(--muted)">⚠️ غير متزامن</span>{% endif %}
+        </div>
+        <div>{{ emp.job_title or '—' }}</div>
+        <div>{{ emp.employment_type|replace('_',' ')|title if emp.employment_type else 'دوام كامل' }}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <a href="/admin/employees/{{ emp.id }}/profile" class="btn btn-ghost btn-xs" title="الملف الشخصي"><i class="ti ti-user" style="color:var(--accent)"></i></a>
+        <button class="btn btn-ghost btn-xs" onclick="openViewModal({{ emp.id }})" title="عرض"><i class="ti ti-eye"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="openEditModal({{ emp.id }})" title="تعديل"><i class="ti ti-edit" style="color:var(--amber)"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="biotimeSync({{ emp.id }})" title="مزامنة"><i class="ti ti-device-mobile" style="color:var(--accent)"></i></button>
+        <a href="/admin/documents?emp={{ emp.id }}" class="btn btn-ghost btn-xs" title="مستندات"><i class="ti ti-files" style="color:#8b5cf6"></i></a>
+        <button class="btn btn-ghost btn-xs" onclick="openResetPass({{ emp.id }})" title="إعادة تعيين كلمة المرور"><i class="ti ti-key" style="color:#f59e0b"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="toggleEmp({{ emp.id }})" title="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %}">
+          {% if emp.is_active %}<i class="ti ti-pause" style="color:#f59e0b"></i>{% else %}<i class="ti ti-player-play" style="color:#22c55e"></i>{% endif %}
+        </button>
+        <button class="btn btn-ghost btn-xs" onclick="deleteEmp({{ emp.id }})" title="حذف"><i class="ti ti-trash" style="color:#ef4444"></i></button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if page_obj.pages > 1 %}
+  <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:16px 0;flex-wrap:wrap">
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if dept %}dept={{ dept }}&{% endif %}page={{ page_obj.prev_num }}" class="btn btn-ghost btn-sm" {% if not page_obj.has_prev %}style="pointer-events:none;opacity:.4"{% endif %}>← السابق</a>
+    {% for p in page_obj.iter_pages() %}
+      {% if p %}
+      <a href="?{% if q %}q={{ q }}&{% endif %}{% if dept %}dept={{ dept }}&{% endif %}page={{ p }}" class="btn btn-sm" style="min-width:32px;{% if p == page_obj.page %}background:var(--accent);color:#fff{% else %}background:var(--card2){% endif %}">{{ p }}</a>
+      {% else %}
+      <span style="color:var(--muted);padding:0 4px">…</span>
+      {% endif %}
+    {% endfor %}
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if dept %}dept={{ dept }}&{% endif %}page={{ page_obj.next_num }}" class="btn btn-ghost btn-sm" {% if not page_obj.has_next %}style="pointer-events:none;opacity:.4"{% endif %}>التالي →</a>
+  </div>
+  {% endif %}
+  {% else %}
+  <div style="text-align:center;padding:64px 16px">
+    <div style="font-size:48px;margin-bottom:12px"><i class="ti ti-users" style="font-size:48px;color:var(--muted)"></i></div>
+    <div style="font-size:15px;color:var(--muted)">{% if q or dept %}لا توجد نتائج للبحث{% else %}لا يوجد موظفون بعد{% endif %}</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ===== ADD EMPLOYEE MODAL ===== -->
+<div class="modal-overlay" id="addEmpModal">
+  <div class="modal-sheet" style="max-width:800px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-user-plus" style="color:var(--accent)"></i> إضافة موظف جديد</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('addEmpModal');clearAddForm()"><i class="ti ti-x"></i></button>
+    </div>
+    <!-- Tabs -->
+    <div class="emp-tabs" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:16px">
+      <button class="emp-tab active" data-tab="basic" onclick="switchTab('add','basic')"><span class="tab-indicator" id="tab_add_basic_ind"></span> الأساسية</button>
+      <button class="emp-tab" data-tab="personal" onclick="switchTab('add','personal')"><span class="tab-indicator" id="tab_add_personal_ind"></span> شخصية</button>
+      <button class="emp-tab" data-tab="employment" onclick="switchTab('add','employment')"><span class="tab-indicator" id="tab_add_employment_ind"></span> وظيفية</button>
+      <button class="emp-tab" data-tab="biometric" onclick="switchTab('add','biometric')"><span class="tab-indicator" id="tab_add_biometric_ind"></span> بصمة</button>
+      <button class="emp-tab" data-tab="financial" onclick="switchTab('add','financial')"><span class="tab-indicator" id="tab_add_financial_ind"></span> مالية</button>
+      <button class="emp-tab" data-tab="access" onclick="switchTab('add','access')"><span class="tab-indicator" id="tab_add_access_ind"></span> صلاحيات</button>
+    </div>
+    <div style="max-height:60vh;overflow-y:auto;padding:0 4px">
+      <form id="addEmpForm" autocomplete="off">
+        <!-- TAB 1: BASIC -->
+        <div class="tab-panel" id="tab_add_basic">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الرقم الوظيفي <span class="required">*</span></label>
+              <div style="display:flex;gap:6px">
+                <input id="aeUsername" placeholder="EMP001" style="flex:1;font-family:monospace;direction:ltr;text-align:left" required>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="autoGenerateId()" title="توليد تلقائي"><i class="ti ti-refresh"></i></button>
+              </div>
+              <div class="field-error" id="err_aeUsername"></div>
+            </div>
+            <div class="form-group" style="flex:2">
+              <label>الاسم الكامل <span class="required">*</span></label>
+              <input id="aeName" placeholder="الاسم الثلاثي" required>
+              <div class="field-error" id="err_aeName"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>القسم <span class="required">*</span></label>
+              <select id="aeDept" required>
+                <option value="">اختر القسم</option>
+                {% for d in depts_db %}<option value="{{ d.id }}">{{ d.name_ar }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الدور</label>
+              <select id="aeRole">
+                <option value="employee">موظف</option>
+                <option value="admin">مدير</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <!-- TAB 2: PERSONAL -->
+        <div class="tab-panel" id="tab_add_personal" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:2">
+              <label>رقم الهاتف</label>
+              <div style="display:flex;gap:6px">
+                <select id="aePhoneCode" style="width:120px;flex-shrink:0;font-size:12px">
+                  {% for cc in country_codes %}<option value="{{ cc.code }}" {% if cc.code == '+218' %}selected{% endif %}>{{ cc.code }} {{ cc.name }}</option>{% endfor %}
+                </select>
+                <input id="aePhone" placeholder="912345678" style="flex:1;direction:ltr;text-align:left" type="tel">
+              </div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الرقم الوطني <span class="required">*</span></label>
+              <input id="aeNationalId" placeholder="أرقام فقط" style="direction:ltr;text-align:left">
+              <div class="field-error" id="err_aeNationalId"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>تاريخ الميلاد</label>
+              <input type="date" id="aeDob" onchange="calcAge('add')">
+              <div id="aeAgeDisplay" style="font-size:11px;color:var(--muted2);margin-top:2px"></div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الجنس</label>
+              <div class="toggle-group" id="aeGender">
+                <button type="button" class="toggle-btn" data-value="male" onclick="selectToggle(this,'aeGenderHidden')">ذكر</button>
+                <button type="button" class="toggle-btn" data-value="female" onclick="selectToggle(this,'aeGenderHidden')">أنثى</button>
+              </div>
+              <input type="hidden" id="aeGenderHidden">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الحالة الاجتماعية</label>
+              <select id="aeMaritalStatus">
+                <option value="">اختر</option><option value="أعزب">أعزب</option><option value="متزوج">متزوج</option><option value="مطلق">مطلق</option><option value="أرمل">أرمل</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:2">
+              <label>العنوان</label>
+              <textarea id="aeAddress" rows="2" placeholder="اختياري"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الصورة الشخصية</label>
+              <div class="photo-upload" onclick="document.getElementById('aePhotoInput').click()">
+                <div class="photo-preview" id="aePhotoPreview">
+                  <i class="ti ti-user" style="font-size:32px;color:var(--muted2)"></i>
+                </div>
+                <div style="font-size:11px;color:var(--muted2)">اضغط لاختيار صورة<br>JPG/PNG - حد 2MB</div>
+              </div>
+              <input type="file" id="aePhotoInput" accept=".jpg,.jpeg,.png" style="display:none" onchange="previewPhoto(this,'aePhotoPreview','aePhotoData')">
+              <input type="hidden" id="aePhotoData">
+            </div>
+          </div>
+        </div>
+        <!-- TAB 3: EMPLOYMENT -->
+        <div class="tab-panel" id="tab_add_employment" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>المسمى الوظيفي</label>
+              <input id="aeJobTitle" placeholder="مثال: فني مختبر">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>نوع العمل</label>
+              <div class="pill-group" id="aeEmpType">
+                {% for et in employment_types %}
+                <button type="button" class="pill-btn {% if et.value == 'full_time' %}active{% endif %}" data-value="{{ et.value }}" onclick="selectPill(this,'aeEmpTypeHidden')">{{ et.label }}</button>
+                {% endfor %}
+              </div>
+              <input type="hidden" id="aeEmpTypeHidden" value="full_time">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>تاريخ التعيين</label>
+              <input type="date" id="aeHireDate">
+            </div>
+            <div class="form-group" style="flex:1" id="aeContractDateGroup">
+              <label>تاريخ انتهاء العقد</label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="date" id="aeContractEnd" style="flex:1">
+                <label style="font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:4px">
+                  <input type="checkbox" id="aeNoEndDate" onchange="toggleNoEndDate('add')"> بدون
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>المدير المباشر</label>
+              <select id="aeManager">
+                <option value="">— اختر —</option>
+                {% for m in managers %}<option value="{{ m.id }}">{{ m.full_name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الشفت / وردية العمل</label>
+              <select id="aeShift">
+                <option value="">— اختر —</option>
+                {% for s in shifts %}<option value="{{ s.id }}">{{ s.name }} ({{ s.time_range }})</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الفرع</label>
+              <select id="aeBranch">
+                <option value="">— اختر —</option>
+                {% for b in branches %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <!-- TAB 4: BIOMETRIC -->
+        <div class="tab-panel" id="tab_add_biometric" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>رقم الموظف في جهاز البصمة</label>
+              <input type="number" id="aeBioEmpId" placeholder="رقم عددي" style="direction:ltr;text-align:left">
+            </div>
+            <div class="form-group" style="flex:1;display:flex;align-items:flex-end;padding-bottom:6px">
+              <button type="button" class="btn btn-accent btn-sm" onclick="biotimeSyncFromForm('add')"><i class="ti ti-refresh"></i> مزامنة الآن</button>
+              <span id="aeBioStatus" class="bio-status" style="margin-right:8px"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>الأجهزة المرتبطة</label>
+            <div class="device-grid">
+              {% for dev in devices %}
+              <label class="device-check">
+                <input type="checkbox" class="aeDeviceCb" value="{{ dev.id }}">
+                <span class="device-label">{{ dev.name }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <!-- TAB 5: FINANCIAL -->
+        <div class="tab-panel" id="tab_add_financial" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الراتب الأساسي <span class="required">*</span></label>
+              <input type="number" id="aeSalary" value="2500" step="0.01" oninput="calcTotal('add')" required>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>بدل سكن</label>
+              <input type="number" id="aeHousing" value="0" step="0.01" oninput="calcTotal('add')">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>بدل مواصلات</label>
+              <input type="number" id="aeTransport" value="0" step="0.01" oninput="calcTotal('add')">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>بدلات أخرى</label>
+              <div id="aeOtherAllowances">
+                <div class="allowance-row">
+                  <input placeholder="المسمى" style="flex:1;font-size:12px">
+                  <input type="number" placeholder="المبلغ" style="width:100px;font-size:12px" oninput="calcTotal('add')">
+                  <button type="button" class="btn btn-ghost btn-xs" onclick="this.parentElement.remove();calcTotal('add')"><i class="ti ti-x" style="color:#ef4444"></i></button>
+                </div>
+              </div>
+              <button type="button" class="btn btn-ghost btn-xs" style="margin-top:4px" onclick="addAllowanceRow('aeOtherAllowances')"><i class="ti ti-plus"></i> إضافة بند</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>طريقة الدفع</label>
+              <select id="aePaymentMethod" onchange="toggleBankFields('add')">
+                <option value="bank_transfer">تحويل بنكي</option>
+                <option value="cash">نقدي</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1" id="aeBankNameGroup">
+              <label>اسم المصرف</label>
+              <select id="aeBankName">
+                <option value="">اختر المصرف</option>
+                <option value="مصرف الجمهورية">مصرف الجمهورية</option>
+                <option value="مصرف التجارة والتنمية">مصرف التجارة والتنمية</option>
+                <option value="مصرف الصحارى">مصرف الصحارى</option>
+                <option value="مصرف الوحدة">مصرف الوحدة</option>
+                <option value="المصرف المتحد">المصرف المتحد</option>
+                <option value="مصرف شمال أفريقيا">مصرف شمال أفريقيا</option>
+                <option value="مصرف الخليج الأول">مصرف الخليج الأول</option>
+                <option value="آخر">آخر</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="aeBankAccountGroup">
+            <label>رقم الحساب البنكي</label>
+            <input id="aeBankAccount" placeholder="رقم الحساب" style="direction:ltr;text-align:left">
+          </div>
+          <div class="total-salary-box">
+            <span>الراتب الإجمالي</span>
+            <span id="aeTotalSalary">2,500.00</span>
+            <span>د.ل</span>
+          </div>
+        </div>
+        <!-- TAB 6: ACCESS -->
+        <div class="tab-panel" id="tab_add_access" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>كلمة المرور <span class="required">*</span></label>
+              <div class="password-field">
+                <input type="password" id="aePass" value="123456" oninput="checkPassStrength('add')" required>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="togglePass('aePass',this)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%)"><i class="ti ti-eye"></i></button>
+              </div>
+              <div id="aePassStrength" class="pass-strength"></div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>تأكيد كلمة المرور <span class="required">*</span></label>
+              <div class="password-field">
+                <input type="password" id="aePassConfirm" oninput="checkPassMatch('add')">
+              </div>
+              <div id="aePassMatch" class="field-error"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button type="button" class="btn btn-ghost btn-xs" onclick="generatePass('add')"><i class="ti ti-refresh"></i> توليد كلمة مرور</button>
+          </div>
+          <div class="form-row" style="margin-top:12px">
+            <div class="form-group" style="flex:1">
+              <label>مستوى الصلاحية</label>
+              <select id="aePermissionLevel">
+                {% for pl in permission_levels %}
+                <option value="{{ pl.value }}" {% if pl.value == 'employee' %}selected{% endif %}>{{ pl.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;display:flex;flex-direction:column;gap:8px;padding-top:18px">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:400">
+                <input type="checkbox" id="aeForcePassChange" checked> فرض تغيير كلمة المرور عند أول دخول
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;font-weight:400">
+                <input type="checkbox" id="ae2FA"> تفعيل التحقق الثنائي
+              </label>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px">
+            <h4 style="font-size:13px;font-weight:600;margin-bottom:8px">📞 جهة اتصال طارئة</h4>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label>الاسم</label>
+                <input id="aeEmergName" placeholder="اسم جهة الاتصال">
+              </div>
+              <div class="form-group" style="flex:1">
+                <label>صلة القرابة</label>
+                <select id="aeEmergRelation">
+                  <option value="">اختر</option>
+                  {% for r in relationships %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label>رقم الهاتف</label>
+                <input id="aeEmergPhone" type="tel" placeholder="912345678" style="direction:ltr;text-align:left">
+              </div>
+              <div class="form-group" style="flex:1">
+                <label>هاتف آخر (اختياري)</label>
+                <input id="aeEmergPhone2" type="tel" placeholder="اختياري" style="direction:ltr;text-align:left">
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-actions" style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-red" onclick="doAddEmp()" id="aeSubmitBtn"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('addEmpModal');clearAddForm()">إلغاء</button>
+      <div style="flex:1;text-align:left;font-size:11px;color:var(--muted2);display:flex;align-items:center;gap:6px">
+        <span id="addTabProgress">0/6</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW EMPLOYEE MODAL ===== -->
+<div class="modal-overlay" id="viewEmpModal" onclick="if(event.target===this)closeModal('viewEmpModal')">
+  <div class="modal-sheet" style="max-width:700px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-id" style="color:var(--accent)"></i> <span id="veTitle">الملف الشخصي</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('viewEmpModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="veContent" style="max-height:65vh;overflow-y:auto">
+      <div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT EMPLOYEE MODAL ===== -->
+<div class="modal-overlay" id="editEmpModal">
+  <div class="modal-sheet" style="max-width:800px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-edit" style="color:var(--amber)"></i> <span id="eeTitle">تعديل الموظف</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('editEmpModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="emp-tabs" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:16px">
+      <button class="emp-tab active" data-tab="basic" onclick="switchTab('edit','basic')"><span class="tab-indicator" id="tab_edit_basic_ind"></span> الأساسية</button>
+      <button class="emp-tab" data-tab="personal" onclick="switchTab('edit','personal')"><span class="tab-indicator" id="tab_edit_personal_ind"></span> شخصية</button>
+      <button class="emp-tab" data-tab="employment" onclick="switchTab('edit','employment')"><span class="tab-indicator" id="tab_edit_employment_ind"></span> وظيفية</button>
+      <button class="emp-tab" data-tab="biometric" onclick="switchTab('edit','biometric')"><span class="tab-indicator" id="tab_edit_biometric_ind"></span> بصمة</button>
+      <button class="emp-tab" data-tab="financial" onclick="switchTab('edit','financial')"><span class="tab-indicator" id="tab_edit_financial_ind"></span> مالية</button>
+      <button class="emp-tab" data-tab="access" onclick="switchTab('edit','access')"><span class="tab-indicator" id="tab_edit_access_ind"></span> صلاحيات</button>
+    </div>
+    <div style="max-height:60vh;overflow-y:auto;padding:0 4px">
+      <form id="editEmpForm" autocomplete="off">
+        <input type="hidden" id="eeId">
+        <div class="tab-panel" id="tab_edit_basic">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الرقم الوظيفي</label>
+              <input id="eeUsername" readonly style="background:var(--card2);font-family:monospace;direction:ltr;text-align:left">
+            </div>
+            <div class="form-group" style="flex:2">
+              <label>الاسم الكامل <span class="required">*</span></label>
+              <input id="eeName" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>القسم</label>
+              <select id="eeDept">{% for d in depts_db %}<option value="{{ d.id }}">{{ d.name_ar }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الدور</label>
+              <select id="eeRole"><option value="employee">موظف</option><option value="admin">مدير</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_personal" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:2">
+              <label>رقم الهاتف</label>
+              <div style="display:flex;gap:6px">
+                <select id="eePhoneCode" style="width:120px;flex-shrink:0;font-size:12px">
+                  {% for cc in country_codes %}<option value="{{ cc.code }}">{{ cc.code }} {{ cc.name }}</option>{% endfor %}
+                </select>
+                <input id="eePhone" style="flex:1;direction:ltr;text-align:left" type="tel">
+              </div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الرقم الوطني</label>
+              <input id="eeNationalId" style="direction:ltr;text-align:left">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>تاريخ الميلاد</label>
+              <input type="date" id="eeDob" onchange="calcAge('edit')">
+              <div id="eeAgeDisplay" style="font-size:11px;color:var(--muted2);margin-top:2px"></div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الجنس</label>
+              <div class="toggle-group" id="eeGender">
+                <button type="button" class="toggle-btn" data-value="male" onclick="selectToggle(this,'eeGenderHidden')">ذكر</button>
+                <button type="button" class="toggle-btn" data-value="female" onclick="selectToggle(this,'eeGenderHidden')">أنثى</button>
+              </div>
+              <input type="hidden" id="eeGenderHidden">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الحالة الاجتماعية</label>
+              <select id="eeMaritalStatus">
+                <option value="">اختر</option><option value="أعزب">أعزب</option><option value="متزوج">متزوج</option><option value="مطلق">مطلق</option><option value="أرمل">أرمل</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:2">
+              <label>العنوان</label>
+              <textarea id="eeAddress" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الصورة الشخصية</label>
+              <div class="photo-upload" onclick="document.getElementById('eePhotoInput').click()">
+                <div class="photo-preview" id="eePhotoPreview">
+                  <i class="ti ti-user" style="font-size:32px;color:var(--muted2)"></i>
+                </div>
+                <div style="font-size:11px;color:var(--muted2)">اضغط لتغيير الصورة</div>
+              </div>
+              <input type="file" id="eePhotoInput" accept=".jpg,.jpeg,.png" style="display:none" onchange="previewPhoto(this,'eePhotoPreview','eePhotoData')">
+              <input type="hidden" id="eePhotoData">
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_employment" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>المسمى الوظيفي</label>
+              <input id="eeJobTitle">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>نوع العمل</label>
+              <div class="pill-group" id="eeEmpType">
+                {% for et in employment_types %}
+                <button type="button" class="pill-btn" data-value="{{ et.value }}" onclick="selectPill(this,'eeEmpTypeHidden')">{{ et.label }}</button>
+                {% endfor %}
+              </div>
+              <input type="hidden" id="eeEmpTypeHidden">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>تاريخ التعيين</label>
+              <input type="date" id="eeHireDate">
+            </div>
+            <div class="form-group" style="flex:1" id="eeContractDateGroup">
+              <label>تاريخ انتهاء العقد</label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="date" id="eeContractEnd" style="flex:1">
+                <label style="font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:4px">
+                  <input type="checkbox" id="eeNoEndDate" onchange="toggleNoEndDate('edit')"> بدون
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>المدير المباشر</label>
+              <select id="eeManager"><option value="">— اختر —</option>
+                {% for m in managers %}<option value="{{ m.id }}">{{ m.full_name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>الشفت</label>
+              <select id="eeShift"><option value="">— اختر —</option>
+                {% for s in shifts %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الفرع</label>
+              <select id="eeBranch"><option value="">— اختر —</option>
+                {% for b in branches %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_biometric" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>رقم الجهاز</label>
+              <input type="number" id="eeBioEmpId" style="direction:ltr;text-align:left">
+            </div>
+            <div class="form-group" style="flex:1;display:flex;align-items:flex-end;padding-bottom:6px">
+              <button type="button" class="btn btn-accent btn-sm" onclick="biotimeSyncFromForm('edit')"><i class="ti ti-refresh"></i> مزامنة</button>
+              <span id="eeBioStatus" class="bio-status" style="margin-right:8px"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>الأجهزة المرتبطة</label>
+            <div class="device-grid">
+              {% for dev in devices %}
+              <label class="device-check">
+                <input type="checkbox" class="eeDeviceCb" value="{{ dev.id }}">
+                <span class="device-label">{{ dev.name }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_financial" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>الراتب الأساسي</label>
+              <input type="number" id="eeSalary" step="0.01" oninput="calcTotal('edit')">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>بدل سكن</label>
+              <input type="number" id="eeHousing" value="0" step="0.01" oninput="calcTotal('edit')">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>بدل مواصلات</label>
+              <input type="number" id="eeTransport" value="0" step="0.01" oninput="calcTotal('edit')">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>بدلات أخرى</label>
+              <div id="eeOtherAllowances">
+                <div class="allowance-row">
+                  <input placeholder="المسمى" style="flex:1;font-size:12px">
+                  <input type="number" placeholder="المبلغ" style="width:100px;font-size:12px" oninput="calcTotal('edit')">
+                  <button type="button" class="btn btn-ghost btn-xs" onclick="this.parentElement.remove();calcTotal('edit')"><i class="ti ti-x" style="color:#ef4444"></i></button>
+                </div>
+              </div>
+              <button type="button" class="btn btn-ghost btn-xs" style="margin-top:4px" onclick="addAllowanceRow('eeOtherAllowances')"><i class="ti ti-plus"></i> إضافة بند</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>طريقة الدفع</label>
+              <select id="eePaymentMethod" onchange="toggleBankFields('edit')">
+                <option value="bank_transfer">تحويل بنكي</option>
+                <option value="cash">نقدي</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1" id="eeBankNameGroup">
+              <label>المصرف</label>
+              <select id="eeBankName">
+                <option value="">اختر</option>
+                <option value="مصرف الجمهورية">مصرف الجمهورية</option>
+                <option value="مصرف التجارة والتنمية">مصرف التجارة والتنمية</option>
+                <option value="مصرف الصحارى">مصرف الصحارى</option>
+                <option value="مصرف الوحدة">مصرف الوحدة</option>
+                <option value="المصرف المتحد">المصرف المتحد</option>
+                <option value="مصرف شمال أفريقيا">مصرف شمال أفريقيا</option>
+                <option value="مصرف الخليج الأول">مصرف الخليج الأول</option>
+                <option value="آخر">آخر</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="eeBankAccountGroup">
+            <label>رقم الحساب</label>
+            <input id="eeBankAccount" style="direction:ltr;text-align:left">
+          </div>
+          <div class="total-salary-box">
+            <span>الراتب الإجمالي</span>
+            <span id="eeTotalSalary">0.00</span>
+            <span>د.ل</span>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_access" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>كلمة المرور الجديدة</label>
+              <div class="password-field">
+                <input type="password" id="eePass" placeholder="اترك فارغاً إن لم ترد التغيير" oninput="checkPassStrength('edit')">
+                <button type="button" class="btn btn-ghost btn-xs" onclick="togglePass('eePass',this)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%)"><i class="ti ti-eye"></i></button>
+              </div>
+              <div id="eePassStrength" class="pass-strength"></div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>تأكيد كلمة المرور</label>
+              <div class="password-field">
+                <input type="password" id="eePassConfirm" oninput="checkPassMatch('edit')">
+              </div>
+              <div id="eePassMatch" class="field-error"></div>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:12px">
+            <div class="form-group" style="flex:1">
+              <label>مستوى الصلاحية</label>
+              <select id="eePermissionLevel">
+                {% for pl in permission_levels %}
+                <option value="{{ pl.value }}">{{ pl.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;display:flex;flex-direction:column;gap:8px;padding-top:18px">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:400">
+                <input type="checkbox" id="eeForcePassChange"> فرض تغيير كلمة المرور
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;font-weight:400">
+                <input type="checkbox" id="ee2FA"> تفعيل التحقق الثنائي
+              </label>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px">
+            <h4 style="font-size:13px;font-weight:600;margin-bottom:8px">📞 جهة اتصال طارئة</h4>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label>الاسم</label>
+                <input id="eeEmergName">
+              </div>
+              <div class="form-group" style="flex:1">
+                <label>صلة القرابة</label>
+                <select id="eeEmergRelation">
+                  <option value="">اختر</option>
+                  {% for r in relationships %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label>رقم الهاتف</label>
+                <input id="eeEmergPhone" type="tel" style="direction:ltr;text-align:left">
+              </div>
+              <div class="form-group" style="flex:1">
+                <label>هاتف آخر</label>
+                <input id="eeEmergPhone2" type="tel" style="direction:ltr;text-align:left">
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-actions" style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-amber" onclick="doEditEmp()"><i class="ti ti-device-floppy"></i> حفظ التعديلات</button>
+      <button class="btn btn-outline" onclick="closeModal('editEmpModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PASSWORD RESET MODAL ===== -->
+<div class="modal-overlay" id="resetPassModal">
+  <div class="modal-sheet" style="max-width:400px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-key" style="color:#f59e0b"></i> إعادة تعيين كلمة المرور</h3>
+    <input type="hidden" id="rpId">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label>كلمة المرور الجديدة</label>
+        <div class="password-field">
+          <input type="password" id="rpPass" oninput="checkPassStrength('rp')">
+          <button type="button" class="btn btn-ghost btn-xs" onclick="togglePass('rpPass',this)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%)"><i class="ti ti-eye"></i></button>
+        </div>
+        <div id="rpPassStrength" class="pass-strength"></div>
+      </div>
+      <div><label>تأكيد كلمة المرور</label>
+        <input type="password" id="rpPassConfirm" oninput="checkPassMatch('rp')">
+        <div id="rpPassMatch" class="field-error"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;font-size:13px">
+        <input type="checkbox" id="rpForceChange" checked> فرض تغيير عند أول دخول
+      </label>
+      <button class="btn btn-amber" onclick="doResetPass()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('resetPassModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DELETE CONFIRM MODAL ===== -->
+<div class="modal-overlay" id="deleteEmpModal">
+  <div class="modal-sheet" style="max-width:400px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:8px;color:#ef4444"><i class="ti ti-alert-triangle"></i> حذف الموظف</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px" id="delEmpName"></p>
+    <input type="hidden" id="delEmpId">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label>سبب الحذف <span class="required">*</span></label>
+        <textarea id="delEmpReason" rows="3" placeholder="يرجى كتابة سبب الحذف..."></textarea>
+        <div class="field-error" id="err_delEmpReason"></div>
+      </div>
+      <button class="btn" style="background:#ef4444;color:#fff" onclick="doDeleteEmp()"><i class="ti ti-trash"></i> حذف</button>
+      <button class="btn btn-outline" onclick="closeModal('deleteEmpModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BIOTIME SYNC MODAL ===== -->
+<div class="modal-overlay" id="bioSyncModal">
+  <div class="modal-sheet" style="max-width:450px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-device-mobile" style="color:var(--accent)"></i> <span id="bsTitle">مزامنة جهاز البصمة</span></h3>
+    <input type="hidden" id="bsEmpId">
+    <div style="max-height:300px;overflow-y:auto">
+      <div id="bsDeviceList"></div>
+      <div id="bsResult" style="margin-top:12px"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-accent" onclick="doBioSync()"><i class="ti ti-refresh"></i> مزامنة الأجهزة المحددة</button>
+      <button class="btn btn-outline" onclick="closeModal('bioSyncModal')">إغلاق</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/employees.js"></script>
+{% endblock %}

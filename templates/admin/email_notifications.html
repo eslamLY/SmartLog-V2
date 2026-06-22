@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% set nav_active = 'email_notifications' %}
+{% block title %}إشعارات البريد الإلكتروني{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-mail" style="color:var(--accent)"></i> إشعارات البريد الإلكتروني</h1>
+  <button class="btn btn-indigo" onclick="openModal('sendEmailModal')"><i class="ti ti-send"></i> إرسال إشعار</button>
+</header>
+<div style="padding:20px">
+  <div class="card" style="padding:16px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="ti ti-mail-check" style="font-size:20px;color:var(--green)"></i>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">إعدادات البريد الإلكتروني</div>
+        <div style="font-size:12px;color:var(--muted)">إرسال إشعارات بريد إلكتروني للموظفين</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>المعرف</th>
+          <th>اسم القالب</th>
+          <th>الموضوع</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="templatesList">
+        <tr>
+          <td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">
+            <i class="ti ti-mail-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>
+            لا توجد قوالب
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="padding:16px;margin-top:20px">
+    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px">سجل الإشعارات المرسلة</h2>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>الوقت</th>
+          <th>المستلم</th>
+          <th>الموضوع</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody id="historyList">
+        <tr>
+          <td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">
+            لا توجد إشعارات مرسلة
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="sendEmailModal" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:16px">إرسال إشعار بريد إلكتروني</h2>
+    <div style="margin-bottom:16px">
+      <label>المستلم</label>
+      <select id="emailTo">
+        <option value="">جميع الموظفين</option>
+        {% for emp in employees %}
+        <option value="{{ emp.email }}">{{ emp.full_name }} ({{ emp.email }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>الموضوع</label>
+      <input type="text" id="emailSubject" placeholder="موضوع الإشعار">
+    </div>
+    <div style="margin-bottom:16px">
+      <label>المحتوى</label>
+      <textarea id="emailBody" rows="5" placeholder="محتوى الإشعار"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-indigo" style="flex:1" onclick="sendEmail()">إرسال</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('sendEmailModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadTemplates() {
+  api('/api/admin/email/templates').then(function(res) {
+    var list = document.getElementById('templatesList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-mail-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>لا توجد قوالب</td></tr>';
+      return;
+    }
+    list.innerHTML = res.map(function(t) {
+      return '<tr>' +
+        '<td style="font-family:monospace;font-size:12px;color:var(--accent)">' + t.id + '</td>' +
+        '<td>' + t.name + '</td>' +
+        '<td>' + t.subject + '</td>' +
+        '<td>' +
+        '<button class="btn btn-sm btn-ghost" onclick="editTemplate(' + t.id + ')"><i class="ti ti-edit"></i> تعديل</button> ' +
+        '<button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="deleteTemplate(' + t.id + ')"><i class="ti ti-trash"></i> حذف</button>' +
+        '</td>' +
+        '</tr>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل القوالب', 'err');
+  });
+}
+
+function loadHistory() {
+  api('/api/admin/email/history').then(function(res) {
+    var list = document.getElementById('historyList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">لا توجد إشعارات مرسلة</td></tr>';
+      return;
+    }
+    list.innerHTML = res.map(function(h) {
+      var statusBadge = h.status === 'sent' ? '<span class="badge badge-present">تم الإرسال</span>' : '<span class="badge badge-absent">فشل</span>';
+      return '<tr>' +
+        '<td style="font-size:12px;color:var(--muted)">' + new Date(h.sent_at).toLocaleString('ar-SA') + '</td>' +
+        '<td>' + h.to + '</td>' +
+        '<td>' + h.subject + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '</tr>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل السجل', 'err');
+  });
+}
+
+function sendEmail() {
+  var data = {
+    to: document.getElementById('emailTo').value,
+    subject: document.getElementById('emailSubject').value,
+    body: document.getElementById('emailBody').value
+  };
+  if (!data.subject || !data.body) {
+    toast('يرجى ملء جميع الحقول', 'err');
+    return;
+  }
+  api('/api/admin/email/send', data).then(function(res) {
+    if (res.ok) {
+      toast(res.msg, 'ok');
+      closeModal('sendEmailModal');
+      loadHistory();
+    } else {
+      toast(res.msg, 'err');
+    }
+  }).catch(function() {
+    toast('فشل الإرسال', 'err');
+  });
+}
+
+function deleteTemplate(id) {
+  Swal.fire({
+    icon: 'warning',
+    title: 'حذف القالب',
+    text: 'هل أنت متأكد من حذف هذا القالب؟',
+    confirmButtonText: 'حذف',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    background: 'var(--card)',
+    color: 'var(--text)',
+    customClass: { popup: 'swal2-dark-custom' },
+    showCancelButton: true
+  }).then((result) => {
+    if (result.isConfirmed) {
+      api('/api/admin/email/templates/' + id + '/delete').then(function(res) {
+        if (res.ok) {
+          toast(res.msg, 'ok');
+          loadTemplates();
+        } else {
+          toast(res.msg, 'err');
+        }
+      }).catch(function() {
+        toast('فشل الحذف', 'err');
+      });
+    }
+  });
+}
+
+loadTemplates();
+loadHistory();
+</script>
+{% endblock %}

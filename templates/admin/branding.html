@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% set nav_active = 'branding' %}
+{% block title %}العلامة التجارية{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-palette" style="color:var(--accent)"></i>العلامة التجارية الديناميكية</h1>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 115px)">
+  <div class="card" style="padding:20px;max-width:600px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:20px">
+      {% if cfg.logo_url %}
+      <img src="{{ cfg.logo_url }}" style="max-height:64px;margin-bottom:10px;border-radius:8px" id="logoPreview">
+      {% else %}
+      <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--red),#991b1b);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 4px 12px rgba(220,38,38,.3)">
+        <svg width="28" height="28" fill="white" viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+      </div>
+      {% endif %}
+      <div style="font-size:18px;font-weight:800" id="brandPreview">{{ cfg.tenant_name }}</div>
+    </div>
+    <div class="modal-grid">
+      <div class="full"><label>اسم المنشأة</label><input id="brandName" value="{{ cfg.tenant_name }}" style="font-size:13px"></div>
+      <div><label>اللون الأساسي</label><input type="color" id="brandPrimary" value="{{ cfg.primary_color }}"></div>
+      <div><label>لون التمييز</label><input type="color" id="brandAccent" value="{{ cfg.accent_color }}"></div>
+      <div><label>لون الخلفية</label><input type="color" id="brandBg" value="{{ cfg.bg_color }}"></div>
+      <div><label>لون البطاقات</label><input type="color" id="brandCard" value="{{ cfg.card_color }}"></div>
+      <div class="full"><label>الشعار</label>
+        <form id="logoForm" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center">
+          <input type="file" id="logoFile" accept="image/*" style="flex:1;font-size:13px;padding:8px">
+          <button type="button" class="btn btn-sm btn-indigo" onclick="uploadLogo()">رفع</button>
+        </form>
+      </div>
+      <div class="full"><label>CSS مخصص</label><textarea id="brandCss" rows="3" style="font-size:12px;font-family:monospace;direction:ltr;resize:vertical">{{ cfg.custom_css or '' }}</textarea></div>
+      <div style="grid-column:span 2;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="ti ti-map-pin" style="color:var(--accent)"></i> إعدادات النطاق الجغرافي (Geofence)</div>
+      </div>
+      <div><label>خط العرض</label><input type="number" step="any" id="geofenceLat" value="{{ cfg.company_lat or 32.0755 }}" style="direction:ltr"></div>
+      <div><label>خط الطول</label><input type="number" step="any" id="geofenceLng" value="{{ cfg.company_lng or 23.9752 }}" style="direction:ltr"></div>
+      <div class="full">
+        <label>نطاق المسموح <span id="radiusLabel">{{ cfg.allowed_radius_meters or 200 }}</span> م</label>
+        <input type="range" id="geofenceRadius" min="50" max="1000" value="{{ cfg.allowed_radius_meters or 200 }}" style="width:100%;padding:0;height:6px;accent-color:var(--accent)"
+          oninput="document.getElementById('radiusLabel').textContent=this.value">
+      </div>
+    <div style="display:flex;gap:10px;margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-red" onclick="saveBranding()"><i class="ti ti-device-floppy"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function saveBranding(){
+  var r=await api('/admin/branding/save',{
+    tenant_name:document.getElementById('brandName').value,
+    primary_color:document.getElementById('brandPrimary').value,
+    accent_color:document.getElementById('brandAccent').value,
+    bg_color:document.getElementById('brandBg').value,
+    card_color:document.getElementById('brandCard').value,
+    custom_css:document.getElementById('brandCss').value,
+    company_lat:document.getElementById('geofenceLat').value,
+    company_lng:document.getElementById('geofenceLng').value,
+    allowed_radius_meters:document.getElementById('geofenceRadius').value
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok)document.getElementById('brandPreview').textContent=document.getElementById('brandName').value;
+}
+async function uploadLogo(){
+  var f=document.getElementById('logoFile').files[0];
+  if(!f){toast('يرجى اختيار صورة.','err');return;}
+  var fd=new FormData();fd.set('logo',f);
+  var r=await fetch('/admin/branding/logo',{method:'POST',body:fd}).then(r=>r.json());
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){document.getElementById('logoPreview')?.remove();location.reload();}
+}
+</script>
+{% endblock %}

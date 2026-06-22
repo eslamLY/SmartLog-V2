@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% set nav_active = 'payroll' %}
+{% block title %}الرواتب — {{ month_name }} {{ year }}{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700">كشف الرواتب — {{ month_name }} {{ year }}</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-sm" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;box-shadow:0 2px 12px rgba(99,102,241,.25)" onclick="archiveAllPayroll()"><i class="ti ti-archive"></i> 🗄️ أرشفة رواتب هذا الشهر</button>
+    <form method="GET" action="/admin/payroll" style="display:flex;gap:8px;flex-wrap:wrap">
+      <select name="month" class="btn-sm" style="width:110px">
+        {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1==month %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+      </select>
+      <select name="year" class="btn-sm" style="width:90px">
+        {% for y in range(year-1, year+3) %}<option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+      <select name="dept" class="btn-sm" style="width:130px">
+        <option value="">كل الأقسام</option>
+        {% for d in departments %}<option value="{{ d }}" {% if d==dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-ghost btn-sm" type="submit"><i class="ti ti-search"></i></button>
+    </form>
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  {% set ns = namespace(total_base=0, total_net=0, total_ded=0, total_ot_pay=0) %}
+  {% for r in pay_rows %}{% set ns.total_base = ns.total_base + r.base %}{% set ns.total_net = ns.total_net + r.net %}{% set ns.total_ded = ns.total_ded + r.deduction %}{% set ns.total_ot_pay = ns.total_ot_pay + r.overtime_pay %}{% endfor %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:18px">
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">عدد الموظفين</div>
+      <div style="font-size:20px;font-weight:800">{{ pay_rows|length }}</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">إجمالي الرواتب الأساسية</div>
+      <div style="font-size:20px;font-weight:800;color:var(--accent)">{{ ns.total_base }} ل.د</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">إجمالي الخصم</div>
+      <div style="font-size:20px;font-weight:800;color:#ef4444">{{ ns.total_ded }} ل.د</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">صافي الرواتب</div>
+      <div style="font-size:20px;font-weight:800;color:#22c55e">{{ ns.total_net }} ل.د</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">مكافآت العمل الإضافي</div>
+      <div style="font-size:20px;font-weight:800;color:#f59e0b">{{ ns.total_ot_pay }} ل.د</div>
+    </div>
+  </div>
+
+  {% if pay_rows %}
+  <div class="card" style="overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th>الموظف</th><th>القسم</th><th style="text-align:center">الأساسي</th><th style="text-align:center">دقائق تأخير</th><th style="text-align:center">الخصم</th><th style="text-align:center">ساعات إضافية</th><th style="text-align:center">مكافأة OT</th><th style="text-align:center">صافي الراتب</th><th></th>
+        </tr></thead>
+        <tbody>
+          {% for r in pay_rows %}
+          <tr>
+            <td style="font-weight:600">{{ r.emp_name }}<br><span style="font-size:11px;color:var(--muted);font-weight:400">{{ r.emp_username }}</span></td>
+            <td style="color:var(--muted)">{{ r.emp_dept }}</td>
+            <td style="text-align:center;font-weight:600">{{ r.base }}</td>
+            <td style="text-align:center;color:{% if r.total_late_m %}#f59e0b{% else %}var(--muted){% endif %}">{{ r.total_late_m }}</td>
+            <td style="text-align:center;color:#ef4444">{{ r.deduction }}</td>
+            <td style="text-align:center;color:{% if r.total_ot_hours %}#f59e0b{% else %}var(--muted){% endif %}">{{ r.total_ot_hours }}</td>
+            <td style="text-align:center;color:#22c55e;font-weight:600">{{ r.overtime_pay }}</td>
+            <td style="text-align:center;font-weight:700;font-size:15px">{{ r.net }}</td>
+            <td><div style="display:flex;gap:4px">
+              <button class="btn btn-ghost btn-xs" onclick="showPayrollDetail({{ loop.index0 }})"><i class="ti ti-file-text"></i> تفاصيل</button>
+              <button class="btn btn-ghost btn-xs" onclick="archiveOnePayroll({{ r.emp_id }})" style="color:var(--accent)"><i class="ti ti-archive"></i></button>
+            </div></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if page_obj.pages > 1 %}
+  <div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:16px 0;flex-wrap:wrap">
+    <a href="?month={{ month }}&year={{ year }}&{% if dept %}dept={{ dept }}&{% endif %}page={{ page_obj.prev_num }}" class="btn btn-ghost btn-sm" {% if not page_obj.has_prev %}style="pointer-events:none;opacity:.4"{% endif %}>← السابق</a>
+    {% for p in page_obj.iter_pages() %}
+      {% if p %}
+      <a href="?month={{ month }}&year={{ year }}&{% if dept %}dept={{ dept }}&{% endif %}page={{ p }}" class="btn btn-sm" style="min-width:32px;{% if p == page_obj.page %}background:var(--accent);color:#fff{% else %}background:var(--card2){% endif %}">{{ p }}</a>
+      {% else %}
+      <span style="color:var(--muted);padding:0 4px">…</span>
+      {% endif %}
+    {% endfor %}
+    <a href="?month={{ month }}&year={{ year }}&{% if dept %}dept={{ dept }}&{% endif %}page={{ page_obj.next_num }}" class="btn btn-ghost btn-sm" {% if not page_obj.has_next %}style="pointer-events:none;opacity:.4"{% endif %}>التالي →</a>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="card" style="text-align:center;padding:64px 16px">
+    <div style="font-size:48px;margin-bottom:12px"><i class="ti ti-currency-dollar" style="font-size:48px;color:var(--muted)"></i></div>
+    <div style="font-size:15px;color:var(--muted)">لا توجد بيانات راتب للشهر المحدد</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="payrollDetailModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-width:700px">
+    <div class="modal-handle"></div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px" id="pdName"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px" id="pdDept"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <div class="card" style="padding:10px;text-align:center;background:var(--card2)">
+        <div style="font-size:11px;color:var(--muted)">الأساسي</div>
+        <div style="font-size:17px;font-weight:700" id="pdBase"></div>
+      </div>
+      <div class="card" style="padding:10px;text-align:center;background:var(--card2)">
+        <div style="font-size:11px;color:var(--muted)">الخصم</div>
+        <div style="font-size:17px;font-weight:700;color:#ef4444" id="pdDed"></div>
+      </div>
+      <div class="card" style="padding:10px;text-align:center;background:var(--card2)">
+        <div style="font-size:11px;color:var(--muted)">OT مكافأة</div>
+        <div style="font-size:17px;font-weight:700;color:#22c55e" id="pdOT"></div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">تفاصيل الأيام</div>
+    <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+      <table class="tbl" style="font-size:12px">
+        <thead><tr><th>التاريخ</th><th>حضور</th><th>انصراف</th><th>الحالة</th><th>تأخير</th><th>ساعات OT</th><th>قيمة OT</th></tr></thead>
+        <tbody id="pdDays"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <span style="font-size:13px;color:var(--muted)">الراتب الأساسي + OT — الخصم</span>
+      <span style="font-size:17px;font-weight:800;color:var(--accent)" id="pdNet"></span>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+var payData = {{ pay_rows | tojson | safe }};
+var month = {{ month }}, year = {{ year }};
+
+function showPayrollDetail(idx){
+  var d = payData[idx];
+  document.getElementById('pdName').textContent = d.emp_name + ' (' + d.emp_username + ')';
+  document.getElementById('pdDept').textContent = d.emp_dept;
+  document.getElementById('pdBase').textContent = d.base + ' ل.د';
+  document.getElementById('pdDed').textContent = '-' + d.deduction + ' ل.د';
+  document.getElementById('pdOT').textContent = '+' + d.overtime_pay + ' ل.د';
+  document.getElementById('pdNet').textContent = d.net + ' ل.د';
+  var tbody = document.getElementById('pdDays');
+  tbody.innerHTML = '';
+  (d.days || []).forEach(function(r){
+    var statusCls = r.status === 'present' ? 'badge-present' : (r.status === 'late' ? 'badge-late' : 'badge-absent');
+    var statusLabel = r.status === 'present' ? 'حاضر' : (r.status === 'late' ? 'متأخر' : (r.status === 'absent' ? 'غائب' : r.status));
+    tbody.innerHTML += '<tr><td>' + r.date + '</td><td style="direction:ltr;text-align:center">' + r.clock_in + '</td><td style="direction:ltr;text-align:center">' + r.clock_out + '</td><td style="text-align:center"><span class="badge ' + statusCls + '">' + statusLabel + '</span></td><td style="text-align:center">' + r.late_min + '</td><td style="text-align:center">' + r.ot_hours + '</td><td style="text-align:center">' + r.ot_pay + '</td></tr>';
+  });
+  if (!d.days || d.days.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">لا توجد سجلات حضور</td></tr>';
+  }
+  document.getElementById('payrollDetailModal').classList.add('open');
+}
+
+async function archiveOnePayroll(empId) {
+  try {
+    var resp = await fetch('/api/hrms/payroll/archive', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({employee_id: empId, month: month, year: year})
+    });
+    var d = await resp.json();
+    toast(d.msg, d.ok ? 'ok' : 'err');
+  } catch(e) {
+    toast('خطأ في الاتصال بالخادم', 'err');
+  }
+}
+
+async function archiveAllPayroll() {
+  if (!confirm('هل تريد أرشفة رواتب جميع الموظفين لشهر ' + month + '/' + year + '؟')) return;
+  var btn = event && event.target ? (event.target.tagName === 'BUTTON' ? event.target : event.target.closest('button')) : null;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> جاري الأرشفة...'; }
+  var ok = 0, err = 0;
+  for (var i = 0; i < payData.length; i++) {
+    try {
+      var resp = await fetch('/api/hrms/payroll/archive', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({employee_id: payData[i].emp_id, month: month, year: year})
+      });
+      var d = await resp.json();
+      if (d.ok) ok++; else err++;
+    } catch(e) { err++; }
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-archive"></i> 🗄️ أرشفة رواتب هذا الشهر'; }
+  toast('✓ تم أرشفة ' + ok + ' موظف' + (err ? '، ' + err + ' فشل' : ''), err ? 'err' : 'ok');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>قسيمة راتب — {{ emp.full_name }}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+    *{font-family:'Cairo','Arial',sans-serif!important;margin:0;padding:0;box-sizing:border-box}
+    body{background:#fff;color:#1e293b;font-size:12px;direction:rtl;padding:20px}
+    .header{background:linear-gradient(135deg,#dc2626,#7f1d1d);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+    .card{border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:12px}
+    .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12px}
+    .row:last-child{border-bottom:none}
+    .row-label{color:#64748b}
+    .row-val{font-weight:600;color:#1e293b}
+    .total-row{background:#fef2f2;padding:12px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+    .footer{text-align:center;padding:14px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:16px}
+    @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style>
+</head>
+<body>
+  <div class="no-print" style="background:#1e293b;padding:10px 20px;margin:-20px -20px 20px;display:flex;gap:10px">
+    <button onclick="window.print()" style="background:#dc2626;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:Cairo;font-size:13px">🖨 طباعة</button>
+    <button onclick="window.close()" style="background:#334155;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:Cairo;font-size:13px">✕ إغلاق</button>
+  </div>
+
+  <div class="header">
+    <div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:3px">🩸 بنك دم طبرق</div>
+      <div style="font-size:12px;opacity:.8">قسيمة الراتب الشهرية</div>
+    </div>
+    <div style="text-align:left">
+      <div style="font-size:15px;font-weight:700">{{ month_name }} {{ year }}</div>
+      <div style="font-size:11px;opacity:.8">{{ generated }}</div>
+    </div>
+  </div>
+
+  <!-- Employee info -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:10px">بيانات الموظف</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="row"><span class="row-label">الاسم الكامل</span><span class="row-val">{{ emp.full_name }}</span></div>
+      <div class="row"><span class="row-label">الرقم الوظيفي</span><span class="row-val" style="direction:ltr">{{ emp.username }}</span></div>
+      <div class="row"><span class="row-label">القسم</span><span class="row-val">{{ emp.department }}</span></div>
+      <div class="row"><span class="row-label">الراتب الأساسي</span><span class="row-val">{{ emp.base_salary|int }} د.ل</span></div>
+    </div>
+  </div>
+
+  <!-- Attendance summary -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:10px">ملخص الحضور</div>
+    <div class="row"><span class="row-label">أيام الحضور</span><span class="row-val" style="color:#16a34a">{{ present_days }} يوم</span></div>
+    <div class="row"><span class="row-label">أيام التأخير</span><span class="row-val" style="color:#d97706">{{ late_days }} يوم</span></div>
+    <div class="row"><span class="row-label">أيام الغياب</span><span class="row-val" style="color:#dc2626">{{ absent_days }} يوم</span></div>
+    <div class="row"><span class="row-label">إجمالي دقائق التأخير</span><span class="row-val" style="color:#d97706">{{ total_late }} دقيقة</span></div>
+    <div class="row"><span class="row-label">ساعات العمل الفعلية (المناوبات)</span><span class="row-val">{{ total_shift_hours }} ساعة</span></div>
+  </div>
+
+  <!-- Salary calculation -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:10px">تفاصيل الراتب</div>
+    <div class="row"><span class="row-label">الراتب الأساسي</span><span class="row-val">{{ emp.base_salary|int }} د.ل</span></div>
+    <div class="row" style="{% if deduction > 0 %}color:#dc2626{% endif %}">
+      <span class="row-label">خصم التأخير ({{ total_late }} د × {{ '%.4f'|format(emp.base_salary/(30*8*60) if emp.base_salary else 0) }})</span>
+      <span class="row-val" style="color:#dc2626">− {{ deduction }} د.ل</span>
+    </div>
+    <div class="total-row">
+      <span style="font-size:14px;font-weight:700;color:#1e293b">صافي الراتب المستحق</span>
+      <span style="font-size:20px;font-weight:800;color:#16a34a">{{ net_salary }} د.ل</span>
+    </div>
+  </div>
+
+  <!-- Attendance log -->
+  {% if logs %}
+  <div class="card" style="page-break-inside:avoid">
+    <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:10px">سجل الحضور التفصيلي</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#fef2f2">
+        <th style="padding:6px 10px;text-align:right;font-weight:700;color:#7f1d1d">التاريخ</th>
+        <th style="padding:6px 10px;text-align:center;font-weight:700;color:#7f1d1d">الحضور</th>
+        <th style="padding:6px 10px;text-align:center;font-weight:700;color:#7f1d1d">الانصراف</th>
+        <th style="padding:6px 10px;text-align:center;font-weight:700;color:#7f1d1d">الحالة</th>
+        <th style="padding:6px 10px;text-align:center;font-weight:700;color:#7f1d1d">تأخير</th>
+      </tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr style="{% if loop.index is even %}background:#fafafa{% endif %}">
+          <td style="padding:5px 10px;color:#475569">{{ log.log_date.strftime('%d/%m/%Y') }}</td>
+          <td style="padding:5px 10px;text-align:center;direction:ltr">{{ log.clock_in.strftime('%H:%M') if log.clock_in else '—' }}</td>
+          <td style="padding:5px 10px;text-align:center;direction:ltr">{{ log.clock_out.strftime('%H:%M') if log.clock_out else '—' }}</td>
+          <td style="padding:5px 10px;text-align:center">
+            <span class="badge" style="background:{% if log.status=='present' %}#dcfce7;color:#166534{% elif log.status=='late' %}#fef3c7;color:#92400e{% else %}#fee2e2;color:#991b1b{% endif %}">
+              {% if log.status=='present' %}حاضر{% elif log.status=='late' %}متأخر{% else %}غائب{% endif %}
+            </span>
+          </td>
+          <td style="padding:5px 10px;text-align:center;color:{% if log.late_minutes %}#d97706{% else %}#94a3b8{% endif %}">{{ log.late_minutes if log.late_minutes else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    <p>هذه القسيمة صادرة بصورة آلية من منظومة بنك دم طبرق لنظام الحضور والانصراف</p>
+    <p style="margin-top:4px;font-size:10px">معادلة الخصم: دقائق التأخير ÷ (30 × 8 × 60) × الراتب الأساسي</p>
+  </div>
+</body>
+</html>

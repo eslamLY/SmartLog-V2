@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}التقارير{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+<link rel="stylesheet" href="/static/css/reports.css">
+{% endblock %}
+{% block content %}
+<div class="reports-container" id="app">
+  <!-- Header -->
+  <div class="reports-header">
+    <div>
+      <h1><i class="fas fa-chart-bar"></i> التقارير</h1>
+      <p class="text-muted">تحليلات الحضور والانصراف — تقارير شهرية شاملة</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-sm btn-outline" onclick="refreshData()"><i class="fas fa-sync-alt"></i></button>
+      <div class="dropdown d-inline-block">
+        <button class="btn btn-sm btn-outline dropdown-toggle" data-toggle="dropdown"><i class="fas fa-download"></i> تصدير</button>
+        <div class="dropdown-menu">
+          <a class="dropdown-item" href="#" onclick="exportPDF()"><i class="fas fa-file-pdf text-danger"></i> PDF</a>
+          <a class="dropdown-item" href="#" onclick="exportExcel()"><i class="fas fa-file-excel text-success"></i> Excel</a>
+          <a class="dropdown-item" href="#" onclick="exportWhatsApp()"><i class="fab fa-whatsapp text-success"></i> واتساب</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-card card">
+    <div class="card-body">
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-users"></i> القسم</label>
+          <select id="filterDept" class="form-control" onchange="applyFilters()">
+            <option value="">جميع الأقسام</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}">{{ d.name_ar }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-clock"></i> الشفت</label>
+          <select id="filterShift" class="form-control" onchange="applyFilters()">
+            <option value="">جميع الشفتات</option>
+            {% for s in shifts %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-briefcase"></i> نوع التوظيف</label>
+          <select id="filterEmployment" class="form-control" onchange="applyFilters()">
+            <option value="">الكل</option>
+            <option value="full-time">دوام كامل</option>
+            <option value="part-time">دوام جزئي</option>
+            <option value="contract">متعاقد</option>
+            <option value="temporary">مؤقت</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-calendar"></i> الشهر</label>
+          <select id="filterMonth" class="form-control" onchange="applyFilters()">
+            {% for m in months %}
+            <option value="{{ m.value }}" {% if m.selected %}selected{% endif %}>{{ m.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-calendar-alt"></i> السنة</label>
+          <select id="filterYear" class="form-control" onchange="applyFilters()">
+            {% for y in years %}
+            <option value="{{ y }}" {% if y == now.year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group filter-toggles">
+          <label class="filter-label">&nbsp;</label>
+          <div class="toggle-group">
+            <label class="toggle-label"><input type="checkbox" id="showPresent" checked onchange="applyFilters()"> حضور</label>
+            <label class="toggle-label"><input type="checkbox" id="showAbsent" checked onchange="applyFilters()"> غياب</label>
+            <label class="toggle-label"><input type="checkbox" id="showLate" checked onchange="applyFilters()"> تأخير</label>
+            <label class="toggle-label"><input type="checkbox" id="showLeave" onchange="applyFilters()"> إجازات</label>
+            <label class="toggle-label"><input type="checkbox" id="showDeductions" onchange="applyFilters()"> خصومات</label>
+            <label class="toggle-label"><input type="checkbox" id="showExcessAbsence" onchange="applyFilters()"> غياب مفرط</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid" id="summaryCards">
+    <div class="stat-card red"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><span class="stat-value" id="sTotal">0</span><span class="stat-label">إجمالي الموظفين</span></div></div>
+    <div class="stat-card green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><span class="stat-value" id="sPresent">0</span><span class="stat-label">إجمالي الحضور</span></div></div>
+    <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-chart-line"></i></div><div class="stat-info"><span class="stat-value" id="sRate">0%</span><span class="stat-label">معدل الحضور</span></div></div>
+    <div class="stat-card orange"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><span class="stat-value" id="sLate">0</span><span class="stat-label">دقائق تأخير</span></div></div>
+    <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-ban"></i></div><div class="stat-info"><span class="stat-value" id="sAbsent">0</span><span class="stat-label">إجمالي الغياب</span></div></div>
+    <div class="stat-card red"><div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div><div class="stat-info"><span class="stat-value" id="sDeductions">0</span><span class="stat-label">إجمالي الخصومات</span></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-container card">
+    <div class="card-header tabs-header">
+      <ul class="nav nav-tabs" id="reportTabs">
+        <li class="nav-item"><a class="nav-link active" data-tab="table" href="#"><i class="fas fa-table"></i> جدول البيانات</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="charts" href="#"><i class="fas fa-chart-pie"></i> تحليلات</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="corrections" href="#"><i class="fas fa-edit"></i> طلبات تصحيح</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="comparison" href="#"><i class="fas fa-balance-scale"></i> مقارنة</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="schedule" href="#"><i class="fas fa-calendar-check"></i> جدولة</a></li>
+      </ul>
+    </div>
+    <div class="card-body">
+      <!-- Tab: Table -->
+      <div class="tab-pane active" id="tab-table">
+        <div class="table-toolbar">
+          <div class="toolbar-left">
+            <span id="rowCount" class="row-count">0 موظف</span>
+          </div>
+          <div class="toolbar-right">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="searchInput" class="form-control" placeholder="بحث..." oninput="debounceSearch()">
+            </div>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="table reports-table" id="reportsTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الموظف</th>
+                <th>القسم</th>
+                <th>الشفت</th>
+                <th>أيام العمل</th>
+                <th>حضور</th>
+                <th>غياب</th>
+                <th>تأخير</th>
+                <th>د.تأخير</th>
+                <th>إجازات</th>
+                <th>ساعات عمل</th>
+                <th>إضافي</th>
+                <th>الخصم</th>
+                <th>الأساسي</th>
+                <th>الصافي</th>
+                <th>النسبة</th>
+                <th>الحالة</th>
+                <th>تفاصيل</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr class="skeleton-row"><td colspan="18"><div class="skeleton-shimmer"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <button class="btn btn-sm btn-outline" onclick="loadMoreRows()" id="loadMoreBtn" style="display:none"><i class="fas fa-chevron-down"></i> عرض المزيد</button>
+        </div>
+      </div>
+
+      <!-- Tab: Charts -->
+      <div class="tab-pane" id="tab-charts">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h4><i class="fas fa-chart-area"></i> الاتجاه اليومي</h4>
+            <div class="chart-container"><canvas id="dailyTrendChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h4><i class="fas fa-chart-bar"></i> مقارنة الأقسام</h4>
+            <div class="chart-container"><canvas id="deptCompareChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h4><i class="fas fa-chart-bar"></i> توزيع التأخير</h4>
+            <div class="chart-container"><canvas id="lateDistChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h4><i class="fas fa-border-all"></i> خريطة الحضور الحرارية</h4>
+            <div class="chart-container"><canvas id="reportHeatmap"></canvas></div>
+          </div>
+          <div class="chart-card full-width">
+            <h4><i class="fas fa-chart-doughnut"></i> تفاصيل الخصومات</h4>
+            <div class="chart-container"><canvas id="deductionsChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Corrections -->
+      <div class="tab-pane" id="tab-corrections">
+        <div class="corrections-toolbar">
+          <button class="btn btn-red" onclick="showCorrectionModal()"><i class="fas fa-plus"></i> طلب تصحيح</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="table reports-table">
+            <thead>
+              <tr><th>#</th><th>الموظف</th><th>التاريخ</th><th>النوع</th><th>السبب</th><th>الحالة</th><th>تاريخ الطلب</th><th>إجراءات</th></tr>
+            </thead>
+            <tbody id="correctionsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Comparison -->
+      <div class="tab-pane" id="tab-comparison">
+        <div class="comparison-toolbar">
+          <div class="filter-group">
+            <label>اختر موظفين للمقارنة</label>
+            <select id="compareEmployees" class="form-control" multiple></select>
+          </div>
+          <button class="btn btn-red" onclick="loadComparison()"><i class="fas fa-chart-simple"></i> مقارنة</button>
+        </div>
+        <div class="comparison-results" id="comparisonResults"></div>
+      </div>
+
+      <!-- Tab: Schedule -->
+      <div class="tab-pane" id="tab-schedule">
+        <div class="schedule-toolbar">
+          <div class="filter-group">
+            <label>تقرير مجدول</label>
+            <select id="scheduleFreq" class="form-control" style="width:auto">
+              <option value="daily">يومي</option>
+              <option value="weekly">أسبوعي</option>
+              <option value="monthly" selected>شهري</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>التنسيق</label>
+            <select id="scheduleFormat" class="form-control" style="width:auto">
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel</option>
+            </select>
+          </div>
+          <button class="btn btn-red" onclick="createScheduledReport()"><i class="fas fa-clock"></i> جدولة</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="table reports-table">
+            <thead>
+              <tr><th>#</th><th>التكرار</th><th>التنسيق</th><th>تاريخ الإنشاء</th><th>آخر تشغيل</th><th>التشغيل القادم</th><th>الحالة</th><th>إجراءات</th></tr>
+            </thead>
+            <tbody id="scheduledBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Correction Modal -->
+<div class="modal fade" id="correctionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">طلب تصحيح</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="correctionId">
+        <div class="form-group">
+          <label>الموظف</label>
+          <select id="corrEmployee" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label>التاريخ</label>
+          <input type="date" id="corrDate" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>نوع التصحيح</label>
+          <select id="corrType" class="form-control" required>
+            <option value="absent">غياب -> حضور</option>
+            <option value="late">تأخير -> حضور</option>
+            <option value="extra">إضافة بصمة</option>
+            <option value="time">تعديل الوقت</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>السبب</label>
+          <textarea id="corrReason" class="form-control" rows="3" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-gray" data-dismiss="modal">إلغاء</button>
+        <button class="btn btn-red" onclick="saveCorrection()">إرسال</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Employee Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">تفاصيل الحضور</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/js/reports.js"></script>
+{% endblock %}

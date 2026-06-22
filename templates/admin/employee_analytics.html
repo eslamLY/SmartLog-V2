@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% set nav_active = 'employee_analytics' %}
+{% block title %}تحليلات الموظفين{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-chart-pie" style="color:var(--accent)"></i> تحليلات الموظفين</h1>
+  <button class="btn btn-accent btn-sm" onclick="loadStats()"><i class="ti ti-refresh"></i> تحديث</button>
+</header>
+<div style="padding:20px">
+  <div id="statsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px">
+    <div class="card stat-card" style="border-color:var(--accent)30"><div style="font-size:12px;color:var(--muted)">إجمالي الموظفين</div><div class="stat-val" id="statTotal" style="color:var(--accent)">—</div></div>
+    <div class="card stat-card" style="border-color:var(--green)30"><div style="font-size:12px;color:var(--muted)">بيانات متقدمة</div><div class="stat-val" id="statExtended" style="color:var(--green)">—</div></div>
+    <div class="card stat-card" style="border-color:var(--amber)30"><div style="font-size:12px;color:var(--muted)">طلبات إجازة معلقة</div><div class="stat-val" id="statPendingLeaves" style="color:var(--amber)">—</div></div>
+    <div class="card stat-card" style="border-color:#8b5cf630"><div style="font-size:12px;color:var(--muted)">إجراءات تأديبية</div><div class="stat-val" id="statPendingDisc" style="color:#8b5cf6">—</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-stairs" style="color:var(--accent)"></i> توزيع الدرجات الوظيفية</h3>
+      <div id="gradeChart"></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-building" style="color:var(--accent)"></i> توزيع الأقسام</h3>
+      <div id="deptChart"></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-shield-lock" style="color:var(--accent)"></i> مستويات التصريح الأمني</h3>
+      <div id="clearanceChart"></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-user" style="color:var(--accent)"></i> أنواع العقود</h3>
+      <div id="contractChart"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;gap:16px;margin-top:16px">
+    <div class="card" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="ti ti-download" style="color:var(--accent)"></i> تصدير البيانات الحكومية</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="/admin/export/registry" class="btn btn-outline btn-sm"><i class="ti ti-file-spreadsheet"></i> سجل الموظفين</a>
+        <a href="/admin/export/pension" class="btn btn-outline btn-sm"><i class="ti ti-file-spreadsheet"></i> بيانات المعاشات</a>
+        <a href="/admin/export/insurance" class="btn btn-outline btn-sm"><i class="ti ti-file-spreadsheet"></i> بيانات التأمين</a>
+        <a href="/admin/export/clearance" class="btn btn-outline btn-sm"><i class="ti ti-file-spreadsheet"></i> تقرير التصاريح</a>
+        <a href="/admin/promotions/grades" class="btn btn-outline btn-sm"><i class="ti ti-file-spreadsheet"></i> توزيع الدرجات (JSON)</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function loadStats() {
+  api('/api/employee-stats').then(d => {
+    document.getElementById('statTotal').textContent = d.total_employees;
+    document.getElementById('statExtended').textContent = d.extended_data_count;
+    document.getElementById('statPendingLeaves').textContent = d.pending_leaves;
+    document.getElementById('statPendingDisc').textContent = d.pending_discipline;
+
+    // Grades
+    const gc = document.getElementById('gradeChart');
+    if (d.grade_distribution && d.grade_distribution.length) {
+      gc.innerHTML = d.grade_distribution.map(g =>
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.name}</span>
+          <div class="progress-bar" style="flex:2"><div class="progress-fill" style="width:${Math.min(100, g.count * 10)}%;background:var(--accent)"></div></div>
+          <span style="font-size:12px;font-weight:600;min-width:24px;text-align:left">${g.count}</span>
+        </div>`
+      ).join('');
+    } else { gc.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">لا توجد بيانات</div>'; }
+
+    // Departments
+    const dc = document.getElementById('deptChart');
+    if (d.department_counts && d.department_counts.length) {
+      const maxDept = Math.max(...d.department_counts.map(x => x.count));
+      dc.innerHTML = d.department_counts.map(dd =>
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dd.name}</span>
+          <div class="progress-bar" style="flex:2"><div class="progress-fill" style="width:${maxDept ? (dd.count / maxDept * 100) : 0}%;background:var(--green)"></div></div>
+          <span style="font-size:12px;font-weight:600;min-width:24px;text-align:left">${dd.count}</span>
+        </div>`
+      ).join('');
+    } else { dc.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">لا توجد بيانات</div>'; }
+
+    // Clearance
+    const clc = document.getElementById('clearanceChart');
+    const clMap = {public:'عام',confidential:'سري',secret:'سري للغاية',top_secret:'سري للغاية - خاص'};
+    if (d.clearance_levels && Object.keys(d.clearance_levels).length) {
+      const totalCl = Object.values(d.clearance_levels).reduce((a,b) => a+b, 0);
+      clc.innerHTML = Object.entries(d.clearance_levels).map(([k,v]) =>
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:12px;flex:1">${clMap[k] || k}</span>
+          <div class="progress-bar" style="flex:2"><div class="progress-fill" style="width:${totalCl ? (v / totalCl * 100) : 0}%;background:var(--amber)"></div></div>
+          <span style="font-size:12px;font-weight:600;min-width:24px;text-align:left">${v}</span>
+        </div>`
+      ).join('');
+    } else { clc.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">لا توجد بيانات</div>'; }
+
+    // Contracts
+    const cc = document.getElementById('contractChart');
+    const ctMap = {permanent:'دائم',temporary:'مؤقت',contract:'عقد',part_time:'دوام جزئي'};
+    if (d.contract_types && Object.keys(d.contract_types).length) {
+      const totalCt = Object.values(d.contract_types).reduce((a,b) => a+b, 0);
+      cc.innerHTML = Object.entries(d.contract_types).map(([k,v]) =>
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:12px;flex:1">${ctMap[k] || k}</span>
+          <div class="progress-bar" style="flex:2"><div class="progress-fill" style="width:${totalCt ? (v / totalCt * 100) : 0}%;background:var(--indigo)"></div></div>
+          <span style="font-size:12px;font-weight:600;min-width:24px;text-align:left">${v}</span>
+        </div>`
+      ).join('');
+    } else { cc.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">لا توجد بيانات</div>'; }
+  });
+}
+loadStats();
+</script>
+{% endblock %}

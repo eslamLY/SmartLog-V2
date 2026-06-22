@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}أنواع المناوبات{% endblock %}
+{% block layout %}
+<div style="display:flex;min-height:100vh;background:var(--bg)">
+  <aside class="sidebar">
+    <div style="padding:20px 12px 12px">
+      <div style="display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:24px">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#dc2626,#991b1b);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg></div>
+        <div><div style="font-size:13px;font-weight:700">بنك دم طبرق</div><div style="font-size:11px;color:var(--muted)">لوحة التحكم</div></div>
+      </div>
+      <nav>
+        <a href="/admin"               class="nav-link"><i class="ti ti-layout-dashboard"></i>الرئيسية</a>
+        <a href="/admin/employees"     class="nav-link"><i class="ti ti-users"></i>الموظفون</a>
+        <a href="/admin/shifts"        class="nav-link"><i class="ti ti-calendar-event"></i>المناوبات</a>
+        <a href="/admin/shifts/types"  class="nav-link active" style="padding-right:28px;font-size:13px"><i class="ti ti-settings" style="font-size:14px"></i>أنواع المناوبات</a>
+        <a href="/admin/shifts/swaps"  class="nav-link" style="padding-right:28px;font-size:13px"><i class="ti ti-arrows-exchange" style="font-size:14px"></i>طلبات التبديل</a>
+        <a href="/admin/shifts/coverage" class="nav-link" style="padding-right:28px;font-size:13px"><i class="ti ti-chart-grid-dots" style="font-size:14px"></i>تغطية المناوبات</a>
+        <a href="/admin/analytics"     class="nav-link"><i class="ti ti-chart-line"></i>التحليلات</a>
+        <a href="/admin/reports"       class="nav-link"><i class="ti ti-chart-bar"></i>التقارير</a>
+      </nav>
+    </div>
+    <div style="margin-top:auto;padding:12px"><a href="/logout" class="nav-link" style="color:#ef4444"><i class="ti ti-logout"></i>تسجيل الخروج</a></div>
+  </aside>
+
+  <div style="flex:1;overflow:hidden">
+    <header style="background:var(--card2);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40">
+      <h1 style="font-size:16px;font-weight:700">إدارة أنواع المناوبات</h1>
+      <button class="btn btn-red" style="padding:9px 14px;font-size:13px" onclick="openModal('addTypeModal')">
+        <i class="ti ti-plus" style="font-size:15px"></i>نوع جديد
+      </button>
+    </header>
+
+    <div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+      <!-- 24h time ruler -->
+      <div class="card" style="padding:14px;margin-bottom:20px;overflow:hidden">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600">مخطط التوزيع الزمني (24 ساعة)</div>
+        <div style="position:relative;height:14px;background:var(--card2);border-radius:7px;margin-bottom:8px">
+          {% for st in types %}{% if st.is_active %}
+          {% set sh = st.start_hour + st.start_min/60 %}
+          {% set eh = st.end_hour + st.end_min/60 %}
+          {% set dur = (eh - sh) if eh > sh else (24 - sh + eh) %}
+          <div style="position:absolute;top:0;bottom:0;border-radius:7px;opacity:.8;
+            right:{{ (sh/24*100)|round(1) }}%;
+            width:{{ (dur/24*100)|round(1) }}%;
+            background:{{ st.color }}" title="{{ st.name }} ({{ st.time_range }})"></div>
+          {% endif %}{% endfor %}
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">
+          {% for h in [0,3,6,9,12,15,18,21,24] %}<span>{{ h }}</span>{% endfor %}
+        </div>
+      </div>
+
+      <!-- Shift type cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+        {% for st in types %}
+        <div class="card" style="padding:0;overflow:hidden;{% if not st.is_active %}opacity:.55{% endif %}">
+          <!-- Color header bar -->
+          <div style="height:6px;background:{{ st.color }}"></div>
+          <div style="padding:16px 18px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div style="font-size:16px;font-weight:700;color:var(--text)">{{ st.name }}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ st.description or '—' }}</div>
+              </div>
+              <div style="display:flex;gap:5px">
+                <button onclick="openEditType({{ st.id }},'{{ st.name }}','{{ st.start_hour }}','{{ st.start_min }}','{{ st.end_hour }}','{{ st.end_min }}','{{ st.color }}','{{ st.description or '' }}',{{ st.min_staff }},{{ st.max_staff }},{{ 'true' if st.is_overnight else 'false' }})"
+                  class="btn btn-ghost" style="padding:5px 9px;font-size:13px" title="تعديل">
+                  <i class="ti ti-edit" aria-hidden="true"></i>
+                </button>
+                <button onclick="toggleType({{ st.id }},'{{ st.name }}')"
+                  class="btn" style="padding:5px 9px;font-size:13px;background:{% if st.is_active %}rgba(245,158,11,.15){% else %}rgba(22,163,74,.15){% endif %};color:{% if st.is_active %}#f59e0b{% else %}#22c55e{% endif %}" title="{% if st.is_active %}إيقاف{% else %}تفعيل{% endif %}">
+                  <i class="ti ti-{% if st.is_active %}pause{% else %}player-play{% endif %}" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Time display -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <div style="background:{{ st.color }}20;border:1px solid {{ st.color }}44;border-radius:8px;padding:8px 14px;text-align:center;flex:1">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:2px">🟢 بداية</div>
+                <div style="font-size:18px;font-weight:700;direction:ltr;color:{{ st.color }}">{{ '%02d:%02d'|format(st.start_hour, st.start_min) }}</div>
+              </div>
+              {% if st.is_overnight %}<div style="font-size:18px;color:var(--muted)">🌙</div>{% else %}<div style="font-size:18px;color:var(--muted)">→</div>{% endif %}
+              <div style="background:{{ st.color }}20;border:1px solid {{ st.color }}44;border-radius:8px;padding:8px 14px;text-align:center;flex:1">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:2px">🔴 نهاية</div>
+                <div style="font-size:18px;font-weight:700;direction:ltr;color:{{ st.color }}">{{ '%02d:%02d'|format(st.end_hour, st.end_min) }}</div>
+              </div>
+            </div>
+
+            <!-- Visual time bar within the day -->
+            <div style="position:relative;height:8px;background:var(--card2);border-radius:4px;margin-bottom:12px;overflow:hidden">
+              {% set sh = st.start_hour + st.start_min/60 %}
+              {% set eh = st.end_hour + st.end_min/60 %}
+              {% set dur = (eh - sh) if eh > sh else (24 - sh + eh) %}
+              {% if dur > 0 %}
+              <div style="position:absolute;top:0;bottom:0;border-radius:4px;background:{{ st.color }};
+                right:{{ (sh/24*100)|round(1) }}%;width:{{ [dur/24*100, 100-(sh/24*100)]|min|round(1) }}%"></div>
+              {% endif %}
+            </div>
+
+            <!-- Stats row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+              <div style="text-align:center;background:var(--card2);border-radius:8px;padding:8px">
+                <div style="font-size:16px;font-weight:700;color:var(--text)">{{ st.duration_hours }}</div>
+                <div style="font-size:10px;color:var(--muted)">ساعة</div>
+              </div>
+              <div style="text-align:center;background:var(--card2);border-radius:8px;padding:8px">
+                <div style="font-size:16px;font-weight:700;color:#22c55e">{{ st.min_staff }}</div>
+                <div style="font-size:10px;color:var(--muted)">الحد الأدنى</div>
+              </div>
+              <div style="text-align:center;background:var(--card2);border-radius:8px;padding:8px">
+                <div style="font-size:16px;font-weight:700;color:#818cf8">{{ st.usage_count }}</div>
+                <div style="font-size:10px;color:var(--muted)">مناوبة حالية</div>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              {% if st.is_overnight %}<span style="font-size:11px;background:rgba(129,140,248,.15);color:#818cf8;padding:2px 9px;border-radius:20px">🌙 ليلي</span>{% endif %}
+              <span style="font-size:11px;background:{{ st.color }}18;color:{{ st.color }};padding:2px 9px;border-radius:20px">
+                {% if st.is_active %}✓ مفعّل{% else %}⏸ موقوف{% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div style="grid-column:span 3;text-align:center;padding:48px;color:var(--muted)">لا توجد أنواع مناوبات. أضف نوعاً جديداً.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Type Modal -->
+<div class="modal-overlay" id="addTypeModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">➕ إضافة نوع مناوبة جديد</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="grid-column:span 2"><label>اسم المناوبة *</label><input id="an" placeholder="مثال: صباحي متأخر"></div>
+      <div><label>بداية الدوام</label><input type="time" id="ash" value="08:00"></div>
+      <div><label>نهاية الدوام</label><input type="time" id="aeh" value="16:00"></div>
+      <div><label>الحد الأدنى للموظفين</label><input type="number" id="amin" value="1" min="1"></div>
+      <div><label>الحد الأقصى للموظفين</label><input type="number" id="amax" value="10" min="1"></div>
+      <div><label>اللون</label><input type="color" id="acolor" value="#3b82f6" style="height:42px!important;cursor:pointer"></div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:0">
+          <input type="checkbox" id="anight"> مناوبة ليلية (تمتد لليوم التالي)
+        </label>
+      </div>
+      <div style="grid-column:span 2"><label>الوصف</label><input id="adesc" placeholder="وصف اختياري للمناوبة"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+      <button class="btn btn-red" onclick="doAddType()">إضافة المناوبة</button>
+      <button class="btn btn-outline" onclick="closeModal('addTypeModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Type Modal -->
+<div class="modal-overlay" id="editTypeModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">✏️ تعديل نوع المناوبة</h3>
+    <input type="hidden" id="eid">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="grid-column:span 2"><label>اسم المناوبة</label><input id="en"></div>
+      <div><label>بداية الدوام</label><input type="time" id="esh"></div>
+      <div><label>نهاية الدوام</label><input type="time" id="eeh"></div>
+      <div><label>الحد الأدنى</label><input type="number" id="emin" min="1"></div>
+      <div><label>الحد الأقصى</label><input type="number" id="emax" min="1"></div>
+      <div><label>اللون</label><input type="color" id="ecolor" style="height:42px!important;cursor:pointer"></div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:0">
+          <input type="checkbox" id="enight"> مناوبة ليلية
+        </label>
+      </div>
+      <div style="grid-column:span 2"><label>الوصف</label><input id="edesc"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+      <button class="btn btn-red" onclick="doEditType()">حفظ التعديلات</button>
+      <button class="btn btn-outline" onclick="closeModal('editTypeModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function parsetime(t){const [h,m]=t.split(':').map(Number);return {h,m};}
+async function doAddType(){
+  const s=parsetime(document.getElementById('ash').value);
+  const e=parsetime(document.getElementById('aeh').value);
+  const r=await api('/admin/shifts/types/add',{
+    name:document.getElementById('an').value.trim(),
+    start_hour:s.h,start_min:s.m,end_hour:e.h,end_min:e.m,
+    color:document.getElementById('acolor').value,
+    description:document.getElementById('adesc').value,
+    min_staff:document.getElementById('amin').value,
+    max_staff:document.getElementById('amax').value,
+    overnight:document.getElementById('anight').checked
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('addTypeModal');setTimeout(()=>location.reload(),1200);}
+}
+function openEditType(id,name,sh,sm,eh,em,color,desc,minst,maxst,night){
+  document.getElementById('eid').value=id;
+  document.getElementById('en').value=name;
+  document.getElementById('esh').value=`${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
+  document.getElementById('eeh').value=`${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
+  document.getElementById('ecolor').value=color;
+  document.getElementById('edesc').value=desc;
+  document.getElementById('emin').value=minst;
+  document.getElementById('emax').value=maxst;
+  document.getElementById('enight').checked=night;
+  openModal('editTypeModal');
+}
+async function doEditType(){
+  const id=document.getElementById('eid').value;
+  const s=parsetime(document.getElementById('esh').value);
+  const e=parsetime(document.getElementById('eeh').value);
+  const r=await api(`/admin/shifts/types/${id}/edit`,{
+    name:document.getElementById('en').value.trim(),
+    start_hour:s.h,start_min:s.m,end_hour:e.h,end_min:e.m,
+    color:document.getElementById('ecolor').value,
+    description:document.getElementById('edesc').value,
+    min_staff:document.getElementById('emin').value,
+    max_staff:document.getElementById('emax').value,
+    overnight:document.getElementById('enight').checked
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('editTypeModal');setTimeout(()=>location.reload(),1200);}
+}
+async function toggleType(id,name){
+  const r=await api(`/admin/shifts/types/${id}/toggle`);
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok) setTimeout(()=>location.reload(),1200);
+}
+</script>
+{% endblock %}

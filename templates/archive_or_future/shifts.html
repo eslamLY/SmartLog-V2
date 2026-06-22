@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block title %}جدول المناوبات — {{ month_name }} {{ year }}{% endblock %}
+{% block layout %}
+<div style="display:flex;min-height:100vh;background:var(--bg)">
+  <aside class="sidebar">
+    <div style="padding:20px 12px 12px">
+      <div style="display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:24px">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#dc2626,#991b1b);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg></div>
+        <div><div style="font-size:13px;font-weight:700">بنك دم طبرق</div><div style="font-size:11px;color:var(--muted)">لوحة التحكم</div></div>
+      </div>
+      <nav>
+        <a href="/admin"           class="nav-link"><i class="ti ti-layout-dashboard"></i>الرئيسية</a>
+        <a href="/admin/employees" class="nav-link"><i class="ti ti-users"></i>الموظفون</a>
+        <a href="/admin/attendance"class="nav-link"><i class="ti ti-clock-record"></i>سجل الحضور</a>
+        <a href="/admin/shifts"    class="nav-link active"><i class="ti ti-calendar-event"></i>المناوبات</a>
+        <a href="/admin/shifts/types" class="nav-link" style="padding-right:28px;font-size:13px"><i class="ti ti-settings" style="font-size:14px"></i>أنواع المناوبات</a>
+        <a href="/admin/shifts/swaps" class="nav-link" style="padding-right:28px;font-size:13px">
+          <i class="ti ti-arrows-exchange" style="font-size:14px"></i>طلبات التبديل
+          {% if pending_swaps > 0 %}<span style="margin-right:auto;background:#dc2626;color:#fff;border-radius:20px;padding:0 6px;font-size:11px">{{ pending_swaps }}</span>{% endif %}
+        </a>
+        <a href="/admin/shifts/coverage" class="nav-link" style="padding-right:28px;font-size:13px"><i class="ti ti-chart-grid-dots" style="font-size:14px"></i>تغطية المناوبات</a>
+        <a href="/admin/leaves"    class="nav-link"><i class="ti ti-file-description"></i>الطلبات</a>
+        <a href="/admin/reports"   class="nav-link"><i class="ti ti-chart-bar"></i>التقارير</a>
+      </nav>
+    </div>
+    <div style="margin-top:auto;padding:12px"><a href="/logout" class="nav-link" style="color:#ef4444"><i class="ti ti-logout"></i>تسجيل الخروج</a></div>
+  </aside>
+
+  <div style="flex:1;overflow:hidden">
+    <header style="background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <h1 style="font-size:16px;font-weight:700">جدول المناوبات</h1>
+        <select id="fMonth" onchange="goMonth()" style="font-size:13px;padding:6px 10px!important">
+          {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1==month %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+        </select>
+        <select id="fYear" onchange="goMonth()" style="font-size:13px;padding:6px 10px!important;width:90px">
+          {% for y in range(year-1, year+3) %}<option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+        </select>
+        <select id="fDept" onchange="goMonth()" style="font-size:13px;padding:6px 10px!important">
+          <option value="">كل الأقسام</option>
+          {% for d in departments %}<option value="{{ d }}" {% if d==dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost" style="padding:8px 12px;font-size:13px" onclick="openModal('bulkModal')"><i class="ti ti-calendar-plus" style="font-size:15px"></i> تعيين جماعي</button>
+        <button class="btn btn-ghost" style="padding:8px 12px;font-size:13px" onclick="openModal('copyModal')"><i class="ti ti-copy" style="font-size:15px"></i> نسخ أسبوع</button>
+        <button class="btn btn-ghost" style="padding:8px 12px;font-size:13px" onclick="openModal('rotateModal')"><i class="ti ti-refresh" style="font-size:15px"></i> تدوير تلقائي</button>
+        <a href="/admin/shifts/export?month={{ month }}&year={{ year }}" class="btn btn-green" style="padding:8px 12px;font-size:13px;text-decoration:none"><i class="ti ti-file-spreadsheet" style="font-size:15px"></i> Excel</a>
+      </div>
+    </header>
+
+    <div style="padding:16px 20px;overflow-y:auto;max-height:calc(100vh - 64px)">
+
+      <!-- Coverage warnings -->
+      {% if coverage_warnings %}
+      <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <i class="ti ti-alert-triangle" style="font-size:18px;color:#f59e0b;flex-shrink:0" aria-hidden="true"></i>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:3px">{{ coverage_warnings|length }} تنبيه تغطية ناقصة</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            {% for w in coverage_warnings %}
+            <span style="font-size:11px;background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:20px">{{ w.date.strftime('%d/%m') }} — {{ w.shift }}: {{ w.have }}/{{ w.need }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <a href="/admin/shifts/coverage?month={{ month }}&year={{ year }}" style="font-size:12px;color:#f59e0b;text-decoration:none;white-space:nowrap">عرض تقرير التغطية ←</a>
+      </div>
+      {% endif %}
+
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px;text-align:center">
+          <div style="font-size:24px;font-weight:700;color:#22c55e">{{ total_assigned }}</div>
+          <div style="font-size:11px;color:var(--muted)">مناوبة مُعيَّنة</div>
+        </div>
+        {% for st in shift_types %}
+        <div style="background:var(--card);border-left:3px solid {{ st.color }};border-top:.5px solid var(--border);border-bottom:.5px solid var(--border);border-right:.5px solid var(--border);border-radius:12px;padding:13px;text-align:center">
+          <div style="font-size:20px;font-weight:700;color:{{ st.color }}">{{ shift_type_counts.get(st.id, 0) }}</div>
+          <div style="font-size:11px;color:var(--muted)">{{ st.name }}</div>
+        </div>
+        {% endfor %}
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px;text-align:center">
+          <div style="font-size:24px;font-weight:700;color:{% if pending_swaps > 0 %}#f59e0b{% else %}var(--muted){% endif %}">{{ pending_swaps }}</div>
+          <div style="font-size:11px;color:var(--muted)">طلب تبديل</div>
+        </div>
+      </div>
+
+      <!-- Shift type legend -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--muted);align-self:center">الدليل:</span>
+        {% for st in shift_types %}
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text)">
+          <span style="width:14px;height:14px;border-radius:4px;background:{{ st.color }};display:inline-block;flex-shrink:0"></span>
+          {{ st.name }} ({{ st.time_range }})
+          <span style="font-size:10px;color:var(--muted)">min:{{ st.min_staff }}</span>
+        </span>
+        {% endfor %}
+      </div>
+
+      <!-- Calendar Grid -->
+      <div class="card" style="overflow:hidden;padding:0">
+        <!-- Day headers -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);background:var(--card2);border-bottom:1px solid var(--border)">
+          {% for day_name in ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] %}
+          <div style="padding:8px;text-align:center;font-size:12px;font-weight:600;color:{% if loop.index in [6,7] %}#dc2626{% else %}var(--muted){% endif %}">{{ day_name }}</div>
+          {% endfor %}
+        </div>
+        <!-- Weeks -->
+        {% for week in cal_weeks %}
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border2)">
+          {% for day_num in week %}
+          {% set d_obj = cal_dates.get(day_num) if day_num > 0 else None %}
+          <div style="min-height:90px;padding:6px;border-left:1px solid var(--border2);
+            {% if day_num == 0 %}background:rgba(0,0,0,.15){% elif d_obj and d_obj == today %}background:rgba(220,38,38,.07){% elif d_obj and d_obj.weekday() in [4,5] %}background:rgba(255,255,255,.02){% endif %};
+            cursor:{% if day_num > 0 %}pointer{% else %}default{% endif %}"
+            onclick="{% if day_num > 0 %}openDayModal('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day_num) }}'){% endif %}">
+            {% if day_num > 0 %}
+            <div style="font-size:12px;font-weight:{% if d_obj and d_obj == today %}700{% else %}500{% endif %};color:{% if d_obj and d_obj == today %}#dc2626{% elif d_obj and d_obj.weekday() in [4,5] %}#64748b{% else %}var(--text){% endif %};margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">
+              {{ day_num }}
+              {% if d_obj and d_obj == today %}<span style="font-size:9px;background:#dc2626;color:#fff;padding:1px 5px;border-radius:10px">اليوم</span>{% endif %}
+            </div>
+            {% if d_obj %}
+            {% set day_shifts = day_map.get(d_obj, {}) %}
+            <div style="display:flex;flex-direction:column;gap:2px">
+              {% for st in shift_types %}
+              {% set emps_list = day_shifts.get(st.id, []) %}
+              {% if emps_list %}
+              <div style="background:{{ st.color }}22;border-right:2px solid {{ st.color }};border-radius:3px;padding:2px 5px;font-size:10px;color:{{ st.color }};display:flex;justify-content:space-between">
+                <span>{{ st.name[:4] }}</span>
+                <span style="font-weight:700">{{ emps_list|length }}{% if emps_list|length < st.min_staff %}⚠{% endif %}</span>
+              </div>
+              {% endif %}
+              {% endfor %}
+              {% if not day_shifts %}
+              <div style="font-size:9px;color:var(--border);text-align:center;padding-top:4px">لا مناوبات</div>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Day Detail Modal (dynamic) -->
+<div class="modal-overlay" id="dayModal">
+  <div style="background:var(--card);border-radius:20px;width:100%;max-width:600px;padding:24px;max-height:85vh;overflow-y:auto;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 id="dayModalTitle" style="font-size:16px;font-weight:700"></h3>
+      <button onclick="closeModal('dayModal')" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted)">✕</button>
+    </div>
+    <div id="dayModalContent" style="font-size:13px;color:var(--muted);text-align:center;padding:16px">جارٍ التحميل...</div>
+  </div>
+</div>
+
+<!-- Bulk Assign Modal -->
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-calendar-plus" style="margin-left:6px" aria-hidden="true"></i>تعيين جماعي للمناوبات</h3>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label>نوع المناوبة</label>
+        <select id="bkShift">{% for st in shift_types %}<option value="{{ st.id }}">{{ st.name }} — {{ st.time_range }}</option>{% endfor %}</select></div>
+      <div><label>القسم</label>
+        <select id="bkDept" onchange="loadDeptEmps()">
+          <option value="">— اختيار يدوي —</option>
+          {% for d in departments %}<option>{{ d }}</option>{% endfor %}
+        </select></div>
+      <div><label>الموظفون المحددون</label>
+        <select id="bkEmps" multiple style="height:120px">
+          {% for e in employees %}<option value="{{ e.id }}">{{ e.full_name }} ({{ e.department }})</option>{% endfor %}
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">اضغط Ctrl+A لاختيار الكل</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label>من تاريخ</label><input type="date" id="bkStart"></div>
+        <div><label>إلى تاريخ</label><input type="date" id="bkEnd"></div>
+      </div>
+      <div style="display:flex;gap:16px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="bkSkipFri" checked> تخطي الجمعة</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="bkSkipSat" checked> تخطي السبت</label>
+      </div>
+      <button class="btn btn-red" onclick="doBulkAssign()">تعيين المناوبات</button>
+      <button class="btn btn-outline" onclick="closeModal('bulkModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Copy Week Modal -->
+<div class="modal-overlay" id="copyModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-copy" style="margin-left:6px" aria-hidden="true"></i>نسخ جدول أسبوع</h3>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label>بداية الأسبوع المصدر</label><input type="date" id="copySrc"></div>
+      <div><label>بداية الأسبوع الهدف</label><input type="date" id="copyTgt"></div>
+      <div style="background:var(--card2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--muted)">
+        ℹ️ سيتم نسخ جميع المناوبات المؤكدة من الأسبوع المصدر (7 أيام) إلى الأسبوع الهدف. أي تعارض سيُتخطى.
+      </div>
+      <button class="btn btn-red" onclick="doCopyWeek()">نسخ الأسبوع</button>
+      <button class="btn btn-outline" onclick="closeModal('copyModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Auto Rotate Modal -->
+<div class="modal-overlay" id="rotateModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-refresh" style="margin-left:6px" aria-hidden="true"></i>التدوير التلقائي للمناوبات</h3>
+    <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#818cf8">
+      💡 يوزّع المناوبات المختارة تلقائياً على موظفي القسم بالتناوب العادل خلال الفترة المحددة.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label>القسم</label>
+        <select id="rtDept">{% for d in departments %}<option>{{ d }}</option>{% endfor %}</select></div>
+      <div><label>المناوبات للتدوير (اضغط Ctrl لاختيار متعدد)</label>
+        <select id="rtShifts" multiple style="height:110px">
+          {% for st in shift_types %}<option value="{{ st.id }}">{{ st.name }} — {{ st.time_range }}</option>{% endfor %}
+        </select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label>من تاريخ</label><input type="date" id="rtStart"></div>
+        <div><label>إلى تاريخ</label><input type="date" id="rtEnd"></div>
+      </div>
+      <div style="display:flex;gap:16px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="rtSkipFri" checked> تخطي الجمعة</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="rtSkipSat" checked> تخطي السبت</label>
+      </div>
+      <button class="btn btn-red" onclick="doAutoRotate()">تطبيق التدوير</button>
+      <button class="btn btn-outline" onclick="closeModal('rotateModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom nav mobile -->
+<nav class="bottom-nav">
+  <a href="/admin" class="bottom-nav-item"><i class="ti ti-layout-dashboard"></i><span>الرئيسية</span></a>
+  <a href="/admin/employees" class="bottom-nav-item"><i class="ti ti-users"></i><span>الموظفون</span></a>
+  <a href="/admin/shifts" class="bottom-nav-item active"><i class="ti ti-calendar-event"></i><span>المناوبات</span></a>
+  <a href="/admin/shifts/swaps" class="bottom-nav-item"><i class="ti ti-arrows-exchange"></i><span>التبديل</span></a>
+  <a href="/logout" class="bottom-nav-item"><i class="ti ti-logout"></i><span>خروج</span></a>
+</nav>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function goMonth(){
+  const url=new URL(location.href);
+  url.searchParams.set('month',document.getElementById('fMonth').value);
+  url.searchParams.set('year', document.getElementById('fYear').value);
+  url.searchParams.set('dept', document.getElementById('fDept').value);
+  location.href=url.toString();
+}
+
+async function openDayModal(dateStr){
+  document.getElementById('dayModalTitle').textContent='📅 '+dateStr;
+  document.getElementById('dayModalContent').innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">جارٍ التحميل...</div>';
+  openModal('dayModal');
+  try{
+    const r=await fetch('/api/shifts/day/'+dateStr);
+    const d=await r.json();
+    renderDayModal(d, dateStr);
+  }catch{
+    document.getElementById('dayModalContent').innerHTML='<div style="color:#ef4444">خطأ في التحميل</div>';
+  }
+}
+
+function renderDayModal(data, dateStr){
+  const empsAll=data.all_employees;
+  let html='';
+  data.shifts.forEach(st=>{
+    const cvColor=st.coverage==='ok'?'#22c55e':st.coverage==='low'?'#f59e0b':'#ef4444';
+    html+=`<div style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:12px;height:12px;border-radius:3px;background:${st.color};display:inline-block"></span>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">${st.shift_name}</span>
+          <span style="font-size:12px;color:var(--muted)">${st.time_range}</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:${cvColor};background:${cvColor}22;padding:2px 8px;border-radius:20px">${st.employees.length} / min ${st.min_staff}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        ${st.employees.map(e=>`
+          <div style="display:flex;align-items:center;gap:6px;background:var(--card);border-radius:8px;padding:5px 10px;font-size:12px">
+            <span style="color:var(--text)">${e.name}</span>
+            <span style="color:var(--muted)">(${e.dept})</span>
+            <button onclick="cancelSched(${e.sched_id},'${dateStr}')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:0 2px">✕</button>
+          </div>`).join('')}
+        ${st.employees.length===0?'<span style="font-size:12px;color:var(--muted)">لا أحد مُعيَّن</span>':''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="addEmp_${st.shift_id}" style="flex:1;min-width:140px;font-size:12px;padding:6px 10px!important">
+          <option value="">— إضافة موظف —</option>
+          ${empsAll.map(e=>`<option value="${e.id}">${e.name} (${e.dept})</option>`).join('')}
+        </select>
+        <button class="btn btn-green" style="padding:6px 12px;font-size:12px" onclick="addEmpToShift(${st.shift_id},'${dateStr}')">إضافة ✓</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('dayModalTitle').textContent='📅 مناوبات يوم '+dateStr;
+  document.getElementById('dayModalContent').innerHTML=html||'<div style="padding:20px;text-align:center;color:var(--muted)">لا توجد أنواع مناوبات مفعّلة</div>';
+}
+
+async function addEmpToShift(stId, dateStr){
+  const empId=document.getElementById(`addEmp_${stId}`).value;
+  if(!empId){toast('يرجى اختيار موظف.','err');return;}
+  const r=await api('/admin/shifts/assign',{employee_id:empId,date:dateStr,shift_type_id:stId});
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){await openDayModal(dateStr);refreshCal();}
+}
+async function cancelSched(schedId, dateStr){
+  const r=await api(`/admin/shifts/${schedId}/cancel`);
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){await openDayModal(dateStr);refreshCal();}
+}
+function refreshCal(){setTimeout(()=>location.reload(),1500);}
+
+function loadDeptEmps(){
+  const dept=document.getElementById('bkDept').value;
+  const sel=document.getElementById('bkEmps');
+  Array.from(sel.options).forEach(o=>{
+    o.selected=dept?o.text.includes('('+dept+')'):false;
+  });
+}
+
+async function doBulkAssign(){
+  const stId=document.getElementById('bkShift').value;
+  const empIds=Array.from(document.getElementById('bkEmps').selectedOptions).map(o=>o.value);
+  const start=document.getElementById('bkStart').value;
+  const end=document.getElementById('bkEnd').value;
+  if(!empIds.length||!start||!end){toast('يرجى تعبئة جميع الحقول.','err');return;}
+  // Generate date array
+  const dates=[];
+  let cur=new Date(start);
+  const endD=new Date(end);
+  while(cur<=endD){dates.push(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);}
+  const r=await api('/admin/shifts/assign/bulk',{
+    shift_type_id:stId,employee_ids:empIds,dates,
+    skip_friday:document.getElementById('bkSkipFri').checked,
+    skip_saturday:document.getElementById('bkSkipSat').checked
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('bulkModal');setTimeout(()=>location.reload(),1500);}
+}
+
+async function doCopyWeek(){
+  const src=document.getElementById('copySrc').value;
+  const tgt=document.getElementById('copyTgt').value;
+  if(!src||!tgt){toast('يرجى تحديد أسبوعي المصدر والهدف.','err');return;}
+  const r=await api('/admin/shifts/copy-week',{source_start:src,target_start:tgt});
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('copyModal');setTimeout(()=>location.reload(),1500);}
+}
+
+async function doAutoRotate(){
+  const dept=document.getElementById('rtDept').value;
+  const stIds=Array.from(document.getElementById('rtShifts').selectedOptions).map(o=>o.value);
+  const start=document.getElementById('rtStart').value;
+  const end=document.getElementById('rtEnd').value;
+  if(!stIds.length||!start||!end){toast('يرجى اختيار المناوبات والفترة.','err');return;}
+  const r=await api('/admin/shifts/auto-rotate',{
+    department:dept,shift_type_ids:stIds,start_date:start,end_date:end,
+    skip_friday:document.getElementById('rtSkipFri').checked,
+    skip_saturday:document.getElementById('rtSkipSat').checked
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('rotateModal');setTimeout(()=>location.reload(),1500);}
+}
+
+// Set default dates
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('bkStart').value=today;
+document.getElementById('bkEnd').value=today;
+document.getElementById('copySrc').value=today;
+document.getElementById('rtStart').value=today;
+document.getElementById('rtEnd').value=today;
+// Copy target = next week
+const nx=new Date();nx.setDate(nx.getDate()+7);
+document.getElementById('copyTgt').value=nx.toISOString().split('T')[0];
+</script>
+{% endblock %}

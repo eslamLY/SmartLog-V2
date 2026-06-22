@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#080c18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="حضور طبرق">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.svg">
+  <title>تسجيل الدخول — بنك دم طبرق</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    :root { --bg: #080c18; --card: #10152a; --border: #1e2642; --text: #e2e8f0; --muted: #94a3b8; --accent: #e53935; --red: #ef4444; --green: #22c55e; --amber: #f59e0b; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; background-image: radial-gradient(ellipse at 30% 20%, rgba(229,57,53,.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(239,68,68,.05) 0%, transparent 60%); }
+    .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 36px 28px; width: 100%; max-width: 380px; box-shadow: 0 8px 40px rgba(0,0,0,.4); }
+    .logo { width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg,var(--accent),#c62828); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+    h1 { text-align: center; font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .subtitle { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+    input { width: 100%; padding: 12px 14px; background: #0a0f22; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'Cairo', sans-serif; font-size: 14px; outline: none; transition: border .2s, box-shadow .2s; }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(229,57,53,.2); }
+    .btn { width: 100%; padding: 12px; background: linear-gradient(135deg,var(--accent),#c62828); color: #fff; border: none; border-radius: 10px; font-family: 'Cairo', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity .2s, transform .15s; }
+    .btn:hover { opacity: .9; transform: translateY(-1px); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-green { background: linear-gradient(135deg,#16a34a,#15803d); }
+    .btn-orange { background: linear-gradient(135deg,#f59e0b,#d97706); }
+    .error { background: rgba(239,68,68,.12); color: #ef4444; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; text-align: center; }
+    .fingerprint { text-align: center; margin-top: 24px; font-size: 11px; color: var(--muted); opacity: .6; }
+    .timeout-msg { background: rgba(245,158,11,.12); color: #f59e0b; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; text-align: center; }
+    .offline-banner { background: rgba(245,158,11,.15); color: var(--amber); padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; text-align: center; display: none; }
+    .offline-mode-card { display: none; text-align: center; }
+    .offline-mode-card .emp-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 26px; color: #fff; font-weight: 800; }
+    .offline-mode-card .emp-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+    .offline-mode-card .emp-dept { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+    .offline-mode-card .last-sync { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+    @media (max-width: 420px) { .login-card { padding: 28px 20px; } }
+  </style>
+</head>
+<body>
+  <div class="login-card" id="loginCard">
+    <div class="logo"><i class="ti ti-heartbeat" style="font-size:28px;color:#fff"></i></div>
+    <h1>منظومة بنك دم طبرق</h1>
+    <div class="subtitle">نظام الحضور والانصراف</div>
+    <div class="offline-banner" id="offlineBanner">
+      <i class="ti ti-wifi-off"></i> أنت في وضع بدون إنترنت
+    </div>
+    <div class="timeout-msg" id="timeoutMsg" style="display:none">
+      <i class="ti ti-clock-hour-4"></i> انتهت جلستك. الرجاء تسجيل الدخول مرة أخرى.
+    </div>
+
+    <div id="loginForm">
+      <div class="error" id="errorMsg"></div>
+      <div class="field">
+        <label>الرقم الوظيفي</label>
+        <input type="text" id="username" placeholder="مثال: EMP001" autocomplete="username" dir="ltr" style="text-align:right">
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" id="password" placeholder="······" autocomplete="current-password">
+      </div>
+      <button class="btn" id="loginBtn" onclick="doLogin()">تسجيل الدخول</button>
+    </div>
+
+    <div class="offline-mode-card" id="offlineModeCard">
+      <div class="emp-avatar" id="offlineAvatar">أ</div>
+      <div class="emp-name" id="offlineEmpName">أحمد محمد</div>
+      <div class="emp-dept" id="offlineEmpDept">قسم المختبر</div>
+      <div class="last-sync" id="offlineLastSync">آخر مزامنة: منذ 5 دقائق</div>
+      <button class="btn btn-green" onclick="goOffline()">
+        <i class="ti ti-arrow-left"></i> الدخول إلى لوحة الحضور
+      </button>
+      <div style="margin-top:10px">
+        <button class="btn btn-orange" onclick="showLoginForm()" style="font-size:12px;padding:8px">
+          <i class="ti ti-refresh"></i> تسجيل الدخول بحساب آخر
+        </button>
+      </div>
+    </div>
+
+    <div class="fingerprint"><i class="ti ti-heart"></i> بنك دم طبرق — جميع الحقوق محفوظة</div>
+  </div>
+
+  <script src="/static/js/encryption-utils.js"></script>
+  <script src="/static/js/indexeddb-manager.js"></script>
+  <script>
+  var isOfflineMode = false;
+
+  function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/js/service-worker.js', { scope: '/' })
+        .then(function (reg) {
+          console.log('SW registered:', reg.scope);
+        })
+        .catch(function (err) {
+          console.warn('SW registration failed:', err);
+        });
+    }
+  }
+
+  function checkConnectivity() {
+    var banner = document.getElementById('offlineBanner');
+    if (!navigator.onLine) {
+      banner.style.display = 'block';
+      tryOfflineLogin();
+    } else {
+      fetch('/api/health', { method: 'GET', cache: 'no-store', signal: AbortSignal.timeout(5000) })
+        .then(function (r) {
+          if (r.ok) {
+            banner.style.display = 'none';
+          } else {
+            banner.style.display = 'block';
+            tryOfflineLogin();
+          }
+        })
+        .catch(function () {
+          banner.style.display = 'block';
+          tryOfflineLogin();
+        });
+    }
+  }
+
+  function tryOfflineLogin() {
+    var sessionData = getStoredSession();
+    if (sessionData) {
+      var now = Date.now();
+      var loginTime = sessionData.login_time || 0;
+      var maxAge = 30 * 24 * 60 * 60 * 1000;
+      if (now - loginTime < maxAge) {
+        showOfflineMode(sessionData);
+        return;
+      }
+      clearStoredSession();
+    }
+    if (!navigator.onLine) {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('offlineModeCard').style.display = 'block';
+      document.getElementById('offlineAvatar').textContent = '?';
+      document.getElementById('offlineEmpName').textContent = 'لا توجد جلسة سابقة';
+      document.getElementById('offlineEmpDept').textContent = '';
+      document.getElementById('offlineLastSync').textContent = 'يرجى الاتصال بالإنترنت لأول مرة';
+      document.querySelector('#offlineModeCard .btn-green').style.display = 'none';
+    }
+  }
+
+  function showOfflineMode(sessionData) {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('offlineModeCard').style.display = 'block';
+    document.getElementById('offlineAvatar').textContent = (sessionData.employee_name || '?')[0];
+    document.getElementById('offlineEmpName').textContent = sessionData.employee_name || 'موظف';
+    document.getElementById('offlineEmpDept').textContent = sessionData.department || '';
+    var lastSync = sessionData.last_synced || sessionData.login_time;
+    var diff = Date.now() - lastSync;
+    var diffMinutes = Math.floor(diff / 60000);
+    var diffHours = Math.floor(diff / 3600000);
+    var syncText = '';
+    if (diffMinutes < 1) { syncText = 'منذ لحظات'; }
+    else if (diffMinutes < 60) { syncText = 'منذ ' + diffMinutes + ' دقائق'; }
+    else if (diffHours < 24) { syncText = 'منذ ' + diffHours + ' ساعات'; }
+    else { syncText = 'منذ أكثر من يوم'; }
+    document.getElementById('offlineLastSync').textContent = 'آخر مزامنة: ' + syncText;
+    document.querySelector('#offlineModeCard .btn-green').style.display = 'block';
+    isOfflineMode = true;
+  }
+
+  function goOffline() {
+    var sessionData = getStoredSession();
+    if (sessionData && sessionData.redirect_url) {
+      window.location.href = sessionData.redirect_url;
+    } else {
+      window.location.href = '/employee';
+    }
+  }
+
+  function showLoginForm() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('offlineModeCard').style.display = 'none';
+    isOfflineMode = false;
+  }
+
+  function getStoredSession() {
+    try {
+      var raw = localStorage.getItem('attendance_session');
+      if (!raw) return null;
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.encrypted) {
+          var decrypted = EncryptionUtils.decryptData(raw);
+          if (decrypted) return JSON.parse(decrypted);
+          return null;
+        }
+      } catch (e) {}
+      if (raw.iv || raw.ciphertext) {
+        return null;
+      }
+      var parsed2 = JSON.parse(raw);
+      if (parsed2 && parsed2.employee_id) return parsed2;
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveSession(data) {
+    try {
+      var sessionData = {
+        employee_id: data.employee_id,
+        employee_name: data.employee_name,
+        department: data.department,
+        token: data.token || '',
+        login_time: Date.now(),
+        last_synced: Date.now(),
+        redirect_url: data.redirect || '/employee',
+      };
+      var json = JSON.stringify(sessionData);
+      EncryptionUtils.encrypt(json).then(function (encrypted) {
+        var wrapped = JSON.stringify({ encrypted: encrypted, created_at: Date.now() });
+        localStorage.setItem('attendance_session', wrapped);
+      }).catch(function () {
+        localStorage.setItem('attendance_session', json);
+      });
+    } catch (e) {}
+  }
+
+  function clearStoredSession() {
+    try { localStorage.removeItem('attendance_session'); } catch (e) {}
+  }
+
+  async function doLogin() {
+    var btn = document.getElementById('loginBtn');
+    var err = document.getElementById('errorMsg');
+    btn.disabled = true; btn.textContent = 'جاري التحقق...'; err.style.display = 'none';
+    try {
+      var deviceId = localStorage.getItem('device_id') || '';
+      if (!deviceId) {
+        deviceId = 'web-' + Math.random().toString(36).substring(2, 10);
+        localStorage.setItem('device_id', deviceId);
+      }
+      var r = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value.trim(),
+          password: document.getElementById('password').value,
+          device_id: deviceId,
+        })
+      });
+      var d = await r.json();
+      if (d.ok) {
+        var sessionData = {
+          employee_id: d.employee_id || '',
+          employee_name: d.employee_name || '',
+          department: d.department || '',
+          token: d.token || '',
+          login_time: Date.now(),
+          last_synced: Date.now(),
+          redirect: d.redirect,
+        };
+        saveSession(sessionData);
+        await IndexedDBManager.cacheEmployeeData({
+          employee_id: d.employee_id,
+          full_name: d.employee_name,
+          department: d.department,
+          cached_at: Date.now(),
+        });
+        IndexedDBManager.addLogEntry('info', 'تسجيل دخول ناجح', { employee_id: d.employee_id }).catch(function () {});
+        window.location.href = d.redirect;
+      } else {
+        err.textContent = d.msg;
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'تسجيل الدخول';
+        if (d.multi_device) {
+          var confirmed = confirm(d.msg + '\n\nهل تريد المتابعة؟');
+          if (confirmed) {
+            btn.disabled = true; btn.textContent = 'جاري التحقق...';
+            var r2 = await fetch('/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value,
+                device_id: deviceId,
+                force_login: true,
+              })
+            });
+            var d2 = await r2.json();
+            if (d2.ok) {
+              saveSession(d2);
+              window.location.href = d2.redirect;
+            } else {
+              err.textContent = d2.msg;
+              err.style.display = 'block';
+              btn.disabled = false;
+              btn.textContent = 'تسجيل الدخول';
+            }
+          } else {
+            btn.disabled = false;
+            btn.textContent = 'تسجيل الدخول';
+          }
+        }
+      }
+    } catch (e) {
+      err.textContent = 'حدث خطأ في الاتصال بالخادم. حاول مرة أخرى.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'تسجيل الدخول';
+    }
+  }
+
+  document.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  window.addEventListener('online', function () {
+    document.getElementById('offlineBanner').style.display = 'none';
+    if (isOfflineMode) {
+      window.location.reload();
+    }
+  });
+  window.addEventListener('offline', function () {
+    document.getElementById('offlineBanner').style.display = 'block';
+    tryOfflineLogin();
+  });
+
+  registerServiceWorker();
+  checkConnectivity();
+  </script>
+</body>
+</html>

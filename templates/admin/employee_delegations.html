@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% set nav_active = 'employees' %}
+{% block title %}المهام واللجان - {{ employee.full_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-briefcase" style="color:var(--accent)"></i> المهام واللجان الرسمية - {{ employee.full_name }}</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-accent btn-sm" onclick="openDelgModal()"><i class="ti ti-plus"></i> إضافة مهمة</button>
+    <a href="/admin/employees/{{ employee.id }}/profile" class="btn btn-outline btn-sm"><i class="ti ti-arrow-right"></i> الملف الشخصي</a>
+  </div>
+</header>
+<div style="padding:20px">
+  <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <table class="tbl">
+      <thead><tr>
+        <th>النوع</th><th>الجهة</th><th>الدور</th><th>تاريخ البداية</th><th>تاريخ النهاية</th><th>رقم القرار</th><th>الحالة</th><th>إجراء</th>
+      </tr></thead>
+      <tbody id="delgBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">جاري التحميل...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="delgModal">
+  <div class="modal-sheet" style="max-width:550px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-briefcase" style="color:var(--accent)"></i> <span id="delgModalTitle">إضافة مهمة رسمية</span></h3>
+    <input type="hidden" id="delgId">
+    <div class="modal-grid">
+      <div><label>نوع المهمة</label>
+        <select id="delgType" class="form-input">
+          <option value="committee">لجنة رسمية</option>
+          <option value="task_force">فريق عمل</option>
+          <option value="delegation">وفد</option>
+          <option value="assignment">مهمة رسمية</option>
+          <option value="training_mission">مهمة تدريبية</option>
+        </select>
+      </div>
+      <div><label>الجهة</label><input type="text" id="delgBody" class="form-input" placeholder="الجهة المختصة"></div>
+      <div><label>الدور</label><input type="text" id="delgRole" class="form-input" placeholder="مثل: رئيس، عضو"></div>
+      <div><label>تاريخ البداية</label><input type="date" id="delgStart" class="form-input"></div>
+      <div><label>تاريخ النهاية</label><input type="date" id="delgEnd" class="form-input"></div>
+      <div><label>رقم القرار</label><input type="text" id="delgDecision" class="form-input"></div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:4px">
+        <label style="margin-bottom:0;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text)"><input type="checkbox" id="delgActive" checked> نشط</label>
+      </div>
+      <div class="full"><label>ملاحظات</label><textarea id="delgNotes" class="form-input" rows="2"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-accent" onclick="saveDelg()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('delgModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const eid = {{ employee.id }};
+function loadDelg() {
+  api('/admin/delegations/' + eid).then(data => {
+    const tbody = document.getElementById('delgBody');
+    if (!data.delegations || data.delegations.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">لا توجد مهام رسمية</td></tr>';
+      return;
+    }
+    const typeMap = {committee:'لجنة رسمية',task_force:'فريق عمل',delegation:'وفد',assignment:'مهمة رسمية',training_mission:'مهمة تدريبية'};
+    tbody.innerHTML = data.delegations.map(d => `<tr>
+      <td>${typeMap[d.delegation_type] || d.delegation_type}</td>
+      <td>${d.delegation_body}</td>
+      <td>${d.role || '—'}</td>
+      <td>${d.start_date}</td>
+      <td>${d.end_date || '—'}</td>
+      <td>${d.decision_number || '—'}</td>
+      <td><span class="badge ${d.is_active ? 'badge-present' : 'badge-absent'}">${d.is_active ? 'نشط' : 'منتهي'}</span></td>
+      <td><button class="btn btn-ghost btn-xs" onclick="editDelg(${d.id})"><i class="ti ti-edit"></i></button></td>
+    </tr>`).join('');
+  });
+}
+function openDelgModal() {
+  document.getElementById('delgId').value = '';
+  document.getElementById('delgModalTitle').textContent = 'إضافة مهمة رسمية';
+  document.getElementById('delgType').value = 'committee';
+  document.getElementById('delgBody').value = '';
+  document.getElementById('delgRole').value = '';
+  document.getElementById('delgStart').value = new Date().toISOString().split('T')[0];
+  document.getElementById('delgEnd').value = '';
+  document.getElementById('delgDecision').value = '';
+  document.getElementById('delgNotes').value = '';
+  document.getElementById('delgActive').checked = true;
+  openModal('delgModal');
+}
+function editDelg(did) {
+  api('/admin/delegations/' + eid).then(data => {
+    const d = (data.delegations || []).find(x => x.id === did);
+    if (!d) return;
+    document.getElementById('delgId').value = d.id;
+    document.getElementById('delgModalTitle').textContent = 'تعديل المهمة';
+    document.getElementById('delgType').value = d.delegation_type;
+    document.getElementById('delgBody').value = d.delegation_body;
+    document.getElementById('delgRole').value = d.role || '';
+    document.getElementById('delgStart').value = d.start_date;
+    document.getElementById('delgEnd').value = d.end_date || '';
+    document.getElementById('delgDecision').value = d.decision_number || '';
+    document.getElementById('delgNotes').value = d.notes || '';
+    document.getElementById('delgActive').checked = d.is_active;
+    openModal('delgModal');
+  });
+}
+function saveDelg() {
+  const data = {
+    delegation_type: document.getElementById('delgType').value,
+    delegation_body: document.getElementById('delgBody').value,
+    role: document.getElementById('delgRole').value,
+    start_date: document.getElementById('delgStart').value,
+    end_date: document.getElementById('delgEnd').value || null,
+    decision_number: document.getElementById('delgDecision').value,
+    notes: document.getElementById('delgNotes').value,
+    is_active: document.getElementById('delgActive').checked,
+  };
+  const did = document.getElementById('delgId').value;
+  if (did) data.id = parseInt(did);
+  api('/admin/delegations/' + eid, data).then(resp => {
+    if (resp.ok) { toast('تم حفظ المهمة', 'ok'); closeModal('delgModal'); loadDelg(); }
+    else { toast('فشل الحفظ', 'err'); }
+  });
+}
+loadDelg();
+</script>
+{% endblock %}

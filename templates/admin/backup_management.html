@@ -1,0 +1,196 @@
+﻿{% extends "base.html" %}
+{% set nav_active = 'backups' %}
+{% block title %}إدارة النسخ الاحتياطي{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/backup-premium.css') }}">
+<style>
+header.sticky-header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+header.sticky-header h1{font-size:16px;font-weight:700;margin:0}
+header.sticky-header h1 i{color:var(--accent)}
+</style>
+<header class="sticky-header">
+  <h1><i class="ti ti-shield-lock"></i> إدارة النسخ الاحتياطي</h1>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-red btn-sm" onclick="openCreateBackup()"><i class="ti ti-plus"></i> إنشاء نسخة</button>
+    <button class="btn btn-ghost btn-sm" onclick="openUploadModal()"><i class="ti ti-upload"></i> رفع</button>
+  </div>
+</header>
+
+<div class="backup-container" style="padding:20px">
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-lbl">إجمالي النسخ</div></div>
+    <div class="stat-card"><div class="stat-val" id="statSize">0 B</div><div class="stat-lbl">الحجم الإجمالي</div></div>
+    <div class="stat-card"><div class="stat-val" id="statEncrypted">0%</div><div class="stat-lbl">مشفّر</div></div>
+    <div class="stat-card"><div class="stat-val" id="statVerified">0%</div><div class="stat-lbl">تم التحقق</div></div>
+    <div class="stat-card"><div class="stat-val" id="statSchedules">0</div><div class="stat-lbl">جداول نشطة</div></div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" data-tab="backups" onclick="switchTab('backups')"><i class="ti ti-database"></i> النسخ</div>
+    <div class="tab" data-tab="schedules" onclick="switchTab('schedules')"><i class="ti ti-clock"></i> الجدولة</div>
+    <div class="tab" data-tab="restore" onclick="switchTab('restore')"><i class="ti ti-arrow-back-up"></i> الاستعادة</div>
+    <div class="tab" data-tab="audit" onclick="switchTab('audit')"><i class="ti ti-history"></i> السجل</div>
+    <div class="tab" data-tab="analytics" onclick="switchTab('analytics')"><i class="ti ti-chart-bar"></i> التحليلات</div>
+    <div class="tab" data-tab="config" onclick="switchTab('config')"><i class="ti ti-settings"></i> الإعدادات</div>
+  </div>
+
+  <div class="tab-content active" id="tab-backups">
+    <div class="section-header"><h2>جميع النسخ</h2><div style="display:flex;gap:8px">
+      <select id="filterType" onchange="loadBackups()" style="width:auto;padding:6px 10px;font-size:12px"><option value="">الكل</option><option value="full">كاملة</option><option value="incremental">تدريجية</option><option value="selective">انتقائية</option></select>
+      <button class="btn btn-ghost btn-xs" onclick="verifyAll()"><i class="ti ti-circle-check"></i> تحقق</button>
+    </div></div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+    <table class="tbl">
+      <thead><tr><th>الملف</th><th>النوع</th><th>الحجم</th><th>التشفير</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+      <tbody id="backupTableBody"></tbody>
+    </table></div>
+    <div class="pagination" id="backupPagination"></div>
+  </div>
+
+  <div class="tab-content" id="tab-schedules">
+    <div class="section-header"><h2>جداول النسخ</h2><button class="btn btn-red btn-sm" onclick="openScheduleModal()"><i class="ti ti-plus"></i> إضافة جدول</button></div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+    <table class="tbl">
+      <thead><tr><th>الاسم</th><th>النوع</th><th>التكرار</th><th>الحالة</th><th>آخر تشغيل</th><th>التالي</th><th>معدل النجاح</th><th></th></tr></thead>
+      <tbody id="scheduleTableBody"></tbody>
+    </table></div>
+  </div>
+
+  <div class="tab-content" id="tab-restore">
+    <div class="section-header"><h2>استعادة نسخة</h2></div>
+    <div class="restore-wizard">
+      <div class="wizard-step active" id="wizStep1"><span class="step-num">1</span> اختر النسخة</div>
+      <div class="wizard-step" id="wizStep2"><span class="step-num">2</span> معاينة المحتويات</div>
+      <div class="wizard-step" id="wizStep3"><span class="step-num">3</span> تأكيد واستعادة</div>
+    </div>
+    <div class="wizard-body" id="wizardBody">
+      <div id="wizSelect">
+        <select id="restoreBackupSelect" style="width:100%;padding:10px;margin-bottom:12px"><option value="">-- اختر نسخة --</option></select>
+        <div style="display:flex;gap:16px;margin-bottom:12px"><label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="createPreBackup" checked> إنشاء نسخة احتياطية قبل الاستعادة</label></div>
+        <button class="btn btn-red" onclick="restoreStep2()"><i class="ti ti-eye"></i> معاينة</button>
+      </div>
+      <div id="wizPreview" style="display:none"><div id="previewContent"></div><button class="btn btn-red" onclick="restoreStep3()" style="margin-top:12px"><i class="ti ti-chevron-left"></i> متابعة</button></div>
+      <div id="wizConfirm" style="display:none">
+        <div class="confirm-box"><p>هل أنت متأكد من استعادة النسخة المحددة؟</p><p style="color:var(--amber);font-size:13px">سيتم استبدال البيانات الحالية</p></div>
+        <button class="btn btn-red" onclick="executeRestore()"><i class="ti ti-arrow-back-up"></i> استعادة الآن</button>
+      </div>
+      <div id="wizResult" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-audit">
+    <div class="section-header"><h2>سجل التدقيق</h2></div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+    <table class="tbl">
+      <thead><tr><th>الإجراء</th><th>التفاصيل</th><th>المستخدم</th><th>التاريخ</th></tr></thead>
+      <tbody id="auditTableBody"></tbody>
+    </table></div>
+    <div class="pagination" id="auditPagination"></div>
+  </div>
+
+  <div class="tab-content" id="tab-analytics">
+    <div class="section-header"><h2>تحليلات النسخ الاحتياطي</h2></div>
+    <div class="chart-grid">
+      <div class="chart-card"><canvas id="storageChart"></canvas></div>
+      <div class="chart-card"><canvas id="timelineChart"></canvas></div>
+      <div class="chart-card"><canvas id="typeChart"></canvas></div>
+      <div class="chart-card"><canvas id="successRateChart"></canvas></div>
+    </div>
+    <div class="section-header" style="margin-top:20px"><h2>التقارير</h2></div>
+    <div class="report-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportSQL()"><i class="ti ti-file-code"></i> تصدير SQL</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i> CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="generateReport()"><i class="ti ti-file-pdf"></i> PDF</button>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-config">
+    <div class="section-header"><h2>إعدادات النسخ الاحتياطي</h2><button class="btn btn-red btn-sm" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> حفظ</button></div>
+    <div class="config-grid" id="configGrid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="createBackupModal" onclick="if(event.target===this)closeModal('createBackupModal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:16px;font-weight:700">إنشاء نسخة احتياطية</h3>
+      <button class="btn btn-ghost btn-xs" onclick="closeModal('createBackupModal')" style="padding:4px 8px"><i class="ti ti-x"></i></button>
+    </div>
+    <label>نوع النسخة</label>
+    <select id="createBackupType" onchange="document.getElementById('selectiveTables').style.display=this.value==='selective'?'block':'none'"><option value="full">كاملة</option><option value="incremental">تدريجية</option><option value="selective">انتقائية</option></select>
+    <div id="selectiveTables" style="display:none;margin-top:8px"><label>اختر الجداول</label><div id="tablesCheckboxes" class="checkbox-group"></div></div>
+    <label style="margin-top:10px">وصف (اختياري)</label>
+    <input type="text" id="createBackupDesc" placeholder="وصف النسخة">
+    <div style="display:flex;gap:16px;margin:12px 0"><label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="createBackupEncrypt" checked> تشفير AES-256</label></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('createBackupModal')">إلغاء</button>
+      <button class="btn btn-red" onclick="executeCreateBackup()" id="createBackupBtn"><i class="ti ti-play"></i> بدء</button>
+    </div>
+    <div id="createBackupProgress" style="display:none;margin-top:12px">
+      <div class="progress-bar"><div class="progress-fill" id="createProgressFill" style="width:0%;background:linear-gradient(90deg,var(--accent),var(--red))"></div></div>
+      <p id="createProgressText" style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px">جارٍ إنشاء النسخة...</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="uploadModal" onclick="if(event.target===this)closeModal('uploadModal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:16px;font-weight:700">رفع نسخة احتياطية</h3>
+      <button class="btn btn-ghost btn-xs" onclick="closeModal('uploadModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="drop-zone" id="dropZone" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+      <i class="ti ti-cloud-upload upload-icon"></i>
+      <p style="color:var(--muted);font-size:14px">اسحب وأفلت ملف النسخة هنا</p>
+      <p style="color:var(--muted2);font-size:12px;margin:6px 0">أو</p>
+      <input type="file" id="fileInput" accept=".bak,.zip,.sql,.sqlite" style="display:none" onchange="handleFileSelect(event)">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileInput').click()">اختيار ملف</button>
+    </div>
+    <div id="uploadProgress" style="display:none">
+      <div class="progress-bar"><div class="progress-fill" id="uploadProgressFill" style="width:0%;background:linear-gradient(90deg,var(--accent),var(--red))"></div></div>
+      <p id="uploadProgressText" style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px">0%</p>
+    </div>
+    <div id="uploadResult" style="display:none"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="scheduleModal" onclick="if(event.target===this)closeModal('scheduleModal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:16px;font-weight:700">إضافة جدول نسخ</h3>
+      <button class="btn btn-ghost btn-xs" onclick="closeModal('scheduleModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-grid">
+      <div class="full"><label>اسم الجدول</label><input type="text" id="schedName"></div>
+      <div><label>نوع النسخة</label><select id="schedType"><option value="full">كاملة</option><option value="incremental">تدريجية</option><option value="selective">انتقائية</option></select></div>
+      <div><label>التكرار</label><select id="schedFreq" onchange="toggleFreqValue()"><option value="daily">يومي</option><option value="weekly">أسبوعي</option><option value="monthly">شهري</option><option value="hours">كل ساعة</option><option value="minutes">كل دقيقة</option></select></div>
+      <div id="freqValueGroup" style="display:none"><label>كل</label><input type="number" id="schedFreqValue" value="1" min="1"></div>
+      <div><label>الوقت</label><input type="time" id="schedTime" value="02:00"></div>
+      <div><label>الاحتفاظ بآخر</label><input type="number" id="schedRetention" value="20" min="1"></div>
+      <div class="full" style="display:flex;gap:16px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="schedEncrypt" checked> تشفير</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="schedNotifySuccess" checked> إشعار نجاح</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="schedNotifyFailure" checked> إشعار فشل</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('scheduleModal')">إلغاء</button>
+      <button class="btn btn-red" onclick="saveSchedule()"><i class="ti ti-device-floppy"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<input type="hidden" id="restoreBackupId">
+{% endblock %}
+{% block scripts %}
+  {{ super() }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='js/backup-operations.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/backup-uploads.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/backup-analytics.js') }}"></script>
+  <script>document.addEventListener('DOMContentLoaded',function(){loadBackups();loadSchedules();loadAuditLogs();loadConfig();loadStats()})</script>
+{% endblock %}

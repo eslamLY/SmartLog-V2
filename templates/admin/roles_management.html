@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% set nav_active = 'rbac' %}
+{% block title %}إدارة الأدوار{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/rbac-premium.css') }}">
+{% endblock %}
+{% block content %}
+<header class="rbac-header">
+  <div><h1><i class="ti ti-users"></i> إدارة الأدوار</h1><p style="color:var(--muted);font-size:13px">إنشاء وتعديل وحذف الأدوار وصلاحياتها</p></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-red btn-sm" onclick="openRoleModal()"><i class="ti ti-plus"></i> دور جديد</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.location='/admin/rbac'"><i class="ti ti-arrow-right"></i> العودة</button>
+  </div>
+</header>
+<div class="rbac-container">
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>الاسم</th><th>الوصف</th><th>النطاق</th><th>الأصل</th><th>الصلاحيات</th><th>المستخدمون</th><th>المخاطر</th><th></th></tr></thead><tbody id="rolesTableBody"></tbody></table></div>
+</div>
+{% include "admin/rbac_modals.html" %}
+
+<div class="modal-overlay" id="roleModal">
+  <div class="modal-sheet" style="max-width:550px">
+    <div class="modal-handle"></div>
+    <h3 id="roleModalTitle" style="font-size:15px;font-weight:700;margin-bottom:16px">دور جديد</h3>
+      <label>الاسم</label><input id="roleName" class="form-input">
+      <label>الاسم بالعربية</label><input id="roleNameAr" class="form-input">
+      <label>الوصف</label><textarea id="roleDesc" class="form-input" rows="2"></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>الدور الأب</label><select id="roleParent" class="form-input"><option value="">بدون</option></select></div>
+        <div><label>النطاق</label><select id="roleScope" class="form-input"><option value="department">القسم</option><option value="organization">المؤسسة</option><option value="self">الذات</option></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>مستوى المخاطرة</label><select id="roleRisk" class="form-input"><option value="low">منخفض</option><option value="medium">متوسط</option><option value="high">عالي</option></select></div>
+        <div><label>الحد الأقصى</label><input id="roleMax" type="number" class="form-input" placeholder="غير محدود"></div>
+      </div>
+      <label style="margin-top:12px;display:block">الصلاحيات</label>
+      <div id="rolePermsCheckboxes" class="checkbox-grid"></div>
+      <label style="margin-top:12px;display:block">الأقسام</label>
+      <div id="roleDeptCheckboxes" class="checkbox-grid"></div>
+      <input type="hidden" id="editRoleId" value="">
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="saveRole()">حفظ</button>
+</div></div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/rbac-interactions.js') }}"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){loadRoles()})</script>
+{% endblock %}

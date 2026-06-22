@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% set nav_active = 'audit_logs' %}
+{% block title %}سجل التدقيق{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-history" style="color:var(--accent)"></i> سجل التدقيق</h1>
+  <div style="display:flex;gap:10px">
+    <input type="date" id="filterDate" style="width:auto;padding:6px 12px;font-size:12px" onchange="loadAuditLogs()">
+    <select id="filterAction" style="width:auto;padding:6px 12px;font-size:12px" onchange="loadAuditLogs()">
+      <option value="">جميع الإجراءات</option>
+      <option value="create">إنشاء</option>
+      <option value="update">تعديل</option>
+      <option value="delete">حذف</option>
+      <option value="login">تسجيل دخول</option>
+      <option value="logout">تسجيل خروج</option>
+    </select>
+  </div>
+</header>
+<div style="padding:20px">
+  <div class="card" style="padding:16px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="ti ti-shield-check" style="font-size:20px;color:var(--green)"></i>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">سجل التدقيق الأمني</div>
+        <div style="font-size:12px;color:var(--muted)">تتبع جميع التغييرات والإجراءات في النظام</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>الوقت</th>
+          <th>المستخدم</th>
+          <th>الإجراء</th>
+          <th>الكيان</th>
+          <th>التغييرات</th>
+          <th>عنوان IP</th>
+        </tr>
+      </thead>
+      <tbody id="auditLogsList">
+        <tr>
+          <td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">
+            <i class="ti ti-history-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>
+            لا توجد سجلات تدقيق
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function loadAuditLogs() {
+  var date = document.getElementById('filterDate').value;
+  var action = document.getElementById('filterAction').value;
+  var url = '/api/admin/audit-logs';
+  var params = [];
+  if (date) params.push('date=' + date);
+  if (action) params.push('action=' + action);
+  if (params.length) url += '?' + params.join('&');
+  
+  api(url).then(function(res) {
+    var list = document.getElementById('auditLogsList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-history-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>لا توجد سجلات تدقيق</td></tr>';
+      return;
+    }
+    var actionLabels = {
+      create: '<span class="badge badge-present">إنشاء</span>',
+      update: '<span class="badge badge-info">تعديل</span>',
+      delete: '<span class="badge badge-absent">حذف</span>',
+      login: '<span class="badge badge-late">دخول</span>',
+      logout: '<span class="badge badge-late">خروج</span>'
+    };
+    list.innerHTML = res.map(function(log) {
+      var changes = log.changes ? JSON.stringify(log.changes).substring(0, 50) + '...' : '-';
+      return '<tr>' +
+        '<td style="font-size:12px;color:var(--muted)">' + new Date(log.timestamp).toLocaleString('ar-SA') + '</td>' +
+        '<td>' + (log.user_name || 'النظام') + '</td>' +
+        '<td>' + (actionLabels[log.action] || log.action) + '</td>' +
+        '<td>' + (log.entity_type || '-') + ' #' + (log.entity_id || '-') + '</td>' +
+        '<td style="font-family:monospace;font-size:11px;color:var(--muted2)">' + changes + '</td>' +
+        '<td style="font-family:monospace;font-size:11px;color:var(--muted2)">' + (log.ip_address || '-') + '</td>' +
+        '</tr>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل سجل التدقيق', 'err');
+  });
+}
+
+loadAuditLogs();
+</script>
+{% endblock %}

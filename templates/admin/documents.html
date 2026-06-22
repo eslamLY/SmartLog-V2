@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+{% set nav_active = 'documents' %}
+{% block title %}المستندات{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-files" style="color:var(--accent)"></i>مستندات الموظفين</h1>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sm" style="background:var(--card2);color:var(--text);border:1px solid var(--border)" onclick="checkExpiry()" title="التحقق من المستندات المنتهية"><i class="ti ti-bell-ring"></i> تنبيهات</button>
+      <button class="btn btn-red btn-sm" onclick="openModal('uploadDocModal')"><i class="ti ti-upload"></i> رفع مستند</button>
+    </div>
+  </div>
+  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+    <select id="deptFilter" onchange="fetchDocs()" style="width:auto;min-width:150px;font-size:13px">
+      <option value="">جميع الأقسام</option>
+{% for d in departments %}
+      <option value="{{ d }}">{{ d }}</option>
+{% endfor %}
+    </select>
+    <select id="typeFilter" onchange="fetchDocs()" style="width:auto;min-width:130px;font-size:13px">
+      <option value="">جميع الأنواع</option>
+      <option value="عقد">📋 عقد</option>
+      <option value="شهادة">🎓 شهادة</option>
+      <option value="مسوغ_تعيين">📄 مسوغ تعيين</option>
+      <option value="أخرى">📁 أخرى</option>
+    </select>
+    <input type="text" id="searchTitle" placeholder="بحث بالعنوان..." oninput="fetchDocs()" style="width:180px;font-size:13px">
+    <select id="expiryFilter" onchange="fetchDocs()" style="width:auto;min-width:130px;font-size:13px">
+      <option value="">كل الحالات</option>
+      <option value="active">✅ سارية</option>
+      <option value="expiring_soon">🟠 تنتهي قريباً</option>
+      <option value="expired">⛔ منتهية</option>
+      <option value="no_expiry">📄 بدون انتهاء</option>
+    </select>
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 115px)">
+  <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:120px;border-right:3px solid #22c55e">
+      <i class="ti ti-circle-check" style="font-size:22px;color:#22c55e"></i>
+      <div><div style="font-size:18px;font-weight:800;color:#22c55e" id="countActive">0</div><div style="font-size:11px;color:var(--muted)">سارية</div></div>
+    </div>
+    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:120px;border-right:3px solid #f59e0b">
+      <i class="ti ti-alert-triangle" style="font-size:22px;color:#f59e0b"></i>
+      <div><div style="font-size:18px;font-weight:800;color:#f59e0b" id="countExpiring">0</div><div style="font-size:11px;color:var(--muted)">تنتهي قريباً</div></div>
+    </div>
+    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:120px;border-right:3px solid #ef4444">
+      <i class="ti ti-circle-off" style="font-size:22px;color:#ef4444"></i>
+      <div><div style="font-size:18px;font-weight:800;color:#ef4444" id="countExpired">0</div><div style="font-size:11px;color:var(--muted)">منتهية</div></div>
+    </div>
+    <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:120px;border-right:3px solid var(--muted2)">
+      <i class="ti ti-file-off" style="font-size:22px;color:var(--muted2)"></i>
+      <div><div style="font-size:18px;font-weight:800;color:var(--muted2)" id="countNoExpiry">0</div><div style="font-size:11px;color:var(--muted)">بدون انتهاء</div></div>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto;max-height:500px;overflow-y:auto">
+      <table class="tbl">
+        <thead><tr><th>النوع</th><th>الرمز الإشاري</th><th>الموظف</th><th>تاريخ الانتهاء</th><th>الحالة</th><th>تاريخ الرفع</th><th>رافع الملف</th><th></th></tr></thead>
+        <tbody id="docTbody">
+          <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-loader" style="font-size:32px;display:block;margin-bottom:10px"></i>جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# Upload Modal #}
+<div class="modal-overlay" id="uploadDocModal">
+  <div class="modal-sheet" style="max-width:520px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-upload" style="color:var(--accent)"></i> رفع مستند</h3>
+    <div id="uploadProgress" style="display:none;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>جاري الرفع...</span><span id="uploadPercent">0%</span></div>
+      <div style="background:var(--card2);border-radius:6px;height:6px;overflow:hidden"><div id="uploadBar" style="background:var(--accent);width:0%;height:100%;border-radius:6px;transition:width .3s"></div></div>
+    </div>
+    <form id="docUploadForm">
+      <div class="modal-body text-right" dir="rtl">
+        <div class="form-group mb-3">
+          <label class="form-label">الموظف <span style="color:var(--red)">*</span></label>
+          <select class="form-control text-right" id="employee_id" name="employee_id" required><option value="">— اختر الموظف —</option></select>
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">النوع <span style="color:var(--red)">*</span></label>
+          <div style="position:relative">
+            <select class="form-control text-right" id="document_type" name="type" required style="padding-right:36px" onchange="updateTypeIcon()">
+              <option value="عقد" data-icon="ti-file-text">📋 عقد</option>
+              <option value="شهادة" data-icon="ti-certificate">🎓 شهادة</option>
+              <option value="مسوغ_تعيين" data-icon="ti-file-description">📄 مسوغ تعيين</option>
+              <option value="أخرى" data-icon="ti-file-unknown">📁 أخرى</option>
+            </select>
+            <i id="typeIcon" class="ti ti-file-text" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:16px;pointer-events:none"></i>
+          </div>
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">الملف <span style="color:var(--red)">*</span></label>
+          <div id="dropZone" style="border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;position:relative" ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(99,102,241,.05)'" ondrop="event.preventDefault();handleDrop(event)" onmouseleave="if(!this.dataset.hasFile)this.style.borderColor='var(--border)'">
+            <input type="file" id="document_file" name="file" required style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handleFileSelect(event)">
+            <div id="dropPlaceholder">
+              <i class="ti ti-upload" style="font-size:32px;color:var(--muted2);display:block;margin-bottom:8px"></i>
+              <div style="font-size:13px;color:var(--muted)">اسحب الملف إلى هنا أو <span style="color:var(--accent);font-weight:600">اختر من الجهاز</span></div>
+              <div style="font-size:11px;color:var(--muted2);margin-top:4px">PDF, JPG, PNG, DOCX — حد أقصى 10MB</div>
+            </div>
+            <div id="filePreview" style="display:none;align-items:center;gap:12px;text-align:right">
+              <div id="fileThumb" style="width:48px;height:48px;border-radius:8px;background:var(--card2);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"></div>
+              <div style="flex:1;min-width:0">
+                <div id="fileName" style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+                <div id="fileSize" style="font-size:11px;color:var(--muted2)"></div>
+              </div>
+              <button type="button" onclick="clearFile()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px">&times;</button>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 0;border-top:1px solid var(--border);margin-top:4px;display:flex;align-items:center;gap:10px">
+          <input type="checkbox" id="has_expiry" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">
+          <label for="has_expiry" style="font-size:13px;font-weight:600;cursor:pointer">هل يوجد تاريخ انتهاء للمستند؟</label>
+        </div>
+        <div class="form-group mb-3" id="expiry_date_container" style="display:none">
+          <label class="form-label">تاريخ الانتهاء</label>
+          <input type="date" id="expiry_date" name="expiry_date" class="form-control text-center">
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-control text-right" id="document_notes" name="notes" placeholder="اختياري" rows="3"></textarea>
+        </div>
+      </div>
+    </form>
+    <div style="display:flex;gap:10px;margin-top:8px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-red" onclick="uploadDoc()"><i class="ti ti-upload"></i> رفع</button>
+      <button class="btn btn-outline" onclick="closeModal('uploadDocModal');clearFile()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+{# Edit Modal #}
+<div class="modal-overlay" id="editDocModal">
+  <div class="modal-sheet" style="max-width:520px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-edit" style="color:var(--amber)"></i> تعديل المستند</h3>
+    <form id="editDocForm">
+      <div class="modal-body text-right" dir="rtl">
+        <div class="form-group mb-3">
+          <label class="form-label">النوع <span style="color:var(--red)">*</span></label>
+          <div style="position:relative">
+            <select class="form-control text-right" id="edit_document_type" name="type" required style="padding-right:36px" onchange="updateEditTypeIcon()">
+              <option value="عقد" data-icon="ti-file-text">📋 عقد</option>
+              <option value="شهادة" data-icon="ti-certificate">🎓 شهادة</option>
+              <option value="مسوغ_تعيين" data-icon="ti-file-description">📄 مسوغ تعيين</option>
+              <option value="أخرى" data-icon="ti-file-unknown">📁 أخرى</option>
+            </select>
+            <i id="editTypeIcon" class="ti ti-file-text" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:16px;pointer-events:none"></i>
+          </div>
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">استبدال الملف</label>
+          <input type="file" class="form-control" id="edit_document_file" name="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+          <div style="font-size:11px;color:var(--muted2);margin-top:4px">اتركه فارغاً إذا لم ترد تغيير الملف</div>
+        </div>
+        <div style="padding:10px 0;border-top:1px solid var(--border);margin-top:4px;display:flex;align-items:center;gap:10px">
+          <input type="checkbox" id="edit_has_expiry" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">
+          <label for="edit_has_expiry" style="font-size:13px;font-weight:600;cursor:pointer">هل يوجد تاريخ انتهاء للمستند؟</label>
+        </div>
+        <div class="form-group mb-3" id="edit_expiry_date_container" style="display:none">
+          <label class="form-label">تاريخ الانتهاء</label>
+          <input type="date" id="edit_expiry_date" name="expiry_date" class="form-control text-center">
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">ملاحظات</label>
+          <textarea class="form-control text-right" id="edit_document_notes" name="notes" placeholder="اختياري" rows="3"></textarea>
+        </div>
+      </div>
+    </form>
+    <div style="display:flex;gap:10px;margin-top:8px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-amber" onclick="saveEditDoc()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('editDocModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{# Audit Log Modal #}
+<div class="modal-overlay" id="auditLogModal">
+  <div class="modal-sheet" style="max-width:560px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-history" style="color:var(--accent)"></i> سجل التدقيق</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('auditLogModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="auditLogContainer" style="max-height:60vh;overflow-y:auto">
+      <div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div>
+    </div>
+  </div>
+</div>
+
+{# Version History Modal #}
+<div class="modal-overlay" id="versionModal">
+  <div class="modal-sheet" style="max-width:560px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-versions" style="color:#8b5cf6"></i> الإصدارات السابقة <span id="versionRefCode" style="font-family:monospace;font-size:12px;color:var(--muted2);font-weight:400"></span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('versionModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="versionContainer" style="max-height:60vh;overflow-y:auto">
+      <div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script id="employees-data" type="application/json">{{ employees | tojson | safe }}</script>
+<script>
+var editingDocId = null;
+var selectedFile = null;
+
+document.addEventListener('DOMContentLoaded', function(){
+  var empSelect = document.getElementById('employee_id');
+  var empData = JSON.parse(document.getElementById('employees-data').textContent);
+  empData.forEach(function(e){
+    var opt = document.createElement('option');
+    opt.value = e.id; opt.textContent = e.full_name;
+    empSelect.appendChild(opt);
+  });
+  const expiryCb = document.getElementById('has_expiry');
+  const expiryCont = document.getElementById('expiry_date_container');
+  const expiryInp = document.getElementById('expiry_date');
+  if(expiryCb && expiryCont){
+    expiryCb.addEventListener('change', function(){
+      if(this.checked){ expiryCont.style.display = 'block'; expiryInp.required = true; }
+      else { expiryCont.style.display = 'none'; expiryInp.required = false; expiryInp.value = ''; }
+    });
+  }
+  const eExpiryCb = document.getElementById('edit_has_expiry');
+  const eExpiryCont = document.getElementById('edit_expiry_date_container');
+  const eExpiryInp = document.getElementById('edit_expiry_date');
+  if(eExpiryCb && eExpiryCont){
+    eExpiryCb.addEventListener('change', function(){
+      if(this.checked){ eExpiryCont.style.display = 'block'; eExpiryInp.required = true; }
+      else { eExpiryCont.style.display = 'none'; eExpiryInp.required = false; eExpiryInp.value = ''; }
+    });
+  }
+  fetchDocs();
+});
+
+/* ── Type icons ── */
+var typeIconMap = {'عقد':'ti-file-text','شهادة':'ti-certificate','مسوغ_تعيين':'ti-file-description','أخرى':'ti-file-unknown'};
+function updateTypeIcon(){
+  var sel = document.getElementById('document_type');
+  var icon = document.getElementById('typeIcon');
+  if(icon){ icon.className = 'ti ' + (typeIconMap[sel.value] || 'ti-file-unknown'); }
+}
+function updateEditTypeIcon(){
+  var sel = document.getElementById('edit_document_type');
+  var icon = document.getElementById('editTypeIcon');
+  if(icon){ icon.className = 'ti ' + (typeIconMap[sel.value] || 'ti-file-unknown'); }
+}
+
+/* ── File handling ── */
+function handleFileSelect(e){ handleFile(e.target.files[0]); }
+function handleDrop(e){ var f=e.dataTransfer.files[0]; if(f){ handleFile(f); document.getElementById('document_file').files=e.dataTransfer.files; } }
+function handleFile(file){
+  if(!file){ clearFile(); return; }
+  selectedFile = file;
+  var dropZone = document.getElementById('dropZone');
+  var placeholder = document.getElementById('dropPlaceholder');
+  var preview = document.getElementById('filePreview');
+  var thumb = document.getElementById('fileThumb');
+  var nameEl = document.getElementById('fileName');
+  var sizeEl = document.getElementById('fileSize');
+  placeholder.style.display = 'none';
+  preview.style.display = 'flex';
+  dropZone.style.borderColor = 'var(--accent)';
+  dropZone.dataset.hasFile = '1';
+  nameEl.textContent = file.name;
+  sizeEl.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+  var ext = file.name.split('.').pop().toLowerCase();
+  var iconMap = {'pdf':'ti-file-type-pdf','jpg':'ti-file-type-jpg','jpeg':'ti-file-type-jpg','png':'ti-file-type-png','doc':'ti-file-type-doc','docx':'ti-file-type-doc'};
+  var fileIcon = iconMap[ext] || 'ti-file-unknown';
+  thumb.innerHTML = '<i class="ti ' + fileIcon + '" style="font-size:28px;color:var(--accent)"></i>';
+  if(ext === 'jpg' || ext === 'jpeg' || ext === 'png'){
+    var reader = new FileReader();
+    reader.onload = function(ev){ thumb.innerHTML = '<img src="'+ev.target.result+'" style="width:48px;height:48px;object-fit:cover;border-radius:8px">'; };
+    reader.readAsDataURL(file);
+  }
+}
+function clearFile(){
+  selectedFile = null;
+  document.getElementById('document_file').value = '';
+  document.getElementById('dropPlaceholder').style.display = 'block';
+  document.getElementById('filePreview').style.display = 'none';
+  var dz = document.getElementById('dropZone');
+  dz.style.borderColor = 'var(--border)';
+  delete dz.dataset.hasFile;
+}
+
+/* ── Upload progress ── */
+function uploadDoc(){
+  var empId = document.getElementById('employee_id').value;
+  if(!empId){ toast('يرجى اختيار الموظف.', 'err'); return; }
+  if(!selectedFile){ toast('يرجى اختيار ملف.', 'err'); return; }
+  var hasExpiry = document.getElementById('has_expiry').checked;
+  var fd = new FormData();
+  fd.append('employee_id', empId);
+  fd.append('title', document.getElementById('document_type').value);
+  fd.append('notes', document.getElementById('document_notes').value.trim() || '');
+  fd.append('has_expiry_date', hasExpiry ? 'true' : 'false');
+  fd.append('expiry_date', hasExpiry ? document.getElementById('expiry_date').value : '');
+  fd.append('file', selectedFile);
+  var xhr = new XMLHttpRequest();
+  xhr.upload.onprogress = function(e){
+    if(e.lengthComputable){
+      var pct = Math.round(e.loaded / e.total * 100);
+      document.getElementById('uploadBar').style.width = pct + '%';
+      document.getElementById('uploadPercent').textContent = pct + '%';
+    }
+  };
+  xhr.onload = function(){
+    document.getElementById('uploadProgress').style.display = 'none';
+    if(xhr.status === 200){
+      var data = JSON.parse(xhr.responseText);
+      toast(data.msg, data.ok ? 'ok' : 'err');
+      if(data.ok){ closeModal('uploadDocModal'); clearFile(); fetchDocs(); }
+    } else { toast('خطأ في الاتصال بالخادم.', 'err'); }
+  };
+  xhr.onerror = function(){ document.getElementById('uploadProgress').style.display = 'none'; toast('خطأ في الاتصال بالخادم.', 'err'); };
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('uploadBar').style.width = '0%';
+  document.getElementById('uploadPercent').textContent = '0%';
+  xhr.open('POST', '/api/documents/upload');
+  xhr.send(fd);
+}
+
+/* ── Fetch documents ── */
+async function fetchDocs(){
+  var dept = document.getElementById('deptFilter').value;
+  var type = document.getElementById('typeFilter').value;
+  var title = document.getElementById('searchTitle').value;
+  var expiry = document.getElementById('expiryFilter').value;
+  var params = new URLSearchParams();
+  if(dept) params.set('department', dept);
+  if(type) params.set('doc_type', type);
+  if(title) params.set('title', title);
+  if(expiry) params.set('expiry_status', expiry);
+  var r = await fetch('/api/documents/search?' + params.toString());
+  var data = await r.json();
+  var tbody = document.getElementById('docTbody');
+  if(!data.ok || !data.documents.length){
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-files-off" style="font-size:40px;display:block;margin-bottom:10px;opacity:.5"></i>لا توجد مستندات</td></tr>';
+    document.getElementById('countActive').textContent = '0';
+    document.getElementById('countExpiring').textContent = '0';
+    document.getElementById('countExpired').textContent = '0';
+    document.getElementById('countNoExpiry').textContent = '0';
+    return;
+  }
+  var active=0, expiring=0, expired=0, noExpiry=0;
+  tbody.innerHTML = data.documents.map(function(d){
+    if(d.expiry_status === 'expired') expired++;
+    else if(d.expiry_status === 'expiring_soon') expiring++;
+    else if(d.has_expiry_date) active++;
+    else noExpiry++;
+    var badge = d.expiry_status === 'expired' ? '<span style="color:#ef4444;font-weight:600">⛔ منتهي</span>'
+      : d.expiry_status === 'expiring_soon' ? '<span style="color:#f59e0b;font-weight:600">🟠 ينتهي قريباً</span>'
+      : d.has_expiry_date ? '<span style="color:#22c55e;font-weight:600">✅ ساري</span>'
+      : '<span style="color:var(--muted)">📄 بدون انتهاء</span>';
+    var typeIcn = {'عقد':'ti-file-text','شهادة':'ti-certificate','مسوغ_تعيين':'ti-file-description','أخرى':'ti-file-unknown'};
+    var icn = typeIcn[d.title] || 'ti-file-unknown';
+    return '<tr>' +
+      '<td><i class="ti ' + icn + '" style="font-size:16px;color:var(--accent);margin-left:4px"></i> ' + esc(d.title) + '</td>' +
+      '<td style="font-family:monospace;font-size:12px;font-weight:600">' + esc(d.reference_code) + ' <span style="color:var(--muted2);font-weight:400">v' + d.version + '</span></td>' +
+      '<td>' + (d.employee_name || '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '<td style="font-size:12px;' + (d.expiry_status === 'expired' ? 'color:#ef4444' : '') + '">' + (d.expiry_date || '—') + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + (d.created_at || '—') + '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + esc(d.uploaded_by || '—') + '</td>' +
+      '<td style="white-space:nowrap">' +
+        (d.file_path ? '<a href="/api/documents/'+d.id+'/download" class="btn btn-xs btn-ghost" title="تحميل الملف الأصلي"><i class="ti ti-download" style="color:var(--accent)"></i></a>' : '') +
+        '<a href="/api/documents/download-pdf/' + d.id + '" class="btn btn-xs btn-ghost" target="_blank" title="PDF موثق"><i class="ti ti-file-type-pdf" style="color:#ef4444"></i></a>' +
+        '<button class="btn btn-xs btn-ghost" onclick="openEditModal('+d.id+')" title="تعديل"><i class="ti ti-edit" style="color:var(--amber)"></i></button>' +
+        '<button class="btn btn-xs btn-ghost" onclick="openAuditLog('+d.id+')" title="سجل التدقيق"><i class="ti ti-history" style="color:var(--accent)"></i></button>' +
+        '<button class="btn btn-xs btn-ghost" onclick="openVersionHistory('+d.id+')" title="الإصدارات السابقة"><i class="ti ti-versions" style="color:#8b5cf6"></i></button>' +
+        '<button class="btn btn-xs btn-ghost" onclick="confirmDelete('+d.id+')" title="حذف"><i class="ti ti-trash" style="color:#ef4444"></i></button>' +
+      '</td></tr>';
+  }).join('');
+  document.getElementById('countActive').textContent = active;
+  document.getElementById('countExpiring').textContent = expiring;
+  document.getElementById('countExpired').textContent = expired;
+  document.getElementById('countNoExpiry').textContent = noExpiry;
+}
+
+/* ── Edit ── */
+async function openEditModal(id){
+  editingDocId = id;
+  var r = await fetch('/api/documents/search?id='+id);
+  var data = await r.json();
+  if(!data.ok || !data.documents.length){ toast('المستند غير موجود.', 'err'); return; }
+  var d = data.documents[0];
+  document.getElementById('edit_document_type').value = d.title;
+  updateEditTypeIcon();
+  document.getElementById('edit_document_notes').value = d.notes || '';
+  var hasExp = d.has_expiry_date;
+  document.getElementById('edit_has_expiry').checked = hasExp;
+  document.getElementById('edit_expiry_date_container').style.display = hasExp ? 'block' : 'none';
+  if(hasExp && d.expiry_date) document.getElementById('edit_expiry_date').value = d.expiry_date;
+  openModal('editDocModal');
+}
+async function saveEditDoc(){
+  if(!editingDocId) return;
+  var hasExpiry = document.getElementById('edit_has_expiry').checked;
+  var fd = new FormData();
+  fd.append('title', document.getElementById('edit_document_type').value);
+  fd.append('notes', document.getElementById('edit_document_notes').value.trim() || '');
+  fd.append('has_expiry_date', hasExpiry ? 'true' : 'false');
+  fd.append('expiry_date', hasExpiry ? document.getElementById('edit_expiry_date').value : '');
+  var fileInp = document.getElementById('edit_document_file');
+  if(fileInp && fileInp.files[0]) fd.append('file', fileInp.files[0]);
+  try {
+    var r = await fetch('/api/documents/'+editingDocId+'/edit', { method: 'PUT', body: fd });
+    var data = await r.json();
+    toast(data.msg, data.ok ? 'ok' : 'err');
+    if(data.ok){ closeModal('editDocModal'); fetchDocs(); }
+  } catch(e) { toast('خطأ في الاتصال بالخادم.', 'err'); }
+}
+
+/* ── Delete ── */
+function confirmDelete(id){
+  Swal.fire({
+    title: 'حذف المستند؟',
+    text: 'سيتم نقل المستند إلى سلة المهملات. يمكنك استعادته لاحقاً.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'نعم، احذف',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#6366f1',
+    background: 'var(--card)',
+    color: 'var(--text)',
+    customClass: { popup: 'swal2-dark-custom' }
+  }).then(function(res){
+    if(res.isConfirmed){
+      fetch('/api/documents/'+id+'/delete', { method:'POST' }).then(function(r){ return r.json(); }).then(function(data){
+        toast(data.msg, data.ok ? 'ok' : 'err');
+        if(data.ok) fetchDocs();
+      });
+    }
+  });
+}
+
+/* ── Audit Log ── */
+async function openAuditLog(docId){
+  openModal('auditLogModal');
+  var container = document.getElementById('auditLogContainer');
+  container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div>';
+  var r = await fetch('/api/documents/'+docId+'/audit');
+  var data = await r.json();
+  if(!data.ok || !data.logs.length){
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-history-off" style="font-size:40px;display:block;margin-bottom:10px;opacity:.5"></i>لا توجد سجلات</div>';
+    return;
+  }
+  var actionIcons = {upload:'ti-upload text-success', edit:'ti-edit text-warning', delete:'ti-trash text-danger', restore:'ti-refresh text-info'};
+  var actionColors = {upload:'#22c55e', edit:'#f59e0b', delete:'#ef4444', restore:'var(--accent)'};
+  container.innerHTML = data.logs.map(function(l){
+    return '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2)">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti '+(actionIcons[l.action]||'ti-circle')+'" style="color:'+(actionColors[l.action]||'var(--muted)')+';font-size:16px"></i></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">'+esc(l.description)+'</div>' +
+        '<div style="font-size:11px;color:var(--muted2);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">' +
+          '<span><i class="ti ti-user"></i> '+esc(l.performer)+'</span>' +
+          '<span><i class="ti ti-clock"></i> '+esc(l.performed_at)+'</span>' +
+        '</div>' +
+      '</div></div>';
+  }).join('');
+}
+
+/* ── Version History ── */
+async function openVersionHistory(docId){
+  openModal('versionModal');
+  var container = document.getElementById('versionContainer');
+  var refEl = document.getElementById('versionRefCode');
+  container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div>';
+  var r = await fetch('/api/documents/'+docId+'/versions');
+  var data = await r.json();
+  if(!data.ok){
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-cloud-off" style="font-size:40px;display:block;margin-bottom:10px;opacity:.5"></i>خطأ في التحميل</div>';
+    return;
+  }
+  refEl.textContent = '['+data.reference_code+']';
+  container.innerHTML = data.versions.map(function(v){
+    var isCur = v.is_current ? '<span style="background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-right:6px">الحالي</span>' : '';
+    var expBadge = '';
+    if(v.has_expiry_date && v.expiry_date){
+      var today = new Date();
+      var exp = new Date(v.expiry_date);
+      var diff = Math.ceil((exp - today) / (1000*60*60*24));
+      expBadge = diff <= 0 ? ' ⛔' : diff <= 30 ? ' 🟠' : '';
+    }
+    return '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2)">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:13px;color:var(--accent)">v'+v.version+'</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">'+esc(v.title)+isCur+'</div>' +
+        '<div style="font-size:11px;color:var(--muted2);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap">' +
+          '<span><i class="ti ti-user"></i> '+esc(v.uploaded_by)+'</span>' +
+          '<span><i class="ti ti-clock"></i> '+esc(v.created_at)+'</span>' +
+          (v.expiry_date ? '<span><i class="ti ti-calendar"></i> '+esc(v.expiry_date)+expBadge+'</span>' : '') +
+        '</div>' +
+      '</div>' +
+      (v.file_path ? '<a href="/api/documents/'+v.id+'/download" class="btn btn-xs btn-ghost" style="align-self:center" title="تحميل"><i class="ti ti-download" style="color:var(--accent)"></i></a>' : '') +
+      '<a href="/api/documents/download-pdf/'+v.id+'" class="btn btn-xs btn-ghost" style="align-self:center" target="_blank" title="PDF"><i class="ti ti-file-type-pdf" style="color:#ef4444"></i></a>' +
+    '</div>';
+  }).join('');
+}
+
+/* ── Expiry Check ── */
+async function checkExpiry(){
+  var btn = event.target.closest('button');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i>';
+  try {
+    var r = await fetch('/api/documents/check-expiry', { method:'POST' });
+    var data = await r.json();
+    toast(data.msg, data.ok ? 'ok' : 'err');
+  } catch(e) { toast('خطأ في الاتصال بالخادم.', 'err'); }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-bell-ring"></i> تنبيهات';
+}
+
+function esc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
+</script>
+{% endblock %}

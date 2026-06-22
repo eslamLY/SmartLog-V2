@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% set nav_active = 'forecast' %}
+{% block title %}تفاصيل التنبؤات{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/forecasting-premium.css">
+<div class="f-header">
+  <h1><i class="ti ti-details"></i> تفاصيل التنبؤات</h1>
+  <div class="f-header-actions">
+    <button class="f-btn f-btn-accent f-btn-sm" onclick="location.reload()"><i class="ti ti-refresh"></i> تحديث</button>
+  </div>
+</div>
+<div class="f-grid" style="padding:20px">
+  <div class="f-card" style="grid-column:1/-1">
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <select id="predTypeFilter" class="f-input" style="flex:1;min-width:140px">
+        <option value="">كل الأنواع</option>
+        <option value="leave">إجازات</option>
+        <option value="absence">غياب</option>
+        <option value="turnover">دوران وظيفي</option>
+      </select>
+      <select id="predRiskFilter" class="f-input" style="flex:1;min-width:120px">
+        <option value="">كل المستويات</option>
+        <option value="high">عالية</option>
+        <option value="medium">متوسطة</option>
+        <option value="low">منخفضة</option>
+      </select>
+      <input type="date" id="predDateFilter" class="f-input" style="flex:1">
+      <button class="f-btn f-btn-accent f-btn-sm" onclick="loadPredictionHistory()"><i class="ti ti-search"></i> بحث</button>
+    </div>
+  </div>
+  <div class="f-card" style="grid-column:1/-1">
+    <div id="predictionTableContainer"><p style="color:var(--muted)">اختر الفلاتر واضغط بحث</p></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/forecasting-api.js"></script>
+<script>
+async function loadPredictionHistory(){
+  var type=$('#predTypeFilter').value,risk=$('#predRiskFilter').value,date=$('#predDateFilter').value;
+  var url='/api/forecast/history';
+  if(type)url+='?type='+type;
+  var data=await getJSON(url);
+  var html='<table class="f-table"><thead><tr><th>الموظف</th><th>النوع</th><th>التاريخ</th><th>الاحتمال</th><th>المستوى</th><th>صحة</th></tr></thead><tbody>';
+  (data||[]).forEach(function(p){
+    var empName=p.employee_id||'—';
+    html+='<tr><td>'+empName+'</td><td>'+p.type+'</td><td>'+p.date+'</td><td>'+(p.probability*100).toFixed(0)+'%</td><td><span class="f-badge f-badge-'+(p.risk_level==='high'?'red':p.risk_level==='medium'?'amber':'green')+'">'+p.risk_level+'</span></td><td>'+(p.was_correct===true?'✅':p.was_correct===false?'❌':'⏳')+'</td></tr>'
+  });
+  html+='</tbody></table>';
+  if(!data||!data.length)html='<p style="color:var(--muted)">لا توجد نتائج</p>';
+  $('#predictionTableContainer').innerHTML=html;
+}
+function $(id){return document.getElementById(id)}
+</script>
+{% endblock %}

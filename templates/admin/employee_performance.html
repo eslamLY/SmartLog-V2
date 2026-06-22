@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% set nav_active = 'employees' %}
+{% block title %}تقييم الأداء - {{ employee.full_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-chart-bar" style="color:var(--accent)"></i> تقييم الأداء - {{ employee.full_name }}</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-accent btn-sm" onclick="openPerfModal()"><i class="ti ti-plus"></i> إضافة تقييم</button>
+    <a href="/admin/employees/{{ employee.id }}/profile" class="btn btn-outline btn-sm"><i class="ti ti-arrow-right"></i> الملف الشخصي</a>
+  </div>
+</header>
+<div style="padding:20px">
+  <div class="table-wrap" style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <table class="tbl">
+      <thead><tr>
+        <th>السنة</th><th>الفترة</th><th>التقييم</th><th>الدرجة</th><th>المقيم</th><th>الحالة</th><th>تاريخ الإكمال</th><th>إجراء</th>
+      </tr></thead>
+      <tbody id="perfBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">جاري التحميل...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="perfModal">
+  <div class="modal-sheet" style="max-width:550px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px"><i class="ti ti-chart-bar" style="color:var(--accent)"></i> <span id="perfModalTitle">إضافة تقييم أداء</span></h3>
+    <input type="hidden" id="perfId">
+    <div class="modal-grid">
+      <div><label>السنة</label><input type="number" id="perfYear" class="form-input"></div>
+      <div><label>الفترة</label>
+        <select id="perfPeriod" class="form-input">
+          <option value="annual">سنوي</option>
+          <option value="semi_annual">نصف سنوي</option>
+          <option value="quarterly">ربع سنوي</option>
+          <option value="monthly">شهري</option>
+        </select>
+      </div>
+      <div><label>التقييم العام</label>
+        <select id="perfRating" class="form-input">
+          <option value="excellent">ممتاز</option>
+          <option value="very_good">جيد جداً</option>
+          <option value="good">جيد</option>
+          <option value="acceptable">مقبول</option>
+          <option value="poor">ضعيف</option>
+        </select>
+      </div>
+      <div><label>الدرجة (0-100)</label><input type="number" id="perfScore" class="form-input" min="0" max="100" step="0.1"></div>
+      <div class="full"><label>ملاحظات</label><textarea id="perfComments" class="form-input" rows="2"></textarea></div>
+      <div class="full"><label>أهداف الفترة القادمة</label><textarea id="perfGoals" class="form-input" rows="2"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-accent" onclick="savePerf()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('perfModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const eid = {{ employee.id }};
+function loadPerf() {
+  api('/admin/performance/' + eid).then(data => {
+    const tbody = document.getElementById('perfBody');
+    if (!data.evaluations || data.evaluations.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">لا توجد تقييمات</td></tr>';
+      return;
+    }
+    const ratingMap = {excellent:'ممتاز',very_good:'جيد جداً',good:'جيد',acceptable:'مقبول',poor:'ضعيف'};
+    tbody.innerHTML = data.evaluations.map(e => `<tr>
+      <td>${e.evaluation_year}</td>
+      <td>${e.evaluation_period}</td>
+      <td>${ratingMap[e.overall_rating] || e.overall_rating}</td>
+      <td><strong>${e.score || '—'}</strong></td>
+      <td>${e.evaluator_name || '—'}</td>
+      <td><span class="badge ${e.status === 'completed' ? 'badge-present' : 'badge-info'}">${e.status === 'completed' ? 'مكتمل' : e.status}</span></td>
+      <td>${e.completed_at ? new Date(e.completed_at).toLocaleDateString('ar-SA') : '—'}</td>
+      <td><button class="btn btn-ghost btn-xs" onclick="editPerf(${e.evaluation_year},'${e.evaluation_period}')"><i class="ti ti-edit"></i></button></td>
+    </tr>`).join('');
+  });
+}
+function openPerfModal() {
+  document.getElementById('perfId').value = '';
+  document.getElementById('perfModalTitle').textContent = 'إضافة تقييم أداء';
+  document.getElementById('perfYear').value = new Date().getFullYear();
+  document.getElementById('perfPeriod').value = 'annual';
+  document.getElementById('perfRating').value = 'good';
+  document.getElementById('perfScore').value = '';
+  document.getElementById('perfComments').value = '';
+  document.getElementById('perfGoals').value = '';
+  openModal('perfModal');
+}
+function editPerf(year, period) {
+  api('/admin/performance/' + eid).then(data => {
+    const e = (data.evaluations || []).find(x => x.evaluation_year === year && x.evaluation_period === period);
+    if (!e) return;
+    document.getElementById('perfId').value = '1';
+    document.getElementById('perfModalTitle').textContent = 'تعديل التقييم';
+    document.getElementById('perfYear').value = e.evaluation_year;
+    document.getElementById('perfPeriod').value = e.evaluation_period;
+    document.getElementById('perfRating').value = e.overall_rating || 'good';
+    document.getElementById('perfScore').value = e.score || '';
+    document.getElementById('perfComments').value = e.comments || '';
+    document.getElementById('perfGoals').value = e.goals_next_period || '';
+    openModal('perfModal');
+  });
+}
+function savePerf() {
+  api('/admin/performance/' + eid, {
+    evaluation_year: parseInt(document.getElementById('perfYear').value) || new Date().getFullYear(),
+    evaluation_period: document.getElementById('perfPeriod').value,
+    overall_rating: document.getElementById('perfRating').value,
+    score: parseFloat(document.getElementById('perfScore').value) || null,
+    comments: document.getElementById('perfComments').value,
+    goals_next_period: document.getElementById('perfGoals').value,
+    status: 'completed',
+  }).then(data => {
+    if (data.ok) { toast('تم حفظ التقييم', 'ok'); closeModal('perfModal'); loadPerf(); }
+    else { toast('فشل الحفظ', 'err'); }
+  });
+}
+loadPerf();
+</script>
+{% endblock %}

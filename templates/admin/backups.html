@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% set nav_active = 'backups' %}
+{% block title %}إدارة النسخ الاحتياطية{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-database-export" style="color:var(--accent)"></i> إدارة النسخ الاحتياطية</h1>
+  <button class="btn btn-red" onclick="createBackup()"><i class="ti ti-plus"></i> إنشاء نسخة احتياطية</button>
+</header>
+<div style="padding:20px">
+  <div class="card" style="padding:16px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <i class="ti ti-info-circle" style="font-size:20px;color:var(--accent)"></i>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">معلومات النسخ الاحتياطية</div>
+        <div style="font-size:12px;color:var(--muted)">النسخ الاحتياطية تُحفظ تلقائياً في مجلد backups/</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>معرف النسخة</th>
+          <th>تاريخ الإنشاء</th>
+          <th>حجم الملف</th>
+          <th>الحالة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="backupsList">
+        <tr>
+          <td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">
+            <i class="ti ti-database-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>
+            لا توجد نسخ احتياطية
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function createBackup() {
+  Swal.fire({
+    icon: 'question',
+    title: 'إنشاء نسخة احتياطية',
+    text: 'سيتم إنشاء نسخة احتياطية كاملة من قاعدة البيانات',
+    confirmButtonText: 'إنشاء',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#818cf8',
+    cancelButtonColor: '#64748b',
+    background: 'var(--card)',
+    color: 'var(--text)',
+    customClass: { popup: 'swal2-dark-custom' },
+    showCancelButton: true
+  }).then((result) => {
+    if (result.isConfirmed) {
+      loadingBtn(document.querySelector('.btn-red'));
+      api('/api/admin/backup').then(function(res) {
+        restoreBtn(document.querySelector('.btn-red'));
+        if (res.ok) {
+          swalSuccess('تم الإنشاء', res.msg, loadBackups);
+        } else {
+          swalError('خطأ', res.msg);
+        }
+      }).catch(function() {
+        restoreBtn(document.querySelector('.btn-red'));
+        swalError('خطأ', 'فشل الاتصال بالخادم');
+      });
+    }
+  });
+}
+
+function restoreBackup(id) {
+  Swal.fire({
+    icon: 'warning',
+    title: 'استعادة النسخة الاحتياطية',
+    text: 'سيتم استعادة قاعدة البيانات من هذه النسخة. هذا الإجراء لا يمكن التراجع عنه.',
+    confirmButtonText: 'استعادة',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    background: 'var(--card)',
+    color: 'var(--text)',
+    customClass: { popup: 'swal2-dark-custom' },
+    showCancelButton: true
+  }).then((result) => {
+    if (result.isConfirmed) {
+      api('/api/admin/restore/' + id).then(function(res) {
+        if (res.ok) {
+          swalSuccess('تم الاستعادة', res.msg, function() {
+            location.reload();
+          });
+        } else {
+          swalError('خطأ', res.msg);
+        }
+      }).catch(function() {
+        swalError('خطأ', 'فشل الاتصال بالخادم');
+      });
+    }
+  });
+}
+
+function deleteBackup(id) {
+  Swal.fire({
+    icon: 'warning',
+    title: 'حذف النسخة الاحتياطية',
+    text: 'هل أنت متأكد من حذف هذه النسخة؟',
+    confirmButtonText: 'حذف',
+    cancelButtonText: 'إلغاء',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    background: 'var(--card)',
+    color: 'var(--text)',
+    customClass: { popup: 'swal2-dark-custom' },
+    showCancelButton: true
+  }).then((result) => {
+    if (result.isConfirmed) {
+      api('/api/admin/backups/' + id + '/delete').then(function(res) {
+        if (res.ok) {
+          toast(res.msg, 'ok');
+          loadBackups();
+        } else {
+          toast(res.msg, 'err');
+        }
+      }).catch(function() {
+        toast('فشل الاتصال بالخادم', 'err');
+      });
+    }
+  });
+}
+
+function downloadBackup(id) {
+  window.location.href = '/api/admin/backups/' + id + '/download';
+}
+
+function loadBackups() {
+  api('/api/admin/backups').then(function(res) {
+    var list = document.getElementById('backupsList');
+    if (!res || res.length === 0) {
+      list.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-database-off" style="font-size:48px;display:block;margin-bottom:12px;opacity:.5"></i>لا توجد نسخ احتياطية</td></tr>';
+      return;
+    }
+    list.innerHTML = res.map(function(b) {
+      var size = b.size ? (b.size / 1024 / 1024).toFixed(2) + ' MB' : 'غير معروف';
+      return '<tr>' +
+        '<td style="font-family:monospace;font-size:12px;color:var(--accent)">' + b.id + '</td>' +
+        '<td>' + new Date(b.created_at).toLocaleString('ar-SA') + '</td>' +
+        '<td>' + size + '</td>' +
+        '<td><span class="badge badge-present">مكتمل</span></td>' +
+        '<td>' +
+        '<button class="btn btn-sm btn-green" onclick="downloadBackup(\'' + b.id + '\')"><i class="ti ti-download"></i> تحميل</button> ' +
+        '<button class="btn btn-sm btn-ghost" onclick="restoreBackup(\'' + b.id + '\')"><i class="ti ti-refresh"></i> استعادة</button> ' +
+        '<button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="deleteBackup(\'' + b.id + '\')"><i class="ti ti-trash"></i> حذف</button>' +
+        '</td>' +
+        '</tr>';
+    }).join('');
+  }).catch(function() {
+    toast('فشل تحميل النسخ الاحتياطية', 'err');
+  });
+}
+
+loadBackups();
+</script>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% set is_employee = true %}
+{% block title %}تفضيلات المستخدم{% endblock %}
+{% block employee_layout %}
+<div style="max-width:600px;margin:0 auto;padding:20px">
+  <header style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+    <i class="ti ti-settings" style="font-size:24px;color:var(--accent)"></i>
+    <h1 style="font-size:16px;font-weight:700">تفضيلات المستخدم</h1>
+  </header>
+
+  <div class="card" style="padding:20px;margin-bottom:20px">
+    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text)">المظهر</h2>
+    <div style="margin-bottom:16px">
+      <label>السمة</label>
+      <select id="theme" onchange="savePreferences()">
+        <option value="dark">داكن</option>
+        <option value="light">فاتح</option>
+        <option value="auto">تلقائي</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>اللغة</label>
+      <select id="language" onchange="savePreferences()">
+        <option value="ar">العربية</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card" style="padding:20px;margin-bottom:20px">
+    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text)">الإشعارات</h2>
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="notifications_enabled" onchange="savePreferences()" style="width:auto">
+        <span>تفعيل الإشعارات</span>
+      </label>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="email_notifications" onchange="savePreferences()" style="width:auto">
+        <span>إشعارات البريد الإلكتروني</span>
+      </label>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="sms_notifications" onchange="savePreferences()" style="width:auto">
+        <span>إشعارات SMS</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card" style="padding:20px;margin-bottom:20px">
+    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text)">الخصوصية</h2>
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="share_location" onchange="savePreferences()" style="width:auto">
+        <span>مشاركة الموقع الجغرافي</span>
+      </label>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="allow_biometric" onchange="savePreferences()" style="width:auto">
+        <span>السماح بالتحقق البيومتري</span>
+      </label>
+    </div>
+  </div>
+
+  <button class="btn btn-indigo" style="width:100%" onclick="savePreferences()">
+    <i class="ti ti-device-floppy"></i> حفظ التفضيلات
+  </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadPreferences() {
+  api('/api/user/preferences').then(function(res) {
+    if (res) {
+      document.getElementById('theme').value = res.theme || 'dark';
+      document.getElementById('language').value = res.language || 'ar';
+      document.getElementById('notifications_enabled').checked = res.notifications_enabled || false;
+      document.getElementById('email_notifications').checked = res.email_notifications || false;
+      document.getElementById('sms_notifications').checked = res.sms_notifications || false;
+      document.getElementById('share_location').checked = res.share_location || false;
+      document.getElementById('allow_biometric').checked = res.allow_biometric || false;
+    }
+  }).catch(function() {
+    toast('فشل تحميل التفضيلات', 'err');
+  });
+}
+
+function savePreferences() {
+  var data = {
+    theme: document.getElementById('theme').value,
+    language: document.getElementById('language').value,
+    notifications_enabled: document.getElementById('notifications_enabled').checked,
+    email_notifications: document.getElementById('email_notifications').checked,
+    sms_notifications: document.getElementById('sms_notifications').checked,
+    share_location: document.getElementById('share_location').checked,
+    allow_biometric: document.getElementById('allow_biometric').checked
+  };
+  api('/api/user/preferences', data).then(function(res) {
+    if (res.ok) {
+      toast(res.msg, 'ok');
+    } else {
+      toast(res.msg, 'err');
+    }
+  }).catch(function() {
+    toast('فشل حفظ التفضيلات', 'err');
+  });
+}
+
+loadPreferences();
+</script>
+{% endblock %}

@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% set nav_active = 'rbac' %}
+{% block title %}الصلاحيات والأدوار{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/rbac-premium.css') }}">
+{% endblock %}
+{% block content %}
+<header class="rbac-header">
+  <div><h1><i class="ti ti-shield-lock"></i> نظام الصلاحيات والأدوار</h1><p style="color:var(--muted);font-size:13px;margin:2px 0 0">إدارة الأدوار والصلاحيات والمستخدمين</p></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-red btn-sm" onclick="window.location='/admin/rbac/roles'"><i class="ti ti-plus"></i> إدارة الأدوار</button>
+  </div>
+</header>
+<div class="rbac-container">
+  <div class="analytics-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px">
+    <div class="stat-card"><div class="stat-val" id="statRoles">0</div><div class="stat-lbl">الأدوار</div></div>
+    <div class="stat-card"><div class="stat-val" id="statPermissions">0</div><div class="stat-lbl">الصلاحيات</div></div>
+    <div class="stat-card"><div class="stat-val" id="statAssignments">0</div><div class="stat-lbl">التعيينات</div></div>
+    <div class="stat-card"><div class="stat-val" id="statCoverage">0%</div><div class="stat-lbl">التغطية</div></div>
+    <div class="stat-card"><div class="stat-val" id="statHighRisk">0</div><div class="stat-lbl">صلاحيات خطيرة</div></div>
+    <div class="stat-card"><div class="stat-val" id="statPending">0</div><div class="stat-lbl">طلبات معلقة</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="roles" onclick="switchTab('roles')"><i class="ti ti-users"></i> الأدوار</div>
+    <div class="tab" data-tab="permissions" onclick="switchTab('permissions')"><i class="ti ti-lock"></i> الصلاحيات</div>
+    <div class="tab" data-tab="assignments" onclick="switchTab('assignments')"><i class="ti ti-user-plus"></i> التعيينات</div>
+    <div class="tab" data-tab="analytics" onclick="switchTab('analytics')"><i class="ti ti-chart-bar"></i> التحليلات</div>
+    <div class="tab" data-tab="requests" onclick="switchTab('requests')"><i class="ti ti-file-text"></i> الطلبات</div>
+    <div class="tab" data-tab="audit" onclick="switchTab('audit')"><i class="ti ti-history"></i> السجل</div>
+  </div>
+  <div class="tab-content active" id="tab-roles">
+    <div class="section-header"><h2>جميع الأدوار</h2><button class="btn btn-red btn-sm" onclick="openRoleModal()"><i class="ti ti-plus"></i> دور جديد</button></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>الاسم</th><th>الوصف</th><th>النطاق</th><th>الأصل</th><th>الصلاحيات</th><th>المستخدمون</th><th>المخاطر</th><th></th></tr></thead><tbody id="rolesTableBody"></tbody></table></div>
+  </div>
+  <div class="tab-content" id="tab-permissions">
+    <div class="section-header"><h2>جميع الصلاحيات</h2><button class="btn btn-red btn-sm" onclick="openPermissionModal()"><i class="ti ti-plus"></i> صلاحية جديدة</button></div>
+    <div style="margin-bottom:12px"><input id="permFilter" class="form-input" placeholder="بحث..." oninput="filterPermissions()" style="max-width:300px"></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>الاسم</th><th>الكود</th><th>الوحدة</th><th>خطيرة</th><th>تتطلب 2FA</th><th>تتطلب موافقة</th><th></th></tr></thead><tbody id="permissionsTableBody"></tbody></table></div>
+  </div>
+  <div class="tab-content" id="tab-assignments">
+    <div class="section-header"><h2>تعيينات الأدوار</h2><button class="btn btn-red btn-sm" onclick="openAssignModal()"><i class="ti ti-plus"></i> تعيين جديد</button><button class="btn btn-ghost btn-sm" onclick="openBulkAssignModal()"><i class="ti ti-users"></i> تعيين شامل</button></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>الموظف</th><th>الدور</th><th>النوع</th><th>تاريخ البداية</th><th>تاريخ النهاية</th><th>الحالة</th><th></th></tr></thead><tbody id="assignmentsTableBody"></tbody></table></div>
+  </div>
+  <div class="tab-content" id="tab-analytics">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px">توزيع الأدوار</h3><canvas id="rolesChart" height="200"></canvas></div>
+      <div class="card"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px">مقارنة الأدوار</h3>
+        <div style="margin-bottom:10px"><select id="matrixRole1" class="form-input" style="width:48%;margin-left:4%"></select><select id="matrixRole2" class="form-input" style="width:48%"></select></div>
+        <button class="btn btn-red btn-sm" onclick="showMatrix()">مقارنة</button>
+        <div id="matrixResult" style="margin-top:12px"></div>
+      </div>
+      <div class="card" style="grid-column:span 2"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px">من يملك صلاحية</h3>
+        <select id="whoHasPermSelect" class="form-input" style="max-width:300px" onchange="whoHasPermission()"></select>
+        <div id="whoHasResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">الصلاحيات عالية المخاطر</h3>
+      <div id="highRiskList"></div>
+    </div>
+  </div>
+  <div class="tab-content" id="tab-requests">
+    <div class="section-header"><h2>طلبات الصلاحيات</h2></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>الموظف</th><th>الصلاحيات المطلوبة</th><th>المبرر</th><th>المدة</th><th>الحالة</th><th>تاريخ الطلب</th><th></th></tr></thead><tbody id="requestsTableBody"></tbody></table></div>
+  </div>
+  <div class="tab-content" id="tab-audit">
+    <div class="section-header"><h2>سجل التغييرات</h2></div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>الإجراء</th><th>النوع</th><th>التفاصيل</th><th>المستخدم</th><th>IP</th><th>التاريخ</th></tr></thead><tbody id="auditTableBody"></tbody></table></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="roleModal">
+  <div class="modal-sheet" style="max-width:550px">
+    <div class="modal-handle"></div>
+    <h3 id="roleModalTitle" style="font-size:15px;font-weight:700;margin-bottom:16px">دور جديد</h3>
+      <label>الاسم</label><input id="roleName" class="form-input">
+      <label>الاسم بالعربية</label><input id="roleNameAr" class="form-input">
+      <label>الوصف</label><textarea id="roleDesc" class="form-input" rows="2"></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>الدور الأب</label><select id="roleParent" class="form-input"><option value="">بدون</option></select></div>
+        <div><label>النطاق</label><select id="roleScope" class="form-input"><option value="department">القسم</option><option value="organization">المؤسسة</option><option value="self">الذات</option></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>مستوى المخاطرة</label><select id="roleRisk" class="form-input"><option value="low">منخفض</option><option value="medium">متوسط</option><option value="high">عالي</option></select></div>
+        <div><label>الحد الأقصى</label><input id="roleMax" type="number" class="form-input" placeholder="غير محدود"></div>
+      </div>
+      <label style="margin-top:12px;display:block">الصلاحيات</label>
+      <div id="rolePermsCheckboxes" class="checkbox-grid"></div>
+      <label style="margin-top:12px;display:block">الأقسام</label>
+      <div id="roleDeptCheckboxes" class="checkbox-grid"></div>
+      <input type="hidden" id="editRoleId" value="">
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="saveRole()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="permModal">
+  <div class="modal-sheet" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">صلاحية جديدة</h3>
+      <label>الاسم</label><input id="permName" class="form-input">
+      <label>الاسم بالعربية</label><input id="permNameAr" class="form-input">
+      <label>الكود</label><input id="permCode" class="form-input" placeholder="employees.view">
+      <label>الوحدة</label><input id="permModule" class="form-input" placeholder="employees">
+      <label>الوصف</label><textarea id="permDesc" class="form-input" rows="2"></textarea>
+      <div style="margin-top:10px"><label><input type="checkbox" id="permHighRisk"> صلاحية خطيرة</label></div>
+      <div><label><input type="checkbox" id="permRequire2FA"> تتطلب تحقق两步</label></div>
+      <div><label><input type="checkbox" id="permRequireApproval"> تتطلب موافقة</label></div>
+      <input type="hidden" id="editPermId" value="">
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="savePermission()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="assignModal">
+  <div class="modal-sheet" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">تعيين دور</h3>
+      <label>الموظف</label><select id="assignEmployee" class="form-input"></select>
+      <label>الدور</label><select id="assignRole" class="form-input"></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>النوع</label><select id="assignType" class="form-input" onchange="toggleAssignDates()">
+          <option value="permanent">دائم</option><option value="temporary">مؤقت</option><option value="seasonal">موسمي</option><option value="shift-based">حسب الوردية</option>
+        </select></div>
+        <div><label>أساسي</label><select id="assignPrimary" class="form-input"><option value="true">نعم</option><option value="false">لا</option></select></div>
+      </div>
+      <div id="assignDates" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>تاريخ البداية</label><input id="assignStart" type="date" class="form-input"></div>
+        <div><label>تاريخ النهاية</label><input id="assignEnd" type="date" class="form-input"></div>
+      </div>
+      <div id="assignSeasonal" style="display:none;margin-top:12px">
+        <label>الأشهر</label><div id="seasonMonths" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <label><input type="checkbox" value="1"> يناير</label><label><input type="checkbox" value="2"> فبراير</label>
+          <label><input type="checkbox" value="3"> مارس</label><label><input type="checkbox" value="4"> أبريل</label>
+          <label><input type="checkbox" value="5"> مايو</label><label><input type="checkbox" value="6"> يونيو</label>
+          <label><input type="checkbox" value="7"> يوليو</label><label><input type="checkbox" value="8"> أغسطس</label>
+          <label><input type="checkbox" value="9"> سبتمبر</label><label><input type="checkbox" value="10"> أكتوبر</label>
+          <label><input type="checkbox" value="11"> نوفمبر</label><label><input type="checkbox" value="12"> ديسمبر</label>
+        </div>
+      </div>
+      <label style="margin-top:12px">ملاحظات</label><textarea id="assignNotes" class="form-input" rows="2"></textarea>
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="saveAssignment()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bulkAssignModal">
+  <div class="modal-sheet" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">تعيين شامل</h3>
+      <label>اختر الموظفين</label>
+      <div id="bulkEmpCheckboxes" class="checkbox-grid"></div>
+      <label style="margin-top:12px">الدور</label><select id="bulkRole" class="form-input"></select>
+      <label>نوع التعيين</label><select id="bulkAssignType" class="form-input">
+        <option value="permanent">دائم</option><option value="temporary">مؤقت</option>
+      </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>تاريخ البداية</label><input id="bulkStart" type="date" class="form-input"></div>
+        <div><label>تاريخ النهاية</label><input id="bulkEnd" type="date" class="form-input"></div>
+      </div>
+      <label>ملاحظات</label><textarea id="bulkNotes" class="form-input" rows="2"></textarea>
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="saveBulkAssign()">تعيين</button>
+</div></div>
+
+<div class="modal-overlay" id="requestModal">
+  <div class="modal-sheet" style="max-width:450px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">طلب صلاحيات</h3>
+      <label>الصلاحيات المطلوبة</label>
+      <div id="reqPermCheckboxes" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+      <label style="margin-top:12px">المبرر</label><textarea id="reqJustification" class="form-input" rows="3"></textarea>
+      <label>المدة (أيام)</label><input id="reqDuration" type="number" class="form-input" value="30">
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="submitRequest()">إرسال الطلب</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="delegationModal">
+  <div class="modal-sheet" style="max-width:450px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">تفويض صلاحيات</h3>
+      <label>المفوض إليه</label><select id="dlgDelegate" class="form-input"></select>
+      <label>الصلاحيات</label>
+      <div id="dlgPermCheckboxes" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+      <label>تاريخ النهاية</label><input id="dlgEnd" type="date" class="form-input">
+      <label>السبب</label><textarea id="dlgReason" class="form-input" rows="2"></textarea>
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="saveDelegation()">تفويض</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reviewRequestModal">
+  <div class="modal-sheet" style="max-width:450px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">مراجعة الطلب</h3>
+      <input type="hidden" id="reviewRequestId" value="">
+      <p id="reviewDetails"></p>
+      <label>التعليق</label><textarea id="reviewComment" class="form-input" rows="3"></textarea>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-red" style="flex:1" onclick="reviewRequest('approved')">موافقة</button>
+        <button class="btn btn-ghost" style="flex:1;border-color:var(--red);color:var(--red)" onclick="reviewRequest('rejected')">رفض</button>
+      </div>
+</div></div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/rbac-interactions.js') }}"></script>
+<script src="{{ url_for('static', filename='js/rbac-charts.js') }}"></script>
+{% endblock %}

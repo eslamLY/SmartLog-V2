@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% set nav_active = 'qr_generator' %}
+{% block title %}مولد QR للتسجيل{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700">مولد رمز QR — تسجيل الحضور الاحتياطي</h1>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px);display:flex;flex-direction:column;align-items:center">
+  <div class="card" style="padding:30px;text-align:center;max-width:420px;width:100%">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
+      <i class="ti ti-info-circle" style="color:var(--accent)"></i>
+      يتم تحديث الرمز تلقائياً كل 5 ثوانٍ. وجه كاميرا الموظف نحو الشاشة لتسجيل الحضور.
+    </div>
+    <div id="qrContainer" style="background:#fff;border-radius:16px;padding:20px;display:inline-block;margin-bottom:14px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+      <div id="qrcode"></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+      <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;animation:pulse 1s infinite" id="statusDot"></div>
+      <span style="font-size:13px;color:var(--muted)" id="statusText">نشط — يتم التحديث</span>
+    </div>
+    <div style="font-size:24px;font-weight:800;font-family:monospace;direction:ltr" id="countdownTimer">05</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">ثوانٍ حتى التحديث التالي</div>
+    <div style="margin-top:16px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:12px;color:var(--muted);word-break:break-all;direction:ltr;font-family:monospace;text-align:left;max-height:60px;overflow:hidden" id="currentToken"></div>
+  </div>
+</div>
+<style>
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+</style>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+var qrEl = document.getElementById('qrcode');
+var qr = null;
+var countdown = 5;
+
+function fetchToken(){
+  fetch('/api/qr-token').then(function(r){ return r.json(); }).then(function(d){
+    if(!qr){
+      qr = new QRCode(qrEl, {width:220,height:220,correctLevel:QRCode.CorrectLevel.H});
+    }
+    qr.clear();
+    qr.makeCode(d.token);
+    document.getElementById('currentToken').textContent = d.token;
+    document.getElementById('statusText').textContent = 'نشط — تم التحديث';
+    document.getElementById('statusDot').style.background = '#22c55e';
+    countdown = d.expires_in || 5;
+  }).catch(function(){
+    document.getElementById('statusText').textContent = 'خطأ في الاتصال';
+    document.getElementById('statusDot').style.background = '#ef4444';
+  });
+}
+
+function tick(){
+  countdown--;
+  var display = countdown < 0 ? '00' : (countdown < 10 ? '0' : '') + countdown;
+  document.getElementById('countdownTimer').textContent = display;
+  if(countdown <= 0){
+    fetchToken();
+  }
+}
+
+fetchToken();
+setInterval(tick, 1000);
+</script>
+{% endblock %}

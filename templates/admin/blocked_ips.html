@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}العناوين المحظورة{% endblock %}
+{% block content %}
+<div style="padding:20px;direction:rtl">
+  <h1 style="font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <i class="ti ti-shield-off" style="color:var(--accent)"></i> العناوين IP المحظورة
+  </h1>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:rgba(255,255,255,0.04)">
+          <th style="padding:12px 16px;text-align:center;color:#94a3b8;font-weight:600">#</th>
+          <th style="padding:12px 16px;text-align:center;color:#94a3b8;font-weight:600">عنوان IP</th>
+          <th style="padding:12px 16px;text-align:center;color:#94a3b8;font-weight:600">عدد المخالفات</th>
+          <th style="padding:12px 16px;text-align:center;color:#94a3b8;font-weight:600">تاريخ الحظر</th>
+          <th style="padding:12px 16px;text-align:center;color:#94a3b8;font-weight:600">ينتهي في</th>
+          <th style="padding:12px 16px;text-align:center;color:#94a3b8;font-weight:600">الحالة</th>
+          <th style="padding:12px 16px;text-align:center;color:#94a3b8;font-weight:600">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in banned %}
+        <tr style="border-top:1px solid var(--border2)">
+          <td style="padding:12px 16px;text-align:center;color:var(--text)">{{ loop.index }}</td>
+          <td style="padding:12px 16px;text-align:center;font-family:monospace;color:var(--text)">{{ b.ip_address }}</td>
+          <td style="padding:12px 16px;text-align:center">{{ b.violation_count }}</td>
+          <td style="padding:12px 16px;text-align:center;font-size:12px;color:var(--muted)">{{ b.banned_at.strftime('%Y-%m-%d %H:%M') if b.banned_at else '-' }}</td>
+          <td style="padding:12px 16px;text-align:center;font-size:12px">
+            {% if b.is_permanent %}
+            <span style="color:var(--accent);font-weight:700">دائم</span>
+            {% elif b.ban_expiry %}
+            <span style="color:var(--muted)">{{ b.ban_expiry.strftime('%Y-%m-%d %H:%M') }}</span>
+            {% else %}
+            <span style="color:var(--muted)">-</span>
+            {% endif %}
+          </td>
+          <td style="padding:12px 16px;text-align:center">
+            {% if b.is_permanent %}
+            <span style="background:rgba(229,57,53,0.2);color:#ef4444;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600">دائم</span>
+            {% elif b.is_active and b.ban_expiry and b.ban_expiry > now %}
+            <span style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600">نشط</span>
+            {% else %}
+            <span style="background:rgba(107,114,128,0.2);color:#6b7280;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600">منتهي</span>
+            {% endif %}
+          </td>
+          <td style="padding:12px 16px;text-align:center">
+            {% if b.is_active %}
+            <button class="btn btn-sm" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-family:Cairo,sans-serif" onclick="unban({{ b.id }})">
+              <i class="ti ti-shield-check"></i> إلغاء الحظر
+            </button>
+            {% else %}
+            <span style="color:var(--muted);font-size:12px">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="padding:40px;text-align:center;color:var(--muted)">
+            <i class="ti ti-shield-check" style="font-size:32px;display:block;margin-bottom:8px;opacity:.5"></i>
+            لا توجد عناوين IP محظورة
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function unban(id) {
+  if (!confirm('إلغاء حظر عنوان IP هذا؟')) return;
+  fetch('/api/admin/blocked-ips/' + id + '/unban', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) { location.reload(); }
+      else { alert(data.msg || 'فشل'); }
+    });
+}
+</script>
+<style>
+.btn-sm { font-size:12px; }
+.btn-sm:hover { opacity:.85; }
+</style>
+{% endblock %}

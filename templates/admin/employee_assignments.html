@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% set nav_active = 'rbac' %}
+{% block title %}تعيين الأدوار{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/rbac-premium.css') }}">
+{% endblock %}
+{% block content %}
+<header class="rbac-header">
+  <div><h1><i class="ti ti-user-plus"></i> تعيين الأدوار للموظفين</h1><p style="color:var(--muted);font-size:13px">تعيين وإدارة أدوار الموظفين</p></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-red btn-sm" onclick="openAssignModal()"><i class="ti ti-plus"></i> تعيين جديد</button>
+    <button class="btn btn-ghost btn-sm" onclick="openBulkAssignModal()"><i class="ti ti-users"></i> تعيين شامل</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.location='/admin/rbac'"><i class="ti ti-arrow-right"></i> العودة</button>
+  </div>
+</header>
+<div class="rbac-container">
+  <div class="section-header"><h2>جميع التعيينات</h2></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>الموظف</th><th>الدور</th><th>النوع</th><th>تاريخ البداية</th><th>تاريخ النهاية</th><th>الحالة</th><th></th></tr></thead><tbody id="assignmentsTableBody"></tbody></table></div>
+</div>
+
+<div class="modal-overlay" id="assignModal">
+  <div class="modal-sheet" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">تعيين دور</h3>
+      <label>الموظف</label><select id="assignEmployee" class="form-input"></select>
+      <label>الدور</label><select id="assignRole" class="form-input"></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>النوع</label><select id="assignType" class="form-input" onchange="toggleAssignDates()">
+          <option value="permanent">دائم</option><option value="temporary">مؤقت</option><option value="seasonal">موسمي</option><option value="shift-based">حسب الوردية</option>
+        </select></div>
+        <div><label>أساسي</label><select id="assignPrimary" class="form-input"><option value="true">نعم</option><option value="false">لا</option></select></div>
+      </div>
+      <div id="assignDates" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>تاريخ البداية</label><input id="assignStart" type="date" class="form-input"></div>
+        <div><label>تاريخ النهاية</label><input id="assignEnd" type="date" class="form-input"></div>
+      </div>
+      <div id="assignSeasonal" style="display:none;margin-top:12px">
+        <label>الأشهر</label><div id="seasonMonths" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <label><input type="checkbox" value="1"> يناير</label><label><input type="checkbox" value="2"> فبراير</label>
+          <label><input type="checkbox" value="3"> مارس</label><label><input type="checkbox" value="4"> أبريل</label>
+          <label><input type="checkbox" value="5"> مايو</label><label><input type="checkbox" value="6"> يونيو</label>
+          <label><input type="checkbox" value="7"> يوليو</label><label><input type="checkbox" value="8"> أغسطس</label>
+          <label><input type="checkbox" value="9"> سبتمبر</label><label><input type="checkbox" value="10"> أكتوبر</label>
+          <label><input type="checkbox" value="11"> نوفمبر</label><label><input type="checkbox" value="12"> ديسمبر</label>
+        </div>
+      </div>
+      <label style="margin-top:12px">ملاحظات</label><textarea id="assignNotes" class="form-input" rows="2"></textarea>
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="saveAssignment()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bulkAssignModal">
+  <div class="modal-sheet" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">تعيين شامل</h3>
+      <label>اختر الموظفين</label>
+      <div id="bulkEmpCheckboxes" class="checkbox-grid"></div>
+      <label style="margin-top:12px">الدور</label><select id="bulkRole" class="form-input"></select>
+      <label>نوع التعيين</label><select id="bulkAssignType" class="form-input"><option value="permanent">دائم</option><option value="temporary">مؤقت</option></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><label>تاريخ البداية</label><input id="bulkStart" type="date" class="form-input"></div>
+        <div><label>تاريخ النهاية</label><input id="bulkEnd" type="date" class="form-input"></div>
+      </div>
+      <label>ملاحظات</label><textarea id="bulkNotes" class="form-input" rows="2"></textarea>
+      <button class="btn btn-red" style="width:100%;margin-top:16px" onclick="saveBulkAssign()">تعيين</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/rbac-interactions.js') }}"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){loadAssignments()})</script>
+{% endblock %}

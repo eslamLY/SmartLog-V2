@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% set nav_active = 'dashboard' %}
+{% block title %}لوحة التحكم — {{ month_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<header class="dash-header" id="dashHeader">
+  <div class="dash-header-left">
+    <button class="btn btn-ghost btn-sm d-md-none" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+    <div class="header-date-info">
+      <div class="header-day">{{ day_name }}</div>
+      <div class="header-date">{{ today.strftime('%d %B %Y') }}</div>
+    </div>
+    <div class="header-live-clock" id="liveClock">--:--:--</div>
+    <span class="status-dot online" id="statusDot" title="متصل"></span>
+    <span class="status-text" id="statusText">متصل</span>
+  </div>
+  <div class="dash-header-right">
+    <div class="search-bar">
+      <i class="ti ti-search"></i>
+      <input type="text" id="globalSearch" placeholder="بحث..." oninput="doGlobalSearch(this.value)">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+    <div class="font-controls">
+      <button class="btn btn-ghost btn-xs" onclick="changeFontSize(-1)" title="تصغير الخط">A-</button>
+      <button class="btn btn-ghost btn-xs" onclick="changeFontSize(0)" title="الخط الافتراضي">A</button>
+      <button class="btn btn-ghost btn-xs" onclick="changeFontSize(1)" title="تكبير الخط">A+</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="themeToggle" onclick="toggleTheme()" title="تبديل السمة"><i class="ti ti-moon"></i></button>
+    <div class="notif-bell" onclick="toggleNotifDropdown()">
+      <i class="ti ti-bell"></i>
+      <span class="notif-badge" id="notifBadge">0</span>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-dropdown-header">الإشعارات</div>
+        <div id="notifList"></div>
+        <a href="/admin/notifications" class="notif-dropdown-footer">عرض الكل</a>
+      </div>
+    </div>
+    <div class="admin-profile" onclick="toggleProfileDropdown()">
+      <div class="admin-avatar">{{ session.get('username','A')[0] }}</div>
+      <span class="admin-name">{{ session.get('username','Admin') }}</span>
+      <div class="profile-dropdown" id="profileDropdown">
+        <a href="/admin/profile">الملف الشخصي</a>
+        <a href="/admin/settings">الإعدادات</a>
+        <a href="/logout">تسجيل الخروج</a>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="dash-body">
+  <div class="dash-refresh-bar">
+    <span id="lastUpdateLabel">آخر تحديث: الآن</span>
+    <button class="btn btn-ghost btn-sm" onclick="manualRefresh()"><i class="ti ti-refresh"></i> تحديث الآن</button>
+  </div>
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card stat-purple" onclick="location.href='/admin/employees'">
+      <div class="stat-icon"><i class="ti ti-users"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statTotal" data-target="0">0</div>
+        <div class="stat-label">إجمالي الموظفين</div>
+        <div class="stat-trend" id="trendTotal"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-green" onclick="location.href='/admin/attendance?status=present'">
+      <div class="stat-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statPresent" data-target="0">0</div>
+        <div class="stat-label">حاضر اليوم</div>
+        <div class="stat-trend" id="trendPresent"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-orange" onclick="location.href='/admin/attendance?status=late'">
+      <div class="stat-icon"><i class="ti ti-clock-alert"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statLate" data-target="0">0</div>
+        <div class="stat-label">متأخر اليوم</div>
+        <div class="stat-trend" id="trendLate"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-red" onclick="location.href='/admin/attendance?status=absent'">
+      <div class="stat-icon"><i class="ti ti-user-x"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statAbsent" data-target="0">0</div>
+        <div class="stat-label">غائب اليوم</div>
+        <div class="stat-trend" id="trendAbsent"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-blue" onclick="location.href='/admin/leaves'">
+      <div class="stat-icon"><i class="ti ti-file-text"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statOnLeave" data-target="0">0</div>
+        <div class="stat-label">إجازة اليوم</div>
+        <div class="stat-trend"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-orange" onclick="location.href='/admin/attendance?status=no_clockout'">
+      <div class="stat-icon"><i class="ti ti-logout-off"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statNoClockout" data-target="0">0</div>
+        <div class="stat-label">لم يسجل انصراف</div>
+        <div class="stat-trend"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-purple" onclick="location.href='/admin/documents'">
+      <div class="stat-icon"><i class="ti ti-file-alert"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statExpiring" data-target="0">0</div>
+        <div class="stat-label">مستندات تنتهي قريباً</div>
+        <div class="stat-trend"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-blue" onclick="location.href='/admin/leave-mgmt'">
+      <div class="stat-icon"><i class="ti ti-calendar-clock"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statPendingLeaves" data-target="0">0</div>
+        <div class="stat-label">إجازات معلقة</div>
+        <div class="stat-trend"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-green" onclick="location.href='/admin/promotions'">
+      <div class="stat-icon"><i class="ti ti-arrow-up-circle"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statEligiblePromo" data-target="0">0</div>
+        <div class="stat-label">مؤهل للترقية</div>
+        <div class="stat-trend"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-gray" onclick="location.href='/admin/employee-analytics'">
+      <div class="stat-icon"><i class="ti ti-chart-pie"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statExtendedPct" data-target="0">0%</div>
+        <div class="stat-label">بيانات متقدمة</div>
+        <div class="stat-trend"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-red pulse-warning" id="offlineCard" onclick="location.href='/admin/devices'">
+      <div class="stat-icon"><i class="ti ti-device-desktop-off"></i></div>
+      <div class="stat-content">
+        <div class="stat-number" id="statOffline" data-target="0">0</div>
+        <div class="stat-label">أجهزة غير متصلة</div>
+        <div class="stat-trend"></div>
+      </div>
+    </div>
+  </div>
+  <div class="quick-actions">
+    <button class="qa-btn" onclick="location.href='/admin/reports'"><i class="ti ti-report"></i><span>تقرير اليوم</span></button>
+    <button class="qa-btn" onclick="exportRecords()"><i class="ti ti-file-spreadsheet"></i><span>تصدير Excel</span></button>
+    <button class="qa-btn" onclick="location.href='/admin/devices'"><i class="ti ti-sync"></i><span>مزامنة الأجهزة</span></button>
+    <button class="qa-btn" onclick="location.href='/admin/employees'"><i class="ti ti-user-plus"></i><span>إضافة موظف</span></button>
+    <button class="qa-btn" onclick="location.href='/admin/shifts'"><i class="ti ti-calendar-clock"></i><span>جدول الورديات</span></button>
+    <button class="qa-btn" onclick="location.href='/admin/documents'"><i class="ti ti-bell-ring"></i><span>تنبيهات الانتهاء</span></button>
+    <button class="qa-btn" onclick="window.print()"><i class="ti ti-printer"></i><span>طباعة الكشف</span></button>
+    <button class="qa-btn" onclick="location.href='/admin/attendance'"><i class="ti ti-eye"></i><span>عرض الكل</span></button>
+  </div>
+  <div class="alerts-panel" id="alertsPanel">
+    <div class="alerts-header" onclick="toggleAlerts()">
+      <span><i class="ti ti-bell-ring"></i> التنبيهات</span>
+      <span class="alerts-count" id="alertsCount">0</span>
+      <span class="alerts-toggle"><i class="ti ti-chevron-down" id="alertsChevron"></i></span>
+    </div>
+    <div class="alerts-body" id="alertsBody"></div>
+    <div class="alerts-footer" id="alertsFooter" style="display:none">
+      <button class="btn btn-ghost btn-xs" onclick="dismissAllAlerts()">تجاهل الكل</button>
+    </div>
+  </div>
+  <div class="charts-grid">
+    <div class="card chart-card chart-card-large">
+      <div class="card-header">
+        <span>نظرة عامة على الحضور</span>
+        <div class="chart-mode-toggle">
+          <button class="btn btn-ghost btn-xs active" data-mode="weekly" onclick="switchChartMode(this,'weekly')">أسبوعي</button>
+          <button class="btn btn-ghost btn-xs" data-mode="monthly" onclick="switchChartMode(this,'monthly')">شهري</button>
+          <button class="btn btn-ghost btn-xs" data-mode="30days" onclick="switchChartMode(this,'30days')">30 يوم</button>
+        </div>
+      </div>
+      <div class="chart-body"><canvas id="weeklyChart"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <div class="card-header"><span>حالة الحضور اليوم</span></div>
+      <div class="chart-body chart-donut-body">
+        <canvas id="donutChart"></canvas>
+        <div class="donut-center" id="donutCenter">0</div>
+      </div>
+      <div class="donut-legend" id="donutLegend"></div>
+    </div>
+    <div class="card chart-card chart-card-full">
+      <div class="card-header"><span>خريطة الحضور (الأقسام × الأيام)</span></div>
+      <div class="chart-body">
+        <div class="heatmap-container" id="heatmapContainer">
+          <div class="heatmap-loading">جاري التحميل...</div>
+        </div>
+      </div>
+    </div>
+    <div class="card chart-card">
+      <div class="card-header"><span>ترتيب الانضباط</span><a href="/admin/attendance" class="btn btn-ghost btn-xs">عرض الكل</a></div>
+      <div class="chart-body"><canvas id="punctualityChart"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <div class="card-header"><span>توزيع الحضور بالساعة</span></div>
+      <div class="chart-body"><canvas id="hourlyChart"></canvas></div>
+    </div>
+  </div>
+  <div class="map-section">
+    <div class="card">
+      <div class="card-header">
+        <span><i class="ti ti-map-pin"></i> خريطة أجهزة البصمة</span>
+        <button class="btn btn-ghost btn-xs" onclick="toggleMapFullscreen()"><i class="ti ti-maximize"></i></button>
+      </div>
+      <div id="attendanceMap" class="map-container"></div>
+    </div>
+  </div>
+  <div class="schedule-section">
+    <div class="card">
+      <div class="card-header"><span><i class="ti ti-calendar-time"></i> جدول الورديات اليوم</span></div>
+      <div class="schedule-timeline" id="scheduleTimeline"></div>
+    </div>
+  </div>
+  <div class="card records-section">
+    <div class="card-header">
+      <span><i class="ti ti-clock"></i> آخر تسجيلات اليوم</span>
+      <div class="records-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportRecords()"><i class="ti ti-download"></i> تحميل كشف الحضور</button>
+      </div>
+    </div>
+    <div class="records-filters">
+      <div class="filter-group">
+        <i class="ti ti-search"></i>
+        <input type="text" id="recordsSearch" placeholder="بحث باسم الموظف..." oninput="debounceSearch()">
+      </div>
+      <select id="recordsDeptFilter" onchange="loadRecords()"><option value="">كل الأقسام</option></select>
+      <select id="recordsStatusFilter" onchange="loadRecords()"><option value="">كل الحالات</option></select>
+      <input type="date" id="recordsDateFilter" onchange="loadRecords()">
+    </div>
+    <div class="records-table-wrapper">
+      <div class="skeleton-table" id="recordsSkeleton">
+        <div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
+        <div class="skeleton-row"></div><div class="skeleton-row"></div>
+      </div>
+      <table class="records-table" id="recordsTable" style="display:none">
+        <thead><tr><th></th><th>الموظف</th><th>القسم</th><th>الحضور</th><th>الانصراف</th><th>المدة</th><th>الجهاز</th><th>الحالة</th><th></th></tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+      <div class="records-empty" id="recordsEmpty" style="display:none">
+        <i class="ti ti-clock-off"></i>
+        <p>لا توجد تسجيلات اليوم</p>
+      </div>
+    </div>
+    <div class="records-footer">
+      <span id="recordsInfo">عرض 0 من 0</span>
+      <button class="btn btn-ghost btn-sm" id="loadMoreBtn" onclick="loadMoreRecords()" style="display:none">عرض المزيد</button>
+    </div>
+  </div>
+</div>
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="ti ti-arrow-up"></i></button>
+<div class="refresh-overlay" id="refreshOverlay" style="display:none"><div class="spinner"></div></div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

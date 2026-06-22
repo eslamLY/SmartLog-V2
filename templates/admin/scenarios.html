@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% set nav_active = 'forecast' %}
+{% block title %}محاكاة السيناريوهات{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/forecasting-premium.css">
+<div class="f-header">
+  <h1><i class="ti ti-flask"></i> محاكاة السيناريوهات</h1>
+  <div class="f-header-actions">
+    <span class="f-badge f-badge-accent"><i class="ti ti-sparkles"></i> What-If</span>
+  </div>
+</div>
+<div class="f-grid" style="padding:20px">
+  <div class="f-card" style="grid-column:1/-1">
+    <h3>🧪 منشئ السيناريوهات</h3>
+    <div class="f-form-row">
+      <select id="scenarioType" class="f-input">
+        <option value="departure">🚶 رحيل موظف</option>
+        <option value="mass_absence">🤒 غياب جماعي</option>
+        <option value="leave_wave">🏖️ موجة إجازات</option>
+        <option value="new_hire">👥 توظيف جديد</option>
+        <option value="budget_change">💰 تغيير الميزانية</option>
+        <option value="custom">⚙️ مخصص</option>
+      </select>
+      <select id="scenarioDept" class="f-input"><option value="">كل الأقسام</option></select>
+      <input type="number" id="scenarioCount" class="f-input" placeholder="العدد" value="3" min="1" style="width:80px">
+      <input type="number" id="scenarioPct" class="f-input" placeholder="%" value="20" min="1" max="100" style="width:70px">
+      <button class="f-btn f-btn-accent" onclick="runScenario()"><i class="ti ti-play"></i> تشغيل</button>
+    </div>
+    <div id="scenarioResult" style="margin-top:16px"></div>
+  </div>
+  <div class="f-card" style="grid-column:1/-1">
+    <h3>📋 السيناريوهات الجاهزة</h3>
+    <div id="presetsContainer"><p style="color:var(--muted)">جاري التحميل...</p></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/forecasting-api.js"></script>
+<script>
+async function init(){
+  await loadDepts();
+  await loadPresets();
+}
+async function loadDepts(){
+  try{
+    var r=await fetch('/api/departments');
+    var depts=await r.json();
+    var opts='<option value="">كل الأقسام</option>';
+    (depts||[]).forEach(function(d){opts+='<option value="'+(d.name||d)+'">'+(d.name||d)+'</option>'});
+    $('#scenarioDept').innerHTML=opts;
+  }catch(e){}
+}
+async function loadPresets(){
+  try{
+    var data=await getJSON('/api/scenarios/presets');
+    var html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px">';
+    (data.presets||[]).forEach(function(p){
+      html+='<div class="f-preset-card" onclick="applyPreset(\''+p.id+'\',\''+p.name+'\',\''+p.description+'\')">'
+        +'<div style="font-weight:700;font-size:13px">'+p.name+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:4px">'+p.description+'</div>'
+        +'</div>'
+    });
+    html+='</div>';
+    $('#presetsContainer').innerHTML=html;
+  }catch(e){}
+}
+function applyPreset(id,name,desc){
+  $('#scenarioType').value='mass_absence';
+  $('#scenarioCount').value=5;
+  $('#scenarioPct').value=30;
+  showResult('تم تطبيق: '+name+'<br><span style="color:var(--muted);font-size:12px">'+desc+'</span>');
+}
+async function runScenario(){
+  var type=$('#scenarioType').value,dept=$('#scenarioDept').value,cnt=parseInt($('#scenarioCount').value)||3,pct=parseInt($('#scenarioPct').value)||20;
+  var params={count:cnt,percentage:pct};
+  if(dept)params.department=dept;
+  showResult('<div class="f-spinner" style="margin:0 auto"></div>');
+  try{
+    var r=await postJSON('/api/scenarios/simulate',{type:type,params:params});
+    var html=buildScenarioHTML(r);
+    showResult(html);
+  }catch(e){showResult('<div style="color:var(--red)">❌ خطأ: '+e.message+'</div>')}
+}
+function buildScenarioHTML(r){
+  if(r.error)return'<div style="color:var(--red)">❌ '+r.error+'</div>';
+  var html='<div class="f-result-card"><div class="f-result-icon">🧪</div><h4>'+r.scenario_name+'</h4>';
+  var imp=r.impact||{};
+  Object.keys(imp).forEach(function(k){
+    var v=imp[k];
+    if(typeof v==='object')return;
+    html+='<div class="f-stat-row"><span class="f-stat-label">'+k.replace(/_/g,' ')+'</span><span class="f-stat-value">'+v+'</span></div>'
+  });
+  if(imp.details){
+    html+='<div style="margin-top:8px;font-weight:600">تفاصيل الأقسام:</div>';
+    imp.details.forEach(function(d){
+      var ic=d.status==='critical'?'🔴':d.status==='warning'?'🟡':'🟢';
+      html+='<div class="f-stat-row"><span class="f-stat-label">'+ic+' '+d.department+'</span><span class="f-stat-value">'+d.remaining+'/'+d.total+' متاح</span></div>'
+    })
+  }
+  html+='<div class="f-rec-box">💡 <strong>التوصية:</strong> '+(r.recommendation||'—')+'</div></div>';
+  return html;
+}
+function showResult(html){$('#scenarioResult').innerHTML=html}
+function $(id){return document.getElementById(id)}
+init();
+</script>
+{% endblock %}

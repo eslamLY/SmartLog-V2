@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% set nav_active = 'notifications' %}
+{% block title %}الإشعارات{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-bell" style="color:var(--accent)"></i>الإشعارات</h1>
+    <button class="btn btn-red btn-sm" onclick="openModal('sendNotifModal')"><i class="ti ti-send"></i> إرسال إشعار</button>
+  </div>
+  <div style="font-size:12px;color:var(--muted);margin-top:6px">{{ total }} إشعار</div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 115px)">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="max-height:500px;overflow-y:auto">
+      <table class="tbl">
+        <thead><tr><th>العنوان</th><th>الرسالة</th><th>النوع</th><th>المستلم</th><th>مقروء</th><th>التاريخ</th></tr></thead>
+        <tbody>
+          {% for n in notes %}
+          <tr>
+            <td style="font-weight:600">{{ n.title }}</td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">{{ n.message }}</td>
+            <td><span class="badge {% if n.ntype=='danger' %}badge-absent{% elif n.ntype=='warning' %}badge-late{% elif n.ntype=='success' %}badge-present{% else %}badge-info{% endif %}">{{ n.ntype }}</span></td>
+            <td>{{ n.employee.full_name if n.employee else 'الكل' }}</td>
+            <td><span class="badge {% if n.is_read %}badge-present{% else %}badge-late{% endif %}">{{ 'نعم' if n.is_read else 'لا' }}</span></td>
+            <td style="font-size:11px;direction:ltr">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">
+            <i class="ti ti-bell-off" style="font-size:40px;display:block;margin-bottom:10px;opacity:.5"></i>
+            لا توجد إشعارات
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if pages > 1 %}
+  <div style="display:flex;justify-content:center;gap:6px;margin-top:14px">
+    {% for p in range(1, pages + 1) %}
+    <a href="?page={{ p }}" class="btn btn-sm {% if p == page %}btn-indigo{% else %}btn-outline{% endif %}">{{ p }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="sendNotifModal">
+  <div class="modal-sheet" style="max-width:520px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="ti ti-send" style="color:var(--accent)"></i>إرسال إشعار جديد</h3>
+    <div class="modal-grid">
+      <div class="full">
+        <label><i class="ti ti-users" style="color:var(--accent);margin-left:4px"></i>المستلم</label>
+        <select id="notifEmp" style="font-size:13px">
+          <option value="">— إرسال للجميع (عام) —</option>
+          {% for e in employees %}
+          <option value="{{ e.id }}">{{ e.full_name }} — {{ e.department }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="full">
+        <label><i class="ti ti-tag" style="color:var(--accent);margin-left:4px"></i>العنوان</label>
+        <input id="notifTitle" placeholder="عنوان الإشعار" style="font-size:13px">
+      </div>
+      <div class="full">
+        <label><i class="ti ti-message" style="color:var(--accent);margin-left:4px"></i>نص الإشعار</label>
+        <textarea id="notifMsg" rows="4" style="resize:vertical;font-size:13px" placeholder="اكتب نص الإشعار هنا..."></textarea>
+        <button id="aiEnhanceBtn" type="button" onclick="aiEnhance()" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:6px 14px;border:none;border-radius:8px;background:linear-gradient(135deg,#818cf8,#6366f1);color:#fff;font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.opacity='.9';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">
+          <i class="ti ti-sparkles"></i> تحسين النص بالذكاء الاصطناعي
+        </button>
+        <div id="aiStatus" style="font-size:12px;margin-top:4px;min-height:20px"></div>
+      </div>
+      <div>
+        <label><i class="ti ti-bell" style="color:var(--accent);margin-left:4px"></i>النوع</label>
+        <select id="notifType" style="font-size:13px">
+          <option value="info">معلومات</option>
+          <option value="warning">تحذير</option>
+          <option value="danger">خطير</option>
+          <option value="success">نجاح</option>
+        </select>
+      </div>
+      <div>
+        <label><i class="ti ti-link" style="color:var(--accent);margin-left:4px"></i>رابط (اختياري)</label>
+        <input id="notifUrl" placeholder="/admin/..." style="font-size:13px">
+      </div>
+      <div class="full">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted)"><input type="checkbox" id="notifGlobal" checked onchange="toggleNotifEmp()"> <i class="ti ti-world" style="color:var(--accent)"></i> إرسال للجميع</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-red" onclick="sendNotif()"><i class="ti ti-send"></i> إرسال</button>
+      <button class="btn btn-outline" onclick="closeModal('sendNotifModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleNotifEmp(){
+  var cb=document.getElementById('notifGlobal');
+  document.getElementById('notifEmp').disabled=cb.checked;
+}
+async function sendNotif(){
+  var empId=document.getElementById('notifEmp').value;
+  var title=document.getElementById('notifTitle').value.trim();
+  var msg=document.getElementById('notifMsg').value.trim();
+  var ntype=document.getElementById('notifType').value;
+  var url=document.getElementById('notifUrl').value.trim();
+  var global=document.getElementById('notifGlobal').checked;
+  if(!title||!msg){toast('العنوان والنص مطلوبان.','err');return;}
+  if(!global&&!empId){toast('اختر موظفاً أو فعّل الإرسال للجميع.','err');return;}
+  var r=await api('/admin/notifications/send',{
+    employee_id:empId?parseInt(empId):null,
+    title:title,message:msg,ntype:ntype,url:url||null,
+    is_global:global
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('sendNotifModal');setTimeout(()=>location.reload(),1500);}
+}
+
+async function aiEnhance(){
+  var ta=document.getElementById('notifMsg');
+  var status=document.getElementById('aiStatus');
+  var btn=document.getElementById('aiEnhanceBtn');
+  var raw=ta.value.trim();
+  if(!raw){status.innerHTML='<span style="color:var(--amber)"><i class="ti ti-alert-triangle"></i> اكتب نصاً أولاً.</span>';return;}
+  status.innerHTML='<span style="color:var(--accent)"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> جاري تحسين النص...</span>';
+  btn.disabled=true;btn.style.opacity='.6';
+
+  var prompt='أنت مساعد كتابة متخصص في تحسين نصوص الإشعارات الرسمية في بيئة العمل. أعد كتابة النص التالي ليكون أكثر احترافية ووضوحاً مع الحفاظ على المعنى الأصلي. اجعل النص مختصراً ومباشراً ومناسباً لإشعار رسمي للموظفين. لا تطلب أي معلومات إضافية، فقط أعد كتابة النص:\n\n'+raw;
+
+  try {
+    if(window.ai&&window.ai.languageModel){
+      var caps=await window.ai.languageModel.capabilities();
+      if(caps&&caps.available!=='no'){
+        var session=await window.ai.languageModel.create({systemPrompt:'أنت مساعد كتابة رسمي.'});
+        var result=await session.prompt(prompt);
+        ta.value=result.trim();
+        ta.style.transition='all .3s ease';
+        ta.style.background='rgba(99,102,241,.08)';ta.style.borderColor='var(--accent)';
+        setTimeout(()=>{ta.style.background='';ta.style.borderColor='';},1200);
+        status.innerHTML='<span style="color:var(--green)"><i class="ti ti-circle-check"></i> تم تحسين النص.</span>';
+      }else throw new Error('AI غير متاح حالياً.');
+    }else if(window.ai&&window.ai.assistant){
+      var session=await window.ai.assistant.create({systemPrompt:'أنت مساعد كتابة رسمي.'});
+      var result=await session.prompt(prompt);
+      ta.value=result.trim();
+      ta.style.transition='all .3s ease';
+      ta.style.background='rgba(99,102,241,.08)';ta.style.borderColor='var(--accent)';
+      setTimeout(()=>{ta.style.background='';ta.style.borderColor='';},1200);
+      status.innerHTML='<span style="color:var(--green)"><i class="ti ti-circle-check"></i> تم تحسين النص.</span>';
+    }else{
+      status.innerHTML='<span style="color:var(--red)"><i class="ti ti-alert-circle"></i> الذكاء الاصطناعي غير متوفر في هذا المتصفح.</span>';
+    }
+  }catch(e){
+    status.innerHTML='<span style="color:var(--red)"><i class="ti ti-alert-circle"></i> حدث خطأ: '+e.message+'</span>';
+  }
+  btn.disabled=false;btn.style.opacity='1';
+}
+</script>
+<style>
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+</style>
+{% endblock %}

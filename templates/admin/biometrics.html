@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set nav_active = 'biometrics' %}
+{% block title %}البيانات الحيوية{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-fingerprint" style="color:var(--accent)"></i>سجل البيانات الحيوية</h1>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 115px)">
+  <div class="card" style="padding:16px">
+    <div style="max-height:500px;overflow-y:auto">
+      <table class="tbl">
+        <thead><tr><th>الموظف</th><th>نوع البيانات</th><th>معرّف المصداقية</th><th>الجهاز</th><th>آخر استخدام</th><th>الحالة</th><th>تاريخ التسجيل</th></tr></thead>
+        <tbody>
+          {% for bc, emp in creds %}
+          <tr>
+            <td>{{ emp.full_name }}</td>
+            <td><span class="badge badge-info">{{ 'بصمة' if bc.biometric_type=='fingerprint' else 'وجه' if bc.biometric_type=='face' else bc.biometric_type }}</span></td>
+            <td style="font-size:11px;direction:ltr;font-family:monospace">{{ bc.credential_id[:24] }}...</td>
+            <td>{{ bc.device_info or '—' }}</td>
+            <td style="font-size:11px;direction:ltr">{{ bc.last_used.strftime('%Y-%m-%d %H:%M') if bc.last_used else '—' }}</td>
+            <td><span class="badge {% if bc.is_active %}badge-present{% else %}badge-absent{% endif %}">{{ 'نشط' if bc.is_active else 'معطّل' }}</span></td>
+            <td style="font-size:11px;direction:ltr">{{ bc.created_at.strftime('%Y-%m-%d') }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">
+            <i class="ti ti-fingerprint-off" style="font-size:40px;display:block;margin-bottom:10px;opacity:.5"></i>
+            لا توجد بيانات حيوية مسجلة
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% set nav_active = 'gps' %}
+{% block title %}تحليلات المواقع{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/static/css/tracking-premium.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+<div id="analyticsApp">
+  <header class="track-header">
+    <div class="track-header-row">
+      <div class="track-header-left">
+        <h1><i class="ti ti-chart-line" style="color:var(--accent)"></i> تحليلات المواقع</h1>
+        <span class="track-badge" id="periodBadge">آخر 7 أيام</span>
+      </div>
+      <div class="track-header-actions">
+        <select id="analyticsPeriod" onchange="changePeriod(this.value)" style="width:auto;min-width:120px">
+          <option value="day">آخر 24 ساعة</option>
+          <option value="week" selected>آخر 7 أيام</option>
+          <option value="month">آخر 30 يوم</option>
+          <option value="year">آخر سنة</option>
+        </select>
+        <select id="analyticsEmployee" onchange="changeAnalyticsEmployee(this.value)" style="width:auto;min-width:160px">
+          <option value="">جميع الموظفين</option>
+          {% for e in employees %}
+          <option value="{{ e.id }}">{{ e.full_name }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-sm btn-ghost" onclick="refreshAnalytics()"><i class="ti ti-refresh"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="analytics-summary-grid">
+    <div class="stat-premium-card" style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(59,130,246,0.02))">
+      <div class="sp-icon" style="color:#3b82f6"><i class="ti ti-map-pin"></i></div>
+      <div class="sp-value" id="statTotalPoints">0</div>
+      <div class="sp-label">إجمالي نقاط التتبع</div>
+    </div>
+    <div class="stat-premium-card" style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.02))">
+      <div class="sp-icon" style="color:#22c55e"><i class="ti ti-users"></i></div>
+      <div class="sp-value" id="statUniqueEmployees">0</div>
+      <div class="sp-label">الموظفون الفريدون</div>
+    </div>
+    <div class="stat-premium-card" style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.02))">
+      <div class="sp-icon" style="color:#f59e0b"><i class="ti ti-ruler"></i></div>
+      <div class="sp-value" id="statDistance">0</div>
+      <div class="sp-label">المسافة المقطوعة (كم)</div>
+    </div>
+    <div class="stat-premium-card" style="background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(139,92,246,0.02))">
+      <div class="sp-icon" style="color:#8b5cf6"><i class="ti ti-target"></i></div>
+      <div class="sp-value" id="statAvgAccuracy">0</div>
+      <div class="sp-label">متوسط الدقة (م)</div>
+    </div>
+    <div class="stat-premium-card" style="background:linear-gradient(135deg,rgba(239,68,68,0.1),rgba(239,68,68,0.02))">
+      <div class="sp-icon" style="color:#ef4444"><i class="ti ti-alert-triangle"></i></div>
+      <div class="sp-value" id="statAlerts">0</div>
+      <div class="sp-label">التنبيهات</div>
+    </div>
+    <div class="stat-premium-card" style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(99,102,241,0.02))">
+      <div class="sp-icon" style="color:#6366f1"><i class="ti ti-building"></i></div>
+      <div class="sp-value" id="statTopZone">—</div>
+      <div class="sp-label">المنطقة الأكثر دخولاً</div>
+    </div>
+  </div>
+
+  <div class="analytics-grid">
+    <div class="analytics-card full-width">
+      <div class="card-header"><i class="ti ti-chart-area"></i> النشاط اليومي</div>
+      <div class="chart-container">
+        <canvas id="dailyActivityChart"></canvas>
+      </div>
+    </div>
+    <div class="analytics-card">
+      <div class="card-header"><i class="ti ti-clock"></i> التوزيع الساعي</div>
+      <div class="chart-container">
+        <canvas id="hourlyDistributionChart"></canvas>
+      </div>
+    </div>
+    <div class="analytics-card">
+      <div class="card-header"><i class="ti ti-users"></i> ترتيب الموظفين</div>
+      <div class="chart-container">
+        <canvas id="employeeRankingChart"></canvas>
+      </div>
+    </div>
+    <div class="analytics-card full-width">
+      <div class="card-header"><i class="ti ti-map"></i> خريطة النشاط الحراري</div>
+      <div class="heatmap-container">
+        <div id="heatmapMap" style="height:400px;border-radius:12px"></div>
+      </div>
+    </div>
+    <div class="analytics-card">
+      <div class="card-header"><i class="ti ti-building"></i> المناطق الأكثر زيارة</div>
+      <div class="zone-ranking" id="zoneRanking">
+        <div class="empty-state-mini"><i class="ti ti-map-off"></i><p>لا توجد بيانات كافية</p></div>
+      </div>
+    </div>
+    <div class="analytics-card">
+      <div class="card-header"><i class="ti ti-source-code"></i> مصدر البيانات</div>
+      <div class="chart-container">
+        <canvas id="sourceBreakdownChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="analytics-card full-width" style="margin-top:16px">
+    <div class="card-header"><i class="ti ti-table"></i> تفاصيل الموظفين</div>
+    <div class="analytics-table-wrap">
+      <table class="track-table" id="employeeDetailTable">
+        <thead>
+          <tr>
+            <th>#</th><th>الموظف</th><th>القسم</th><th>نقاط التتبع</th><th>النسبة المئوية</th>
+          </tr>
+        </thead>
+        <tbody id="employeeDetailBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted)">جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/tracking-map.js"></script>
+<script src="/static/js/tracking-analytics.js"></script>
+<script>
+var ANALYTICS_DATA = {
+  bloodBankLat: 32.0755,
+  bloodBankLng: 23.9752,
+  employees: {{ employees | tojson | safe }},
+  zones: {{ zones | tojson | safe }}
+};
+document.addEventListener('DOMContentLoaded', function() {
+  initAnalytics(ANALYTICS_DATA);
+});
+</script>
+{% endblock %}

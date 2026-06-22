@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% set nav_active = 'shift_coverage' %}
+{% block title %}تغطية المناوبات — {{ month_name }}{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700">مخطط تغطية المناوبات — {{ month_name }} {{ year }}</h1>
+  <div style="display:flex;gap:8px">
+    <select id="fm" onchange="go()" class="btn-sm" style="width:auto">
+      {% for i in range(12) %}<option value="{{ i+1 }}" {% if i+1==month %}selected{% endif %}>{{ months[i] }}</option>{% endfor %}
+    </select>
+    <a href="/admin/shifts?month={{ month }}&year={{ year }}" class="btn btn-ghost btn-sm"><i class="ti ti-calendar-event"></i> إدارة المناوبات</a>
+  </div>
+</header>
+<div style="padding:20px;overflow:auto;max-height:calc(100vh - 65px)">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <span style="font-size:12px;color:var(--muted)">مستوى التغطية:</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:4px;background:#ef4444;display:inline-block"></span>فارغ (0)</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:4px;background:#f59e0b;display:inline-block"></span>ناقص</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:4px;background:#22c55e;display:inline-block"></span>كافٍ</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:4px;background:#3b82f6;display:inline-block"></span>ممتاز</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:16px;height:16px;border-radius:4px;background:rgba(129,140,248,.5);display:inline-block"></span>راحة إلزامية</span>
+  </div>
+  {% set total_cells = namespace(n=0, empty=0, low=0, ok=0) %}
+  {% for row in data %}
+    {% for day in row.days %}
+      {% set total_cells.n = total_cells.n + 1 %}
+      {% if day.status == 'empty' %}{% set total_cells.empty = total_cells.empty + 1 %}
+      {% elif day.status == 'low' %}{% set total_cells.low = total_cells.low + 1 %}
+      {% else %}{% set total_cells.ok = total_cells.ok + 1 %}{% endif %}
+    {% endfor %}
+  {% endfor %}
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        {% set score = ((total_cells.ok / total_cells.n * 100)|round|int) if total_cells.n else 0 %}
+        <div class="stat-card" style="background:var(--card);border-color:var(--border)">
+          <div class="stat-val" style="color:{% if score >= 80 %}var(--green){% elif score >= 50 %}var(--amber){% else %}var(--red){% endif %}">{{ score }}%</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">نسبة التغطية الإجمالية</div>
+        </div>
+        <div class="stat-card" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2)">
+          <div class="stat-val" style="color:var(--red)">{{ total_cells.empty }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">وردية فارغة</div>
+        </div>
+        <div class="stat-card" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)">
+          <div class="stat-val" style="color:var(--amber)">{{ total_cells.low }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">وردية ناقصة</div>
+        </div>
+        <div class="stat-card" style="background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.2)">
+          <div class="stat-val" style="color:var(--green)">{{ total_cells.ok }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">وردية مكتملة</div>
+        </div>
+      </div>
+  <div class="card" style="overflow-x:auto;padding:0;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,.2)">
+    <table style="border-collapse:collapse;min-width:100%;background:linear-gradient(135deg,rgba(16,21,42,.6),rgba(8,12,24,.6));backdrop-filter:blur(4px)">
+      <thead>
+        <tr style="background:rgba(30,38,66,.5);backdrop-filter:blur(8px)">
+          <th style="padding:10px 14px;font-size:12px;color:var(--muted);font-weight:600;position:sticky;right:0;background:inherit;z-index:2;min-width:100px;text-align:right"><i class="ti ti-clock" style="vertical-align:-1px"></i> المناوبة</th>
+          {% for d in range(1, days+1) %}
+          {% set dt = (year, month, d)|todatetime %}
+          <th style="padding:8px 4px;font-size:10px;color:var(--muted);font-weight:600;text-align:center;min-width:34px">
+            {{ d }}<br><span style="font-size:9px">{{ ['أح','إث','ثل','أر','خم','جم','سب'][dt.weekday()] if dt else '' }}</span>
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+        <tr>
+          <td style="padding:8px 14px;font-size:12px;font-weight:600;color:var(--text);position:sticky;right:0;background:rgba(16,21,42,.85);backdrop-filter:blur(4px);z-index:1;border-bottom:1px solid var(--border2)">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="width:10px;height:10px;border-radius:3px;background:{{ row.type.color }};display:inline-block;flex-shrink:0"></span>
+              {{ row.type.name }}
+              <span style="font-size:10px;color:var(--muted);font-weight:400">(min {{ row.type.min_staff }})</span>
+            </div>
+          </td>
+          {% for day in row.days %}
+          {% set dt = (year, month, day.day)|todatetime %}
+          <td style="padding:3px;text-align:center;border-bottom:1px solid var(--border2);transition:background .15s"
+              onmouseover="this.style.background='rgba(99,102,241,.06)'"
+              onmouseout="this.style.background='transparent'">
+            <div onclick="openDayCovModal('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day.day) }}')"
+              title="يوم {{ day.day }}: {{ day.count }} موظف (الحد الأدنى {{ row.type.min_staff }}){% if day.conflict_count %} · ⚠️ {{ day.conflict_count }} تعارض{% endif %}"
+              style="width:30px;height:30px;border-radius:7px;margin:0 auto;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);
+                background:{% if day.status=='empty' %}linear-gradient(135deg,rgba(239,68,68,.7),rgba(239,68,68,.4)){% elif day.status=='low' %}linear-gradient(135deg,rgba(245,158,11,.6),rgba(245,158,11,.35)){% elif day.count >= (row.type.min_staff * 1.5)|int %}linear-gradient(135deg,rgba(59,130,246,.6),rgba(59,130,246,.35)){% else %}linear-gradient(135deg,rgba(34,197,94,.6),rgba(34,197,94,.35)){% endif %};
+                box-shadow:0 2px 8px {% if day.status=='empty' %}rgba(239,68,68,.25){% elif day.status=='low' %}rgba(245,158,11,.2){% elif day.conflict_count %}rgba(129,140,248,.25){% else %}rgba(34,197,94,.15){% endif %};
+                display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;position:relative"
+                onmouseover="this.style.transform='scale(1.2)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'"
+                onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 8px rgba(0,0,0,.15)'">
+              {{ day.count if day.count else '' }}{% if day.conflict_count %}<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#818cf8;font-size:7px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 6px rgba(129,140,248,.5)">{{ day.conflict_count }}</span>{% endif %}
+            </div>
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center;opacity:.6">
+    <i class="ti ti-click" style="vertical-align:-1px"></i> انقر على أي خلية لجدولة مناوبات ذلك اليوم
+  </div>
+</div>
+
+<div class="modal-overlay" id="dayCovModal">
+  <div class="modal-sheet" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 id="dayCovTitle" style="font-size:16px;font-weight:700"><i class="ti ti-calendar-event" style="color:var(--accent);margin-left:6px"></i><span>جدولة يوم</span></h3>
+      <button onclick="closeModal('dayCovModal')" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+    </div>
+    <div class="modal-grid">
+      <div class="full"><label><i class="ti ti-users" style="color:var(--accent);margin-left:4px"></i>اختيار الموظفين</label>
+        <select id="covEmps" multiple style="height:110px;font-size:13px">
+          {% for e in employees %}<option value="{{ e.id }}">{{ e.full_name }} ({{ e.department }})</option>{% endfor %}
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">اضغط Ctrl لاختيار متعدد</div>
+      </div>
+      <div class="full"><label><i class="ti ti-clock" style="color:var(--accent);margin-left:4px"></i>المناوبة</label>
+        <select id="covShift">{% for st in shift_types %}<option value="{{ st.id }}">{{ st.name }} — {{ st.time_range }}</option>{% endfor %}</select></div>
+      <div><label><i class="ti ti-calendar" style="color:var(--green);margin-left:4px"></i>من تاريخ</label><input type="date" id="covStart"></div>
+      <div><label><i class="ti ti-calendar" style="color:var(--red);margin-left:4px"></i>إلى تاريخ</label><input type="date" id="covEnd"></div>
+      <div class="full" style="display:flex;gap:16px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted)"><input type="checkbox" id="covSkipFri"> <i class="ti ti-crown" style="color:var(--amber)"></i> تخطي الجمعة</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted)"><input type="checkbox" id="covSkipSat"> <i class="ti ti-crown" style="color:var(--accent)"></i> تخطي السبت</label>
+      </div>
+      <div class="full" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:10px 14px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500">
+          <input type="checkbox" id="covRestDay" onchange="document.getElementById('covShift').disabled=this.checked;document.getElementById('covShift').style.opacity=this.checked?'.4':'1'">
+          <i class="ti ti-bed" style="color:#818cf8;font-size:16px"></i>
+          <span>تعيين كـ <span style="color:#818cf8;font-weight:600">يوم راحة إلزامي</span> (إلغاء جميع مناوبات اليوم)</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-grid" style="margin-top:16px">
+      <button class="btn btn-red" onclick="doCovAssign()"><i class="ti ti-calendar-plus"></i> تطبيق الجدولة</button>
+      <button class="btn btn-outline" onclick="closeModal('dayCovModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function go(){location.href='/admin/shifts/coverage?month='+document.getElementById('fm').value+'&year={{ year }}';}
+var covDate='';
+function openDayCovModal(dateStr){
+  covDate=dateStr;
+  document.getElementById('dayCovTitle').innerHTML='<i class="ti ti-calendar-event" style="color:var(--accent);margin-left:6px"></i>جدولة يوم '+dateStr;
+  document.getElementById('covStart').value=covDate;
+  document.getElementById('covEnd').value=covDate;
+  document.getElementById('covRestDay').checked=false;
+  document.getElementById('covShift').disabled=false;
+  document.getElementById('covShift').style.opacity='1';
+  openModal('dayCovModal');
+}
+async function doCovAssign(){
+  if(document.getElementById('covRestDay').checked){
+    const r=await api('/admin/shifts/clear-day',{date:covDate});
+    toast(r.msg,r.ok?'ok':'err');
+    if(r.ok){closeModal('dayCovModal');setTimeout(()=>location.reload(),1200);}
+    return;
+  }
+  const empIds=Array.from(document.getElementById('covEmps').selectedOptions).map(o=>o.value);
+  const stId=document.getElementById('covShift').value;
+  const start=document.getElementById('covStart').value;
+  const end=document.getElementById('covEnd').value;
+  if(!empIds.length||!start||!end){toast('اختر موظفين على الأقل ونطاق التاريخ.','err');return;}
+  const dates=[];let cur=new Date(start);const endD=new Date(end);
+  while(cur<=endD){dates.push(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);}
+  const r=await api('/admin/shifts/assign/bulk',{
+    shift_type_id:stId,employee_ids:empIds,dates,
+    skip_friday:document.getElementById('covSkipFri').checked,
+    skip_saturday:document.getElementById('covSkipSat').checked
+  });
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){closeModal('dayCovModal');setTimeout(()=>location.reload(),1500);}
+}
+document.getElementById('covStart').value=new Date().toISOString().split('T')[0];
+document.getElementById('covEnd').value=new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% set nav_active = 'devices' %}
+{% block title %}الأجهزة{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/devices.css">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-devices" style="color:var(--accent)"></i> أجهزة BioTime</h1>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <a href="/admin/devices/import-template" class="btn btn-ghost btn-sm"><i class="ti ti-download"></i> قالب CSV</a>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+        <i class="ti ti-upload"></i> استيراد
+        <input type="file" accept=".csv" style="display:none" onchange="importDevices(this)">
+      </label>
+      <a href="/admin/devices/export?format=csv" class="btn btn-ghost btn-sm"><i class="ti ti-file-export"></i> تصدير</a>
+      <button class="btn btn-accent btn-sm" onclick="bulkSync()"><i class="ti ti-refresh"></i> مزامنة الكل</button>
+      <button class="btn btn-red btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> إضافة جهاز</button>
+    </div>
+  </div>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 115px)">
+  <div class="device-grid" id="deviceGrid">
+    {% for d in devices %}
+    <div class="device-card" id="device-{{ d.id }}" data-online="{{ 'true' if d.is_online else 'false' }}">
+      <div class="device-header">
+        <div class="device-icon">
+          <i class="ti ti-device-imac"></i>
+        </div>
+        <div class="device-info">
+          <div class="device-name">{{ d.name }}</div>
+          <div class="device-serial">{{ d.serial_no }}</div>
+        </div>
+        <div class="device-status-indicator" id="status-{{ d.id }}">
+          <span class="status-dot {{ d.online_status }}"></span>
+        </div>
+      </div>
+      <div class="device-meta">
+        <span><i class="ti ti-map-pin"></i> {{ d.location or '—' }}</span>
+        <span><i class="ti ti-wifi"></i> {{ d.ip_address or '—' }}</span>
+        <span><i class="ti ti-chip"></i> {{ d.device_type }}</span>
+        <span><i class="ti ti-tool"></i> {{ d.firmware_ver or '—' }}</span>
+      </div>
+      <div class="device-capacity">
+        <div class="cap-bar">
+          <div class="cap-label"><span>سعة التخزين</span><span>{{ d.txlog_used or 0 }} / {{ d.txlog_capacity or '∞' }}</span></div>
+          <div class="cap-track"><div class="cap-fill" style="width:{{ d.storage_used_percent }}%;background:{% if d.storage_used_percent > 80 %}#ef4444{% elif d.storage_used_percent > 50 %}#f59e0b{% else %}#22c55e{% endif %}"></div></div>
+        </div>
+      </div>
+      <div class="device-last-sync">
+        {% if d.last_sync %}<i class="ti ti-clock"></i> آخر مزامنة: {{ d.last_sync.strftime('%Y-%m-%d %H:%M') }}{% else %}<span style="color:var(--muted)">لم تتم المزامنة بعد</span>{% endif %}
+      </div>
+      <div class="device-actions">
+        <button class="btn btn-sm btn-accent" onclick="syncOne({{ d.id }})"><i class="ti ti-refresh"></i> مزامنة</button>
+        <button class="btn btn-sm btn-ghost" onclick="openViewModal({{ d.id }})"><i class="ti ti-eye"></i> عرض</button>
+        <button class="btn btn-sm btn-ghost" onclick="openEditModal({{ d.id }})"><i class="ti ti-edit" style="color:var(--amber)"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="openHealthModal({{ d.id }})"><i class="ti ti-heartbeat" style="color:#22c55e"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="restartDevice({{ d.id }})"><i class="ti ti-refresh" style="color:var(--accent)"></i> إعادة</button>
+        <button class="btn btn-sm btn-ghost" onclick="toggleDevice({{ d.id }})">
+          {% if d.is_active %}<i class="ti ti-pause" style="color:#f59e0b"></i>{% else %}<i class="ti ti-player-play" style="color:#22c55e"></i>{% endif %}
+        </button>
+        <button class="btn btn-sm btn-ghost" onclick="deleteDevice({{ d.id }},'{{ d.name }}')"><i class="ti ti-trash" style="color:#ef4444"></i></button>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="ti ti-devices-off"></i>
+      <h3>لا توجد أجهزة مسجلة</h3>
+      <p>أضف أول جهاز بصمة للمنظومة</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ===== ADD DEVICE MODAL ===== -->
+<div class="modal-overlay" id="addDeviceModal">
+  <div class="modal-sheet" style="max-width:750px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-plus" style="color:var(--accent)"></i> إضافة جهاز BioTime</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('addDeviceModal');clearAddForm()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="dev-tabs" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:14px">
+      <button class="dev-tab active" onclick="switchTab('add','basic')">أساسي</button>
+      <button class="dev-tab" onclick="switchTab('add','connection')">اتصال</button>
+      <button class="dev-tab" onclick="switchTab('add','hardware')">عتاد</button>
+      <button class="dev-tab" onclick="switchTab('add','access')">تحكم دخول</button>
+      <button class="dev-tab" onclick="switchTab('add','sync')">مزامنة</button>
+    </div>
+    <div style="max-height:55vh;overflow-y:auto;padding:0 4px">
+      <form id="addDeviceForm" autocomplete="off">
+        <div class="tab-panel" id="tab_add_basic">
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>الرقم التسلسلي <span class="required">*</span></label><input id="adSerial" placeholder="BT-002" required><div class="field-error" id="err_adSerial"></div></div>
+            <div class="form-group" style="flex:2"><label>اسم الجهاز <span class="required">*</span></label><input id="adName" placeholder="جهاز البصمة — الفرع الرئيسي" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>الموديل</label>
+              <select id="adModel"><option value="">— اختر —</option>
+                {% for m in device_models %}<option value="{{ m.value }}">{{ m.label }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1"><label>النوع</label>
+              <select id="adType"><option value="biometric">بصمة</option><option value="face">وجه</option><option value="fingerface">بصمة+وجه</option><option value="qr">QR</option><option value="rfid">RFID</option></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>الموقع</label><input id="adLocation" placeholder="المدخل الرئيسي"></div>
+            <div class="form-group" style="flex:1"><label>تاريخ التصنيع</label><input type="date" id="adMfgDate"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>انتهاء الضمان</label><input type="date" id="adWarranty"></div>
+            <div class="form-group" style="flex:1;display:flex;align-items:flex-end;padding-bottom:6px">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('adSerial').value='';document.getElementById('adName').value='';return false;" style="visibility:hidden"> </button>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_add_connection" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>عنوان IP <span class="required">*</span></label>
+              <input id="adIp" placeholder="192.168.1.100" style="direction:ltr;text-align:left" oninput="validateIpField(this)">
+              <div class="field-error" id="err_adIp"></div>
+            </div>
+            <div class="form-group" style="flex:0 0 90px">
+              <label>المنفذ</label>
+              <input type="number" id="adPort" value="4370" style="direction:ltr;text-align:left">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>عنوان MAC</label>
+              <input id="adMac" placeholder="AA:BB:CC:DD:EE:FF" style="direction:ltr;text-align:left;font-family:monospace" oninput="autoFormatMac(this)">
+              <div class="field-error" id="err_adMac"></div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>البروتوكول</label>
+              <select id="adProtocol"><option value="tcp_ip">TCP/IP</option><option value="udp">UDP</option><option value="http">HTTP</option><option value="https">HTTPS</option></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>كلمة مرور الاتصال</label>
+              <input type="password" id="adCommPass" placeholder="اختياري" style="direction:ltr;text-align:left">
+            </div>
+            <div class="form-group" style="flex:1;display:flex;align-items:flex-end;gap:6px;padding-bottom:6px">
+              <button type="button" class="btn btn-accent btn-sm" onclick="testConn('add')"><i class="ti ti-plug"></i> اختبار الاتصال</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="detectDevice('add')"><i class="ti ti-search"></i> كشف تلقائي</button>
+            </div>
+          </div>
+          <div id="adConnResult" style="margin-top:4px;font-size:12px"></div>
+        </div>
+        <div class="tab-panel" id="tab_add_hardware" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>إصدار البرنامج الثابت</label><input id="adFirmware" placeholder="سيتم التعبئة تلقائياً" style="direction:ltr;text-align:left"></div>
+          </div>
+          <div class="hardware-caps">
+            <div class="cap-item"><span>بصمات</span><input type="number" id="adFpCap" value="0" style="width:80px"><span>مسجلة</span><input type="number" id="adFpEnr" value="0" style="width:80px"></div>
+            <div class="cap-item"><span>وجوه</span><input type="number" id="adFaceCap" value="0" style="width:80px"><span>مسجلة</span><input type="number" id="adFaceEnr" value="0" style="width:80px"></div>
+            <div class="cap-item"><span>بطاقات</span><input type="number" id="adCardCap" value="0" style="width:80px"><span>مسجلة</span><input type="number" id="adCardEnr" value="0" style="width:80px"></div>
+            <div class="cap-item"><span>سجل المعاملات</span><input type="number" id="adTxCap" value="0" style="width:80px"><span>مستخدم</span><input type="number" id="adTxUsed" value="0" style="width:80px"></div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="fetchDeviceInfo('add')"><i class="ti ti-refresh"></i> سحب معلومات الجهاز</button>
+        </div>
+        <div class="tab-panel" id="tab_add_access" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>وضع الدخول</label>
+              <select id="adAccessMode">
+                <option value="fingerprint">بصمة فقط</option><option value="face">وجه فقط</option>
+                <option value="card">بطاقة فقط</option><option value="fp_pin">بصمة + PIN</option>
+                <option value="face_fp">وجه + بصمة</option><option value="any">أي طريقة</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="adDoorRelay"> التحكم في فتح الباب</label>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="adAntiPass"> منع إعادة الدخول (Anti-Passback)</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>الأقسام المصرح لها</label>
+            <div class="multi-select" id="adDeptList">
+              {% for dept in departments %}
+              <label class="ms-item"><input type="checkbox" class="adDeptCb" value="{{ dept.id }}"> {{ dept.name_ar }}</label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="form-group">
+            <label>الموظفون المصرح لهم (اختياري)</label>
+            <input id="adEmpSearch" placeholder="بحث..." style="margin-bottom:6px" oninput="filterMsList(this,'adEmpList')">
+            <div class="multi-select" id="adEmpList" style="max-height:120px">
+              {% for emp in employees %}
+              <label class="ms-item"><input type="checkbox" class="adEmpCb" value="{{ emp.id }}"> {{ emp.full_name }} ({{ emp.username }})</label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_add_sync" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="adAutoSync" checked> تفعيل المزامنة التلقائية</label>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>فترة المزامنة</label>
+              <select id="adSyncInterval">
+                <option value="5">كل 5 دقائق</option><option value="15">كل 15 دقيقة</option>
+                <option value="30">كل 30 دقيقة</option><option value="60">كل ساعة</option>
+                <option value="0">يدوي فقط</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label>نافذة المزامنة (من)</label>
+              <input type="time" id="adSyncStart" value="06:00">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>نافذة المزامنة (إلى)</label>
+              <input type="time" id="adSyncEnd" value="22:00">
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-actions" style="display:flex;gap:10px;margin-top:12px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-red" onclick="doAddDevice()"><i class="ti ti-device-floppy"></i> إضافة</button>
+      <button class="btn btn-outline" onclick="closeModal('addDeviceModal');clearAddForm()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT DEVICE MODAL ===== -->
+<div class="modal-overlay" id="editDeviceModal">
+  <div class="modal-sheet" style="max-width:750px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-edit" style="color:var(--amber)"></i> <span id="edTitle">تعديل الجهاز</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('editDeviceModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <input type="hidden" id="edId">
+    <div class="dev-tabs" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:14px">
+      <button class="dev-tab active" onclick="switchTab('edit','basic')">أساسي</button>
+      <button class="dev-tab" onclick="switchTab('edit','connection')">اتصال</button>
+      <button class="dev-tab" onclick="switchTab('edit','hardware')">عتاد</button>
+      <button class="dev-tab" onclick="switchTab('edit','access')">تحكم دخول</button>
+      <button class="dev-tab" onclick="switchTab('edit','sync')">مزامنة</button>
+    </div>
+    <div style="max-height:55vh;overflow-y:auto;padding:0 4px">
+      <form id="editDeviceForm">
+        <div class="tab-panel" id="tab_edit_basic">
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>الرقم التسلسلي</label><input id="edSerial" readonly style="background:var(--card2);font-family:monospace"></div>
+            <div class="form-group" style="flex:2"><label>الاسم</label><input id="edName"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>الموديل</label><select id="edModel"><option value="">—</option>{% for m in device_models %}<option value="{{ m.value }}">{{ m.label }}</option>{% endfor %}</select></div>
+            <div class="form-group" style="flex:1"><label>النوع</label><select id="edType"><option value="biometric">بصمة</option><option value="face">وجه</option><option value="fingerface">بصمة+وجه</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>الموقع</label><input id="edLocation"></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_connection" style="display:none">
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>IP</label><input id="edIp" style="direction:ltr;text-align:left"></div>
+            <div class="form-group" style="flex:0 0 90px"><label>المنفذ</label><input type="number" id="edPort" style="direction:ltr;text-align:left"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>MAC</label><input id="edMac" style="direction:ltr;text-align:left;font-family:monospace"></div>
+            <div class="form-group" style="flex:1"><label>البروتوكول</label><select id="edProtocol"><option value="tcp_ip">TCP/IP</option><option value="udp">UDP</option><option value="http">HTTP</option><option value="https">HTTPS</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1"><label>كلمة مرور الاتصال</label><input type="password" id="edCommPass" style="direction:ltr;text-align:left"></div>
+            <div class="form-group" style="flex:1;display:flex;align-items:flex-end;padding-bottom:6px">
+              <button type="button" class="btn btn-accent btn-sm" onclick="testConn('edit')"><i class="ti ti-plug"></i> اختبار</button>
+            </div>
+          </div>
+          <div id="edConnResult" style="font-size:12px"></div>
+        </div>
+        <div class="tab-panel" id="tab_edit_hardware" style="display:none">
+          <div class="form-group"><label>إصدار البرنامج</label><input id="edFirmware" style="direction:ltr;text-align:left"></div>
+          <div class="hardware-caps">
+            <div class="cap-item"><span>سعة بصمات</span><input type="number" id="edFpCap" style="width:80px"><span>مسجلة</span><input type="number" id="edFpEnr" style="width:80px"></div>
+            <div class="cap-item"><span>سعة وجوه</span><input type="number" id="edFaceCap" style="width:80px"><span>مسجلة</span><input type="number" id="edFaceEnr" style="width:80px"></div>
+            <div class="cap-item"><span>سعة بطاقات</span><input type="number" id="edCardCap" style="width:80px"><span>مسجلة</span><input type="number" id="edCardEnr" style="width:80px"></div>
+            <div class="cap-item"><span>سعة السجل</span><input type="number" id="edTxCap" style="width:80px"><span>مستخدم</span><input type="number" id="edTxUsed" style="width:80px"></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_access" style="display:none">
+          <div class="form-group"><label>وضع الدخول</label><select id="edAccessMode"><option value="fingerprint">بصمة</option><option value="face">وجه</option><option value="card">بطاقة</option><option value="fp_pin">بصمة+PIN</option><option value="face_fp">وجه+بصمة</option><option value="any">أي</option></select></div>
+          <div class="form-row">
+            <div class="form-group"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="edDoorRelay"> فتح الباب</label></div>
+            <div class="form-group"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="edAntiPass"> منع إعادة الدخول</label></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab_edit_sync" style="display:none">
+          <div class="form-row">
+            <div class="form-group"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="edAutoSync"> مزامنة تلقائية</label></div>
+            <div class="form-group"><label>الفترة</label><select id="edSyncInterval"><option value="5">5 دقائق</option><option value="15">15 دقيقة</option><option value="30">30 دقيقة</option><option value="60">ساعة</option><option value="0">يدوي</option></select></div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-actions" style="display:flex;gap:10px;margin-top:12px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-amber" onclick="doEditDevice()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal('editDeviceModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW DEVICE MODAL ===== -->
+<div class="modal-overlay" id="viewDeviceModal" onclick="if(event.target===this)closeModal('viewDeviceModal')">
+  <div class="modal-sheet" style="max-width:700px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-device-imac" style="color:var(--accent)"></i> <span id="vdTitle">الجهاز</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('viewDeviceModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="vdContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div></div>
+  </div>
+</div>
+
+<!-- ===== DEVICE HEALTH MODAL ===== -->
+<div class="modal-overlay" id="healthDeviceModal">
+  <div class="modal-sheet" style="max-width:650px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-heartbeat" style="color:#22c55e"></i> <span id="hdTitle">صحة الجهاز</span></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('healthDeviceModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="hdContent" style="max-height:60vh;overflow-y:auto"><div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div></div>
+  </div>
+</div>
+
+<!-- ===== DELETE CONFIRM MODAL ===== -->
+<div class="modal-overlay" id="deleteDeviceModal">
+  <div class="modal-sheet" style="max-width:400px">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:8px;color:#ef4444"><i class="ti ti-alert-triangle"></i> حذف الجهاز</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px" id="delDeviceName"></p>
+    <input type="hidden" id="delDeviceId">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label>ماذا تفعل بسجلات الحضور لهذا الجهاز؟</label>
+        <select id="delDeviceAttAction">
+          <option value="keep">الاحتفاظ بالسجلات</option>
+          <option value="delete">حذف جميع السجلات المرتبطة</option>
+        </select>
+      </div>
+      <button class="btn" style="background:#ef4444;color:#fff" onclick="doDeleteDevice()"><i class="ti ti-trash"></i> حذف</button>
+      <button class="btn btn-outline" onclick="closeModal('deleteDeviceModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/devices.js"></script>
+{% endblock %}
