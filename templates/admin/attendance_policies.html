@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% set nav_active = 'attendance_policies' %}
+{% block title %}سياسات الحضور{% endblock %}
+{% block content %}
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
+  <h1 style="font-size:16px;font-weight:700"><i class="ti ti-settings" style="color:var(--accent)"></i> سياسات الحضور والانصراف</h1>
+  <button class="btn btn-indigo btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> سياسة جديدة</button>
+</header>
+<div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  {% if policies %}
+  <div class="card" style="overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="tbl" id="policyTable">
+        <thead><tr>
+          <th>الاسم</th><th>القسم</th><th>المناوبة</th><th>مهلة التأخير</th><th>مهلة الخروج</th><th>حد الإضافي</th><th>تجاوز النطاق</th><th>الحالة</th><th></th>
+        </tr></thead>
+        <tbody>
+          {% for p in policies %}
+          <tr>
+            <td style="font-weight:600">{{ p.name }}</td>
+            <td>{{ p.department.name_ar if p.department else '—' }}</td>
+            <td>{{ p.shift_type.name if p.shift_type else '—' }}</td>
+            <td>{{ p.late_grace_minutes }} د</td>
+            <td>{{ p.early_leave_grace }} د</td>
+            <td>{{ p.overtime_threshold_h }} س</td>
+            <td>{% if p.allow_geofence_override %}<span class="badge badge-present">مسموح{% else %}<span class="badge badge-absent">ممنوع{% endif %}</span></td>
+            <td><span class="badge {% if p.is_active %}badge-present{% else %}badge-absent{% endif %}">{% if p.is_active %}مفعلة{% else %}معطلة{% endif %}</span></td>
+            <td style="display:flex;gap:4px">
+              <button class="btn btn-ghost btn-xs" onclick="editPolicy({{ p.id }})"><i class="ti ti-edit"></i></button>
+              <button class="btn btn-ghost btn-xs" onclick="togglePolicy({{ p.id }})"><i class="ti ti-{% if p.is_active %}pause{% else %}play{% endif %}"></i></button>
+              <button class="btn btn-ghost btn-xs" onclick="deletePolicy({{ p.id }},'{{ p.name }}')"><i class="ti ti-trash" style="color:var(--red)"></i></button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:64px 16px">
+    <div style="font-size:48px;margin-bottom:12px"><i class="ti ti-settings" style="font-size:48px;color:var(--muted)"></i></div>
+    <div style="font-size:15px;color:var(--muted)">لا توجد سياسات بعد. أضف أول سياسة للحضور والانصراف.</div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="policyModal" onclick="if(event.target===this)closeModal('policyModal')">
+  <div class="modal-sheet" style="max-width:640px">
+    <div class="modal-handle"></div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:16px" id="modalTitle"><i class="ti ti-settings" style="color:var(--accent)"></i> سياسة جديدة</div>
+    <input type="hidden" id="policyId" value="">
+    <div class="modal-grid">
+      <div class="full"><label>اسم السياسة <span style="color:var(--red)">*</span></label><input type="text" id="policyName" placeholder="مثال: سياسة المختبر"></div>
+      <div><label>القسم (اختياري)</label>
+        <select id="policyDept"><option value="">— عامة —</option>{% for d in departments %}<option value="{{ d.id }}">{{ d.name_ar }}</option>{% endfor %}</select>
+      </div>
+      <div><label>المناوبة (اختياري)</label>
+        <select id="policyShift"><option value="">— الكل —</option>{% for s in shift_types %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+      </div>
+    </div>
+    <div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--muted)">قواعد التأخير والخروج المبكر</div>
+    <div class="modal-grid">
+      <div><label>مهلة التأخير (دقيقة)</label><input type="number" id="lateGrace" value="15" min="0" max="180"></div>
+      <div><label>مهلة الخروج المبكر (دقيقة)</label><input type="number" id="earlyGrace" value="10" min="0" max="120"></div>
+      <div><label>أقصى تأخير قبل الغياب (دقيقة)</label><input type="number" id="maxLate" value="120" min="0" max="480"></div>
+      <div><label>أقصى خروج مبكر مسموح (دقيقة)</label><input type="number" id="maxEarly" value="60" min="0" max="480"></div>
+      <div><label>أقل ساعات عمل للتسجيل</label><input type="number" id="minWork" value="6.0" min="0" step="0.5"></div>
+    </div>
+    <div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--muted)">قواعد العمل الإضافي</div>
+    <div class="modal-grid">
+      <div><label>عتبة الإضافي (ساعة)</label><input type="number" id="otThreshold" value="8.0" min="0" step="0.5"></div>
+      <div><label>معامل الإضافي</label><input type="number" id="otMultiplier" value="1.5" min="1" step="0.25"></div>
+    </div>
+    <div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--muted)">إعدادات إضافية</div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" id="chkSelfie"> طلب صورة شخصية عند الحضور</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" id="chkGeofence"> السماح بتجاوز النطاق الجغرافي</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" id="chkDeduct"> خصم تلقائي عند الغياب</label>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-indigo" style="flex:1" onclick="savePolicy()"><i class="ti ti-device-floppy"></i> حفظ</button>
+      <button class="btn btn-ghost" onclick="closeModal('policyModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function openAddModal(){
+  document.getElementById('policyId').value = '';
+  document.getElementById('modalTitle').innerHTML = '<i class="ti ti-settings" style="color:var(--accent)"></i> سياسة جديدة';
+  document.getElementById('policyName').value = '';
+  document.getElementById('policyDept').value = '';
+  document.getElementById('policyShift').value = '';
+  document.getElementById('lateGrace').value = '15';
+  document.getElementById('earlyGrace').value = '10';
+  document.getElementById('maxLate').value = '120';
+  document.getElementById('maxEarly').value = '60';
+  document.getElementById('minWork').value = '6.0';
+  document.getElementById('otThreshold').value = '8.0';
+  document.getElementById('otMultiplier').value = '1.5';
+  document.getElementById('chkSelfie').checked = false;
+  document.getElementById('chkGeofence').checked = false;
+  document.getElementById('chkDeduct').checked = false;
+  openModal('policyModal');
+}
+
+async function editPolicy(pid){
+  const r = await api('/api/attendance-policies/' + pid);
+  document.getElementById('policyId').value = r.id;
+  document.getElementById('modalTitle').innerHTML = '<i class="ti ti-settings" style="color:var(--accent)"></i> تعديل: ' + r.name;
+  document.getElementById('policyName').value = r.name;
+  document.getElementById('policyDept').value = r.department_id || '';
+  document.getElementById('policyShift').value = r.shift_type_id || '';
+  document.getElementById('lateGrace').value = r.late_grace_minutes;
+  document.getElementById('earlyGrace').value = r.early_leave_grace;
+  document.getElementById('maxLate').value = r.max_late_minutes;
+  document.getElementById('maxEarly').value = r.max_early_leave_min;
+  document.getElementById('minWork').value = r.min_work_hours;
+  document.getElementById('otThreshold').value = r.overtime_threshold_h;
+  document.getElementById('otMultiplier').value = r.overtime_multiplier;
+  document.getElementById('chkSelfie').checked = r.require_selfie;
+  document.getElementById('chkGeofence').checked = r.allow_geofence_override;
+  document.getElementById('chkDeduct').checked = r.auto_deduct_absence;
+  openModal('policyModal');
+}
+
+async function savePolicy(){
+  const pid = document.getElementById('policyId').value;
+  const name = document.getElementById('policyName').value.trim();
+  if(!name){ toast('يرجى إدخال اسم السياسة.','err'); return; }
+  const data = {
+    name: name,
+    department_id: document.getElementById('policyDept').value || null,
+    shift_type_id: document.getElementById('policyShift').value || null,
+    late_grace_minutes: parseInt(document.getElementById('lateGrace').value) || 15,
+    early_leave_grace: parseInt(document.getElementById('earlyGrace').value) || 10,
+    max_late_minutes: parseInt(document.getElementById('maxLate').value) || 120,
+    max_early_leave_min: parseInt(document.getElementById('maxEarly').value) || 60,
+    min_work_hours: parseFloat(document.getElementById('minWork').value) || 6.0,
+    overtime_threshold_h: parseFloat(document.getElementById('otThreshold').value) || 8.0,
+    overtime_multiplier: parseFloat(document.getElementById('otMultiplier').value) || 1.5,
+    require_selfie: document.getElementById('chkSelfie').checked,
+    allow_geofence_override: document.getElementById('chkGeofence').checked,
+    auto_deduct_absence: document.getElementById('chkDeduct').checked,
+  };
+  const url = pid ? '/api/attendance-policies/' + pid + '/edit' : '/api/attendance-policies/add';
+  const r = await api(url, data);
+  toast(r.msg, r.ok ? 'ok' : 'err');
+  if(r.ok) setTimeout(()=>location.reload(), 800);
+}
+
+async function togglePolicy(pid){
+  const r = await api('/api/attendance-policies/' + pid + '/toggle');
+  toast(r.msg, 'ok');
+  setTimeout(()=>location.reload(), 400);
+}
+
+async function deletePolicy(pid, name){
+  const result = await Swal.fire({ icon:'question', title:'حذف سياسة', text:'هل تريد حذف "' + name + '"?', showCancelButton:true, confirmButtonText:'حذف', cancelButtonText:'إلغاء', confirmButtonColor:'#dc2626', background:'var(--card)', color:'var(--text)', customClass:{popup:'swal2-dark-custom'} });
+  if(!result.isConfirmed) return;
+  const r = await api('/api/attendance-policies/' + pid + '/delete');
+  toast(r.msg, r.ok?'ok':'err');
+  if(r.ok) setTimeout(()=>location.reload(), 800);
+}
+</script>
+{% endblock %}
