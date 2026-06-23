@@ -53,5 +53,11 @@ coverage.xml
 *.sqlite
 
 # ─── Project-specific ──────────────────────────────────────────────────────
-# Keep .env.example but not .env itself
 !.env.example
+scripts/
+
+# ─── Static files — DO NOT ignore these ──────────────────────────────────
+# static/ is TRACKED — contains CSS, JS, icons, manifest, service worker
+# To verify: git ls-files static/
+# If static/ shows as deleted, run: git add -f static/
+# This comment block prevents accidental .gitignore from hiding static/

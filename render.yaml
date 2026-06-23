@@ -1,30 +1,43 @@
-# Render Blueprint — Infrastructure as Code
-# https://render.com/docs/blueprint-spec
+# Render Blueprint — SmartLog V2 Infrastructure
+# ===============================================
+# This file defines the full infrastructure: database + web service.
+# Render auto-creates both when you connect this GitHub repo.
 #
-# Deploy:
-#   1. Push to GitHub
-#   2. In Render Dashboard -> Blueprint -> Connect repo
-#   3. Render auto-creates database + web service
-#   4. Check logs for DATABASE_URL detection
-#   5. Visit https://smartlog-backend.onrender.com/api/health
+# Static files: Flask serves /static/ directly via static_folder.
+# No nginx/caddy reverse proxy needed on Render's free/starter tier.
+#
+# Icon troubleshooting on Render:
+#   1. Verify static/ exists on disk (SSH or Render Shell)
+#   2. Check /api/health/static for file status
+#   3. Open browser DevTools > Network > reload
+#   4. Look for 404s on /static/* or CDN URLs
+#   5. Check Console tab for CSP errors (font-src, style-src)
+#   6. Check Render logs: service > Logs > search "static"
+#
+# Before/After fix comparison:
+#   Before: href="/static/css/style.css"           — HARDCODED, may 404
+#   After:  href="{{ url_for('static', filename='css/style.css') }}" — CORRECT
+#
+#   Before: font-src 'self';                       — BLOCKS CDN fonts
+#   After:  font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; — WORKS
 
 databases:
   - name: smartlog-db
     databaseName: smartlog
-    plan: starter          # $7/mo — includes 1 GB RAM, 10 GB storage
-    region: oregon         # Use nearest region to your users
+    plan: starter          # $7/mo — 1 GB RAM, 10 GB storage
+    region: oregon         # Change to nearest your users
     postgresMajorVersion: 16
-    ipAllowList: []        # 0.0.0.0/0 — allows web service to connect
+    ipAllowList: []
 
 services:
   - type: web
     name: smartlog-backend
     runtime: docker
     region: oregon
-    plan: starter          # $7/mo — includes 512 MB RAM, 1 CPU
+    plan: starter          # $7/mo — 512 MB RAM, 1 CPU
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
-    autoDeploy: true       # Redeploy on every git push to main
+    autoDeploy: true
 
     envVars:
       # ─── App Configuration ───
@@ -53,9 +66,9 @@ services:
 
       # ─── Gunicorn Tuning ───
       - key: GUNICORN_WORKERS
-        value: "4"
-      - key: GUNICORN_THREADS
         value: "2"
+      - key: GUNICORN_THREADS
+        value: "4"
 
       # ─── Connection Pooling ───
       - key: DB_POOL_SIZE

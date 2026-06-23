@@ -7,13 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="بنك دم طبرق">
-  <link rel="manifest" href="/static/manifest.json">
-  <link rel="apple-touch-icon" href="/static/icons/icon-192.svg">
-  <link rel="apple-touch-startup-image" href="/static/icons/icon-512.svg">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.svg') }}">
+  <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/icon-512.svg') }}">
   <title>{% block title %}منظومة بنك دم طبرق{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="/static/css/pwa.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pwa.css') }}?v={{ static_version }}">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root {
@@ -175,6 +176,7 @@
       .modal-handle { display: none; }
     }
   </style>
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
 {% if is_employee|default(false) %}
@@ -391,7 +393,7 @@ updateNotifBadge();
 {% endif %}
 
 </script>
-<script src="/static/js/app.js" defer></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

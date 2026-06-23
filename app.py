@@ -127,6 +127,27 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 if PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
 
+# Static file configuration
+app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+app.static_url_path = '/static'
+if PRODUCTION:
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 86400
+    app.config['TEMPLATES_AUTO_RELOAD'] = False
+
+# Register static file context processor for all templates
+@app.context_processor
+def inject_static_vars():
+    """Provides static_url() and icon() to all templates."""
+    from utils.icon_helper import static_url, icon, icon_html, needed_cdn_libs
+    return dict(
+        static_url=static_url,
+        icon=icon,
+        icon_html=icon_html,
+        needed_cdn_libs=needed_cdn_libs,
+        static_version=int(time.time()),
+        PRODUCTION=PRODUCTION,
+    )
+
 # Field-level encryption
 _FIELD_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
 if _FIELD_KEY:
@@ -285,6 +306,28 @@ def api_health_inline():
     status_code = 200 if result['status'] == 'healthy' else 503
     return jsonify(result), status_code, {'Content-Type': 'application/json; charset=utf-8'}
 
+@app.route('/api/health/static')
+def api_static_health():
+    """Verify static files are serving correctly."""
+    static_dir = app.static_folder or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+    checks = {
+        'css_pwa': os.path.isfile(os.path.join(static_dir, 'css', 'pwa.css')),
+        'js_app': os.path.isfile(os.path.join(static_dir, 'js', 'app.js')),
+        'icon_192': os.path.isfile(os.path.join(static_dir, 'icons', 'icon-192.svg')),
+        'icon_512': os.path.isfile(os.path.join(static_dir, 'icons', 'icon-512.svg')),
+        'manifest': os.path.isfile(os.path.join(static_dir, 'manifest.json')),
+        'sw': os.path.isfile(os.path.join(static_dir, 'sw.js')),
+    }
+    all_ok = all(checks.values())
+    return jsonify({
+        'status': 'ok' if all_ok else 'degraded',
+        'static_folder': static_dir,
+        'checks': checks,
+        'all_ok': all_ok,
+        'count_css': len([f for f in os.listdir(os.path.join(static_dir, 'css')) if f.endswith('.css')]) if os.path.isdir(os.path.join(static_dir, 'css')) else 0,
+        'count_js': len([f for f in os.listdir(os.path.join(static_dir, 'js')) if f.endswith('.js')]) if os.path.isdir(os.path.join(static_dir, 'js')) else 0,
+    })
+
 # PWA Offline Page
 @app.route('/pwa/offline')
 def pwa_offline():
@@ -355,15 +398,12 @@ def production_security_headers(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['Content-Security-Policy'] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "img-src 'self' data: blob:; "
-        "font-src 'self'; "
-        "connect-src 'self'; "
-        "frame-ancestors 'none';"
-    )
+    csp = getattr(app, '_csp_string', None)
+    if not csp:
+        from config import ProductionConfig
+        csp = ProductionConfig.csp_string()
+        app._csp_string = csp
+    response.headers['Content-Security-Policy'] = csp
     return response
 
 # Startup: Migrations + Seeding
