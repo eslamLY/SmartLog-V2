@@ -26,62 +26,72 @@ log.info('=' * 60)
 log.info('SmartLog starting up')
 log.info('=' * 60)
 
-# ─── Environment Detection ─────────────────────────────────────────
+# Log ALL environment variables (safely)
+log.info('Environment:')
+for key in sorted(os.environ.keys()):
+    val = os.environ[key]
+    if any(s in key.upper() for s in ['KEY', 'SECRET', 'TOKEN', 'PASS', 'ENCRYPT']):
+        val = '****'
+    elif key == 'DATABASE_URL' and val:
+        val = val.split('@')[0].split('://')[0] + '://****:****@' + val.split('@')[1] if '@' in val else '****'
+    log.info('  %s=%s', key, val)
+
+# Environment Detection
 FLASK_ENV = os.environ.get('FLASK_ENV', 'development').lower()
 ON_RENDER = os.environ.get('RENDER', '').lower() == 'true'
 PRODUCTION = FLASK_ENV == 'production' or ON_RENDER \
              or os.environ.get('PRODUCTION', '').lower() in ('1', 'true', 'yes')
 
-log.info('Environment: FLASK_ENV=%s ON_RENDER=%s PRODUCTION=%s',
+log.info('Detected: FLASK_ENV=%s ON_RENDER=%s PRODUCTION=%s',
          FLASK_ENV, ON_RENDER, PRODUCTION)
 
-# ─── Database URL Validation ───────────────────────────────────────
+# Database URL Validation
+log.info('Checking DATABASE_URL...')
 _DB_URL = os.environ.get('DATABASE_URL', '').strip()
 if not _DB_URL:
+    log.error('=' * 60)
     log.error('FATAL: DATABASE_URL environment variable is NOT SET.')
     log.error('')
-    log.error('  On Render (auto-linking):')
-    log.error('    render.yaml should have:')
-    log.error('      envVars:')
-    log.error('        - key: DATABASE_URL')
-    log.error('          fromDatabase:')
-    log.error('            name: smartlog-db')
-    log.error('            property: connectionString')
-    log.error('')
-    log.error('  On Render (manual fix):')
-    log.error('    1. Go to Dashboard → Databases → smartlog-db → Connections')
-    log.error('    2. Copy "Connection String"')
-    log.error('    3. Go to Dashboard → Services → smartlog-backend → Environment')
-    log.error('    4. Add DATABASE_URL with the copied value')
-    log.error('')
-    log.error('  Expected format:')
-    log.error('    postgresql://user:password@host:5432/dbname')
-    log.error('    postgres://user:password@host:5432/dbname   (auto-converted)')
-    log.info('=' * 60)
+    if ON_RENDER:
+        log.error('  You are running on Render.')
+        log.error('  If using Blueprint (render.yaml):')
+        log.error('    - Verify render.yaml has fromDatabase for DATABASE_URL')
+        log.error('    - Sometimes auto-linking only works on SECOND deploy')
+        log.error('    - Try: Manual Deploy -> Deploy latest commit again')
+        log.error('')
+        log.error('  To set manually:')
+        log.error('    1. Render Dashboard -> Databases -> smartlog-db -> Connections')
+        log.error('    2. Copy "Connection String"')
+        log.error('    3. Render Dashboard -> smartlog-backend -> Environment')
+        log.error('    4. Add: Key=DATABASE_URL, Value=<copied string>')
+        log.error('    5. Save, then Manual Deploy')
+    else:
+        log.error('  Set DATABASE_URL in your environment.')
+        log.error('  Format: postgresql://user:password@host:5432/dbname')
+    log.error('=' * 60)
     sys.exit(1)
 
-# Normalize: postgres:// → postgresql://
+log.info('DATABASE_URL found: %d characters', len(_DB_URL))
+log.info('DATABASE_URL starts with: %s...', _DB_URL[:20])
+
 if _DB_URL.startswith('postgres://'):
     _DB_URL = _DB_URL.replace('postgres://', 'postgresql://', 1)
-    log.info('DATABASE_URL: converted postgres:// → postgresql://')
+    log.info('Converted postgres:// -> postgresql://')
 
 if not _DB_URL.startswith('postgresql://'):
     log.error('FATAL: DATABASE_URL must start with postgresql://')
-    log.error('  Got: %s', _DB_URL[:40])
-    log.error('  Did you forget to set the protocol?')
+    log.error('  Got start: %s...', _DB_URL[:30])
     sys.exit(1)
 
 if '@' not in _DB_URL:
-    log.error('FATAL: DATABASE_URL missing @ symbol — malformed')
-    log.error('  Got: %s', _DB_URL[:40])
-    log.error('  Expected format: postgresql://user:pass@host:5432/dbname')
+    log.error('FATAL: DATABASE_URL missing @ symbol')
+    log.error('  Expected: postgresql://user:pass@host:5432/dbname')
     sys.exit(1)
 
-# Log masked URL for debugging
 _masked = _DB_URL.split('@')[0].split('://')[0] + '://****:****@' + _DB_URL.split('@')[1]
-log.info('DATABASE_URL: %s', _masked)
+log.info('DATABASE_URL (masked): %s', _masked)
 
-# ─── Flask App Factory ─────────────────────────────────────────────
+# Flask App
 app = Flask(__name__)
 
 app.config['ENV'] = FLASK_ENV
@@ -89,7 +99,7 @@ app.config['PRODUCTION'] = PRODUCTION
 app.config['ON_RENDER'] = ON_RENDER
 app.config['SQLALCHEMY_DATABASE_URI'] = _DB_URL
 
-# Connection pooling for PostgreSQL
+# Connection pooling
 _DB_POOL_SIZE = int(os.environ.get('DB_POOL_SIZE', '10'))
 _DB_POOL_OVERFLOW = int(os.environ.get('DB_POOL_OVERFLOW', '20'))
 _DB_POOL_TIMEOUT = int(os.environ.get('DB_POOL_TIMEOUT', '30'))
@@ -107,14 +117,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 
-# ─── Secret Key ────────────────────────────────────────────────────
+# Secret Key
 app.secret_key = os.environ.get('SECRET_KEY', 'blood-bank-tobruk-secret-2024')
 if PRODUCTION and not os.environ.get('SECRET_KEY'):
     log.error('FATAL: SECRET_KEY not set in production!')
-    log.error('  Set SECRET_KEY in Render Dashboard → Environment')
-    log.error('  Or if using render.yaml:')
-    log.error('      - key: SECRET_KEY')
-    log.error('        generateValue: true')
+    log.error('  render.yaml should have:')
+    log.error('    - key: SECRET_KEY')
+    log.error('      generateValue: true')
     sys.exit(1)
 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -122,7 +131,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 if PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
 
-# ─── Field-level encryption ────────────────────────────────────────
+# Field-level encryption
 _FIELD_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
 if _FIELD_KEY:
     _key = _FIELD_KEY.encode() if isinstance(_FIELD_KEY, str) else _FIELD_KEY
@@ -130,7 +139,7 @@ else:
     _key = base64.urlsafe_b64encode(hashlib.sha256(app.secret_key.encode()).digest())
 fernet = Fernet(_key)
 
-# ─── Database Initialization ──────────────────────────────────────
+# Database Initialization
 from models import db, set_fernet as _set_fernet
 from models import (Employee, Department, AttendanceLog,
     LeaveRequest, OutingRequest, GPSLog,
@@ -144,15 +153,11 @@ _set_fernet(fernet)
 db.init_app(app)
 migrate = Migrate(app, db)
 
-log.info('SQLAlchemy+Migrate initialized with engine options: pool_size=%d, max_overflow=%d, sslmode=%s',
-         _DB_POOL_SIZE, _DB_POOL_OVERFLOW, 'require' if PRODUCTION else 'disabled')
+log.info('Engine options: pool_size=%d, max_overflow=%d, ssl=%s',
+         _DB_POOL_SIZE, _DB_POOL_OVERFLOW, 'require' if PRODUCTION else 'no')
 
-# ─── Pre-flight: Test DB connection ────────────────────────────────
-def _test_db_connection(max_retries=3, delay=2):
-    """Attempt to connect to the database.
-    Retries up to `max_retries` times with `delay` seconds between attempts.
-    Returns True on success, False if all retries fail.
-    """
+# Pre-flight: Test DB connection with retries
+def _test_db_connection(max_retries=5, delay=3):
     for attempt in range(1, max_retries + 1):
         try:
             with app.app_context():
@@ -169,34 +174,36 @@ def _test_db_connection(max_retries=3, delay=2):
     return False
 
 if not _test_db_connection():
-    log.error('FATAL: Could not connect to database after %d attempts.', 3)
+    log.error('=' * 60)
+    log.error('FATAL: Could not connect to database after retries.')
     log.error('  DATABASE_URL: %s', _masked)
     log.error('')
     log.error('  Possible causes:')
-    log.error('  1. Render database is not ready yet (wait 1-2 min and redeploy)')
+    log.error('  1. Database is still provisioning (wait 2 min, redeploy)')
     log.error('  2. DATABASE_URL has wrong credentials')
-    log.error('  3. IP allow list is blocking (Render PostgreSQL allows all by default)')
-    log.error('  4. Database service is paused (starter plan sleeps after inactivity)')
+    log.error('  3. Database IP allow list blocks connection')
+    log.error('  4. Database was paused (starter plan)')
     log.error('')
-    log.error('  To verify:')
-    log.error('    1. Check Render Dashboard → Databases → smartlog-db → Logs')
-    log.error('    2. Check Render Dashboard → smartlog-backend → Environment')
-    log.error('    3. Try: psql "$DATABASE_URL" -c "SELECT 1"')
+    log.error('  To verify connection string:')
+    log.error('    psql "$DATABASE_URL" -c "SELECT 1"')
+    log.error('')
+    log.error('  In Render Dashboard:')
+    log.error('    Databases -> smartlog-db -> Logs -> check for errors')
+    log.error('    smartlog-backend -> Environment -> verify DATABASE_URL')
+    log.error('=' * 60)
     sys.exit(1)
 
-# ─── Auto-create tables ────────────────────────────────────────────
+# Auto-create tables
 with app.app_context():
     try:
         db.create_all()
         log.info('Tables: ALL verified (db.create_all() completed)')
     except Exception as exc:
         log.error('FATAL: db.create_all() failed: %s', exc)
-        log.error('  Database connected but schema creation failed.')
-        log.error('  This may indicate missing permissions or schema conflicts.')
         if PRODUCTION:
             sys.exit(1)
 
-# ─── Route Blueprints ──────────────────────────────────────────────
+# Route Blueprints
 from routes.employee import employee_bp
 from routes.auth import auth_bp
 app.register_blueprint(employee_bp)
@@ -250,13 +257,11 @@ app.register_blueprint(forecast_bp)
 from routes.scenarios import scenarios_bp
 app.register_blueprint(scenarios_bp)
 
-# ─── Inline Health Check (always available, even if route imports fail) ──
+# Inline Health Check (always available)
+_start_time = time.time()
+
 @app.route('/api/health')
 def api_health_inline():
-    """Production health check endpoint.
-    Tests database connectivity and returns status.
-    Used by Render's health check pings.
-    """
     result = {
         'status': 'healthy',
         'database': 'unknown',
@@ -270,19 +275,17 @@ def api_health_inline():
         result['database'] = 'connected'
     except Exception as exc:
         result['status'] = 'degraded'
-        result['database'] = f'disconnected: {exc}'
-    result['uptime_seconds'] = int(time.time() - _start_time) if '_start_time' in dir() else 0
+        result['database'] = 'disconnected: ' + str(exc)
+    result['uptime_seconds'] = int(time.time() - _start_time)
     status_code = 200 if result['status'] == 'healthy' else 503
     return jsonify(result), status_code, {'Content-Type': 'application/json; charset=utf-8'}
 
-_start_time = time.time()
-
-# ─── PWA Offline Page ────────────────────────────────────────────────
+# PWA Offline Page
 @app.route('/pwa/offline')
 def pwa_offline():
     return render_template('pwa/offline.html'), 200, {'Service-Worker-Allowed': '/'}
 
-# ─── Custom Jinja2 Filters ──────────────────────────────────────────
+# Custom Jinja2 Filters
 @app.template_filter('todatetime')
 def todatetime_filter(val):
     from datetime import date
@@ -290,7 +293,7 @@ def todatetime_filter(val):
         return date(val[0], val[1], val[2])
     return val
 
-# ─── CSRF & Rate Limiter ─────────────────────────────────────────────
+# CSRF & Rate Limiter
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 limiter = Limiter(get_remote_address, app=app,
@@ -333,7 +336,7 @@ def check_auto_ban():
     if not result['ok']:
         return render_template('blocked.html'), 429
 
-# ─── Production Security Headers ──────────────────────────────────────
+# Production Security Headers
 @app.after_request
 def production_security_headers(response):
     if not PRODUCTION:
@@ -358,13 +361,9 @@ def production_security_headers(response):
     )
     return response
 
-# ─── Startup: Migrations + Seeding ────────────────────────────────────
+# Startup: Migrations + Seeding
 def run_startup():
-    """Run migrations, ALTER TABLE fallbacks, and seed data.
-    Called once at import time and once in __main__.
-    """
     with app.app_context():
-        # Flask-Migrate upgrade
         try:
             from flask_migrate import upgrade
             upgrade()
@@ -372,7 +371,6 @@ def run_startup():
         except Exception as exc:
             log.warning('Startup: flask db upgrade skipped (%s)', exc)
 
-        # ALTER TABLE fallbacks for legacy columns
         from models import db as _db
         for col, typ in [('early_leave_minutes', 'INTEGER DEFAULT 0'),
                          ('overtime_minutes', 'INTEGER DEFAULT 0'),
@@ -385,7 +383,6 @@ def run_startup():
             except Exception:
                 _db.session.rollback()
 
-        # Seed default data
         try:
             from utils.seeds import seed_enterprise, seed_db, seed_shift_types, seed_leave_types
             seed_enterprise()
@@ -396,7 +393,6 @@ def run_startup():
         except Exception as exc:
             log.warning('Startup: seeding skipped (%s)', exc)
 
-# Run startup once at import time (catches gunicorn worker boot)
 run_startup()
 log.info('=' * 60)
 log.info('SmartLog startup complete — ready to serve')
