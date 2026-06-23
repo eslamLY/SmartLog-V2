@@ -48,28 +48,24 @@ log.info('Detected: FLASK_ENV=%s ON_RENDER=%s PRODUCTION=%s',
 # Database URL Validation
 log.info('Checking DATABASE_URL...')
 _DB_URL = os.environ.get('DATABASE_URL', '').strip()
+_DB_CONFIGURED = True
 if not _DB_URL:
     log.error('=' * 60)
-    log.error('FATAL: DATABASE_URL environment variable is NOT SET.')
+    log.error('WARNING: DATABASE_URL is NOT SET.')
+    log.error('  App will start in DEGRADED mode.')
+    log.error('  Health check returns 503 until DATABASE_URL is configured.')
     log.error('')
     if ON_RENDER:
-        log.error('  You are running on Render.')
-        log.error('  If using Blueprint (render.yaml):')
-        log.error('    - Verify render.yaml has fromDatabase for DATABASE_URL')
-        log.error('    - Sometimes auto-linking only works on SECOND deploy')
-        log.error('    - Try: Manual Deploy -> Deploy latest commit again')
-        log.error('')
-        log.error('  To set manually:')
-        log.error('    1. Render Dashboard -> Databases -> smartlog-db -> Connections')
+        log.error('  To fix on Render:')
+        log.error('    1. Dashboard -> Databases -> smartlog-db -> Connections')
         log.error('    2. Copy "Connection String"')
-        log.error('    3. Render Dashboard -> smartlog-backend -> Environment')
-        log.error('    4. Add: Key=DATABASE_URL, Value=<copied string>')
-        log.error('    5. Save, then Manual Deploy')
+        log.error('    3. smartlog-backend -> Environment -> Add DATABASE_URL')
+        log.error('    4. Paste value, click Save Changes')
     else:
-        log.error('  Set DATABASE_URL in your environment.')
-        log.error('  Format: postgresql://user:password@host:5432/dbname')
+        log.error('  Set: export DATABASE_URL=postgresql://user:pass@host:5432/db')
     log.error('=' * 60)
-    sys.exit(1)
+    _DB_URL = 'postgresql://placeholder:placeholder@localhost:5432/nonexistent'
+    _DB_CONFIGURED = False
 
 log.info('DATABASE_URL found: %d characters', len(_DB_URL))
 log.info('DATABASE_URL starts with: %s...', _DB_URL[:20])
@@ -173,35 +169,38 @@ def _test_db_connection(max_retries=5, delay=3):
                 time.sleep(delay)
     return False
 
-if not _test_db_connection():
-    log.error('=' * 60)
-    log.error('FATAL: Could not connect to database after retries.')
-    log.error('  DATABASE_URL: %s', _masked)
-    log.error('')
-    log.error('  Possible causes:')
-    log.error('  1. Database is still provisioning (wait 2 min, redeploy)')
-    log.error('  2. DATABASE_URL has wrong credentials')
-    log.error('  3. Database IP allow list blocks connection')
-    log.error('  4. Database was paused (starter plan)')
-    log.error('')
-    log.error('  To verify connection string:')
-    log.error('    psql "$DATABASE_URL" -c "SELECT 1"')
-    log.error('')
-    log.error('  In Render Dashboard:')
-    log.error('    Databases -> smartlog-db -> Logs -> check for errors')
-    log.error('    smartlog-backend -> Environment -> verify DATABASE_URL')
-    log.error('=' * 60)
-    sys.exit(1)
+if _DB_CONFIGURED:
+    if not _test_db_connection():
+        log.error('=' * 60)
+        log.error('FATAL: Could not connect to database after retries.')
+        log.error('  DATABASE_URL: %s', _masked)
+        log.error('')
+        log.error('  Possible causes:')
+        log.error('  1. Database is still provisioning (wait 2 min, redeploy)')
+        log.error('  2. DATABASE_URL has wrong credentials')
+        log.error('  3. Database IP allow list blocks connection')
+        log.error('  4. Database was paused (starter plan)')
+        log.error('')
+        log.error('  To verify connection string:')
+        log.error('    psql "$DATABASE_URL" -c "SELECT 1"')
+        log.error('')
+        log.error('  In Render Dashboard:')
+        log.error('    Databases -> smartlog-db -> Logs -> check for errors')
+        log.error('    smartlog-backend -> Environment -> verify DATABASE_URL')
+        log.error('=' * 60)
+        sys.exit(1)
 
-# Auto-create tables
-with app.app_context():
-    try:
-        db.create_all()
-        log.info('Tables: ALL verified (db.create_all() completed)')
-    except Exception as exc:
-        log.error('FATAL: db.create_all() failed: %s', exc)
-        if PRODUCTION:
-            sys.exit(1)
+    # Auto-create tables
+    with app.app_context():
+        try:
+            db.create_all()
+            log.info('Tables: ALL verified (db.create_all() completed)')
+        except Exception as exc:
+            log.error('FATAL: db.create_all() failed: %s', exc)
+            if PRODUCTION:
+                sys.exit(1)
+else:
+    log.warning('DATABASE_URL not configured — skipping DB initialization')
 
 # Route Blueprints
 from routes.employee import employee_bp
@@ -265,10 +264,16 @@ def api_health_inline():
     result = {
         'status': 'healthy',
         'database': 'unknown',
+        'database_configured': _DB_CONFIGURED,
         'timestamp': datetime.now(UTC).isoformat(),
         'environment': FLASK_ENV,
         'on_render': ON_RENDER,
     }
+    if not _DB_CONFIGURED:
+        result['status'] = 'degraded'
+        result['database'] = 'not_configured'
+        result['message'] = 'Set DATABASE_URL in environment and restart'
+        return jsonify(result), 503, {'Content-Type': 'application/json; charset=utf-8'}
     try:
         with db.engine.connect() as conn:
             conn.execute(db.text('SELECT 1'))
@@ -393,7 +398,11 @@ def run_startup():
         except Exception as exc:
             log.warning('Startup: seeding skipped (%s)', exc)
 
-run_startup()
+if _DB_CONFIGURED:
+    run_startup()
+else:
+    log.warning('Startup: skipping migrations and seeding (DATABASE_URL not configured)')
+
 log.info('=' * 60)
 log.info('SmartLog startup complete — ready to serve')
 log.info('=' * 60)
