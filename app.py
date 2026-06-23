@@ -116,11 +116,11 @@ app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__fil
 # Secret Key
 app.secret_key = os.environ.get('SECRET_KEY', 'blood-bank-tobruk-secret-2024')
 if PRODUCTION and not os.environ.get('SECRET_KEY'):
-    log.error('FATAL: SECRET_KEY not set in production!')
-    log.error('  render.yaml should have:')
-    log.error('    - key: SECRET_KEY')
-    log.error('      generateValue: true')
-    sys.exit(1)
+    log.error('WARNING: SECRET_KEY not set in production!')
+    log.error('  Using built-in default — set SECRET_KEY env var for security.')
+    if _DB_CONFIGURED:
+        log.error('FATAL: SECRET_KEY required when database is configured.')
+        sys.exit(1)
 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
