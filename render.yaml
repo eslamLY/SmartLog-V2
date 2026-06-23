@@ -1,0 +1,66 @@
+# Render Blueprint — Infrastructure as Code
+# https://render.com/docs/blueprint-spec
+#
+# Deploy:
+#   1. Push to GitHub
+#   2. In Render Dashboard -> Blueprint -> Connect repo
+#   3. Render auto-creates database + web service
+#   4. Check logs for DATABASE_URL detection
+#   5. Visit https://smartlog-backend.onrender.com/api/health
+
+databases:
+  - name: smartlog-db
+    databaseName: smartlog
+    plan: starter          # $7/mo — includes 1 GB RAM, 10 GB storage
+    region: oregon         # Use nearest region to your users
+    postgresMajorVersion: 16
+    ipAllowList: []        # 0.0.0.0/0 — allows web service to connect
+
+services:
+  - type: web
+    name: smartlog-backend
+    runtime: docker
+    region: oregon
+    plan: starter          # $7/mo — includes 512 MB RAM, 1 CPU
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true       # Redeploy on every git push to main
+
+    envVars:
+      # ─── App Configuration ───
+      - key: FLASK_ENV
+        value: production
+      - key: PRODUCTION
+        value: "true"
+      - key: FLASK_APP
+        value: app.py
+      - key: LOG_LEVEL
+        value: info
+      - key: PORT
+        value: "5000"
+
+      # ─── Secrets (auto-generated on first deploy) ───
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FIELD_ENCRYPTION_KEY
+        generateValue: true
+
+      # ─── Database (auto-linked from smartlog-db) ───
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartlog-db
+          property: connectionString
+
+      # ─── Gunicorn Tuning ───
+      - key: GUNICORN_WORKERS
+        value: "4"
+      - key: GUNICORN_THREADS
+        value: "2"
+
+      # ─── Connection Pooling ───
+      - key: DB_POOL_SIZE
+        value: "10"
+      - key: DB_POOL_OVERFLOW
+        value: "20"
+      - key: DB_POOL_RECYCLE
+        value: "3600"

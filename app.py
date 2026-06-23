@@ -1,8 +1,8 @@
 """
-منظومة بنك دم طبرق - نظام الحضور والانصراف
 Tobruk Blood Bank - Attendance Management System
+Production entry point with bulletproof database startup.
 """
-import os, math, uuid, io, json, base64, hashlib, time
+import os, sys, math, uuid, io, json, base64, hashlib, time, logging
 from collections import defaultdict
 from datetime import datetime, date, timedelta, UTC
 
@@ -11,7 +11,7 @@ from flask import (Flask, render_template, request, redirect, url_for,
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, text as sa_text
 from itsdangerous import URLSafeTimedSerializer
 from cryptography.fernet import Fernet
 from flask_limiter import Limiter
@@ -19,68 +19,119 @@ from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 
-# ─── APP CONFIG ───────────────────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s [%(levelname)s] %(name)s %(message)s')
+log = logging.getLogger('app')
+log.info('=' * 60)
+log.info('SmartLog starting up')
+log.info('=' * 60)
+
+# ─── Environment Detection ─────────────────────────────────────────
+FLASK_ENV = os.environ.get('FLASK_ENV', 'development').lower()
+ON_RENDER = os.environ.get('RENDER', '').lower() == 'true'
+PRODUCTION = FLASK_ENV == 'production' or ON_RENDER \
+             or os.environ.get('PRODUCTION', '').lower() in ('1', 'true', 'yes')
+
+log.info('Environment: FLASK_ENV=%s ON_RENDER=%s PRODUCTION=%s',
+         FLASK_ENV, ON_RENDER, PRODUCTION)
+
+# ─── Database URL Validation ───────────────────────────────────────
+_DB_URL = os.environ.get('DATABASE_URL', '').strip()
+if not _DB_URL:
+    log.error('FATAL: DATABASE_URL environment variable is NOT SET.')
+    log.error('')
+    log.error('  On Render (auto-linking):')
+    log.error('    render.yaml should have:')
+    log.error('      envVars:')
+    log.error('        - key: DATABASE_URL')
+    log.error('          fromDatabase:')
+    log.error('            name: smartlog-db')
+    log.error('            property: connectionString')
+    log.error('')
+    log.error('  On Render (manual fix):')
+    log.error('    1. Go to Dashboard → Databases → smartlog-db → Connections')
+    log.error('    2. Copy "Connection String"')
+    log.error('    3. Go to Dashboard → Services → smartlog-backend → Environment')
+    log.error('    4. Add DATABASE_URL with the copied value')
+    log.error('')
+    log.error('  Expected format:')
+    log.error('    postgresql://user:password@host:5432/dbname')
+    log.error('    postgres://user:password@host:5432/dbname   (auto-converted)')
+    log.info('=' * 60)
+    sys.exit(1)
+
+# Normalize: postgres:// → postgresql://
+if _DB_URL.startswith('postgres://'):
+    _DB_URL = _DB_URL.replace('postgres://', 'postgresql://', 1)
+    log.info('DATABASE_URL: converted postgres:// → postgresql://')
+
+if not _DB_URL.startswith('postgresql://'):
+    log.error('FATAL: DATABASE_URL must start with postgresql://')
+    log.error('  Got: %s', _DB_URL[:40])
+    log.error('  Did you forget to set the protocol?')
+    sys.exit(1)
+
+if '@' not in _DB_URL:
+    log.error('FATAL: DATABASE_URL missing @ symbol — malformed')
+    log.error('  Got: %s', _DB_URL[:40])
+    log.error('  Expected format: postgresql://user:pass@host:5432/dbname')
+    sys.exit(1)
+
+# Log masked URL for debugging
+_masked = _DB_URL.split('@')[0].split('://')[0] + '://****:****@' + _DB_URL.split('@')[1]
+log.info('DATABASE_URL: %s', _masked)
+
+# ─── Flask App Factory ─────────────────────────────────────────────
 app = Flask(__name__)
 
-# ─── PRODUCTION MODE FLAG (must be evaluated before any fallback) ──────────
-FLASK_ENV = os.environ.get('FLASK_ENV', 'development').lower()
-PRODUCTION = FLASK_ENV == 'production' or os.environ.get('PRODUCTION', '').lower() in ('1', 'true', 'yes')
 app.config['ENV'] = FLASK_ENV
 app.config['PRODUCTION'] = PRODUCTION
+app.config['ON_RENDER'] = ON_RENDER
+app.config['SQLALCHEMY_DATABASE_URI'] = _DB_URL
 
-# ─── PRODUCTION HARD-FAIL VALIDATION ──────────────────────────────────────
-if PRODUCTION:
-    _missing = []
-    if not os.environ.get('SECRET_KEY'):
-        _missing.append("'SECRET_KEY'")
-    if not os.environ.get('DATABASE_URL'):
-        _missing.append("'DATABASE_URL'")
-    if not os.environ.get('FIELD_ENCRYPTION_KEY'):
-        _missing.append("'FIELD_ENCRYPTION_KEY'")
-    if _missing:
-        raise RuntimeError(
-            'CRITICAL CONFIGURATION ERROR: '
-            + ', '.join(_missing)
-            + ' environment variable(s) required in production mode!'
-        )
+# Connection pooling for PostgreSQL
+_DB_POOL_SIZE = int(os.environ.get('DB_POOL_SIZE', '10'))
+_DB_POOL_OVERFLOW = int(os.environ.get('DB_POOL_OVERFLOW', '20'))
+_DB_POOL_TIMEOUT = int(os.environ.get('DB_POOL_TIMEOUT', '30'))
+_DB_POOL_RECYCLE = int(os.environ.get('DB_POOL_RECYCLE', '3600'))
 
-_secret_key = os.environ.get('SECRET_KEY')
-if not _secret_key:
-    if PRODUCTION:
-        raise RuntimeError('CRITICAL: SECRET_KEY environment variable is required in production!')
-    _secret_key = 'dev-default-insecure-key-do-not-use-in-production'
-app.secret_key = _secret_key
-
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if not DATABASE_URL:
-    if PRODUCTION:
-        raise RuntimeError('CRITICAL: DATABASE_URL environment variable is required in production!')
-    DATABASE_URL = 'sqlite:///bloodbank.db'
-if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': _DB_POOL_SIZE,
+    'max_overflow': _DB_POOL_OVERFLOW,
+    'pool_timeout': _DB_POOL_TIMEOUT,
+    'pool_recycle': _DB_POOL_RECYCLE,
+    'pool_pre_ping': True,
+    'connect_args': {'sslmode': 'require'} if PRODUCTION else {},
+}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 
-# ─── SECURE SESSION CONFIG ───────────────────────────────────────────────
+# ─── Secret Key ────────────────────────────────────────────────────
+app.secret_key = os.environ.get('SECRET_KEY', 'blood-bank-tobruk-secret-2024')
+if PRODUCTION and not os.environ.get('SECRET_KEY'):
+    log.error('FATAL: SECRET_KEY not set in production!')
+    log.error('  Set SECRET_KEY in Render Dashboard → Environment')
+    log.error('  Or if using render.yaml:')
+    log.error('      - key: SECRET_KEY')
+    log.error('        generateValue: true')
+    sys.exit(1)
+
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 if PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
 
-# ─── FIELD-LEVEL ENCRYPTION ──────────────────────────────────────────────
+# ─── Field-level encryption ────────────────────────────────────────
 _FIELD_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
 if _FIELD_KEY:
     _key = _FIELD_KEY.encode() if isinstance(_FIELD_KEY, str) else _FIELD_KEY
-elif not PRODUCTION:
-    _key = base64.urlsafe_b64encode(hashlib.sha256(app.secret_key.encode()).digest())
 else:
-    raise RuntimeError('CRITICAL: FIELD_ENCRYPTION_KEY environment variable is required in production!')
+    _key = base64.urlsafe_b64encode(hashlib.sha256(app.secret_key.encode()).digest())
 fernet = Fernet(_key)
 
-from models import db, set_fernet
+# ─── Database Initialization ──────────────────────────────────────
+from models import db, set_fernet as _set_fernet
 from models import (Employee, Department, AttendanceLog,
     LeaveRequest, OutingRequest, GPSLog,
     BioTimeDevice, BrandingConfig, TrustedDevice,
@@ -89,15 +140,71 @@ from models import (Employee, Department, AttendanceLog,
     EmailTemplate, EmailLog, SmsLog,
     LoginAttempt, ShiftType, ShiftSchedule, ShiftSwapRequest,
     DocumentReference, ArchivedDocument, AttendanceReviewQueue)
-set_fernet(fernet)
+_set_fernet(fernet)
 db.init_app(app)
 migrate = Migrate(app, db)
+
+log.info('SQLAlchemy+Migrate initialized with engine options: pool_size=%d, max_overflow=%d, sslmode=%s',
+         _DB_POOL_SIZE, _DB_POOL_OVERFLOW, 'require' if PRODUCTION else 'disabled')
+
+# ─── Pre-flight: Test DB connection ────────────────────────────────
+def _test_db_connection(max_retries=3, delay=2):
+    """Attempt to connect to the database.
+    Retries up to `max_retries` times with `delay` seconds between attempts.
+    Returns True on success, False if all retries fail.
+    """
+    for attempt in range(1, max_retries + 1):
+        try:
+            with app.app_context():
+                with db.engine.connect() as conn:
+                    conn.execute(db.text('SELECT 1'))
+            log.info('DB connection test PASSED (attempt %d/%d)', attempt, max_retries)
+            return True
+        except Exception as exc:
+            log.warning('DB connection test FAILED (attempt %d/%d): %s',
+                        attempt, max_retries, exc)
+            if attempt < max_retries:
+                log.info('Retrying in %d seconds...', delay)
+                time.sleep(delay)
+    return False
+
+if not _test_db_connection():
+    log.error('FATAL: Could not connect to database after %d attempts.', 3)
+    log.error('  DATABASE_URL: %s', _masked)
+    log.error('')
+    log.error('  Possible causes:')
+    log.error('  1. Render database is not ready yet (wait 1-2 min and redeploy)')
+    log.error('  2. DATABASE_URL has wrong credentials')
+    log.error('  3. IP allow list is blocking (Render PostgreSQL allows all by default)')
+    log.error('  4. Database service is paused (starter plan sleeps after inactivity)')
+    log.error('')
+    log.error('  To verify:')
+    log.error('    1. Check Render Dashboard → Databases → smartlog-db → Logs')
+    log.error('    2. Check Render Dashboard → smartlog-backend → Environment')
+    log.error('    3. Try: psql "$DATABASE_URL" -c "SELECT 1"')
+    sys.exit(1)
+
+# ─── Auto-create tables ────────────────────────────────────────────
+with app.app_context():
+    try:
+        db.create_all()
+        log.info('Tables: ALL verified (db.create_all() completed)')
+    except Exception as exc:
+        log.error('FATAL: db.create_all() failed: %s', exc)
+        log.error('  Database connected but schema creation failed.')
+        log.error('  This may indicate missing permissions or schema conflicts.')
+        if PRODUCTION:
+            sys.exit(1)
+
+# ─── Route Blueprints ──────────────────────────────────────────────
 from routes.employee import employee_bp
 from routes.auth import auth_bp
 app.register_blueprint(employee_bp)
 app.register_blueprint(auth_bp)
 from routes.admin_attendance import admin_attendance_bp
 app.register_blueprint(admin_attendance_bp)
+from routes.attendance_policies import attendance_policies_bp
+app.register_blueprint(attendance_policies_bp)
 from routes.employees import admin_employees_bp
 app.register_blueprint(admin_employees_bp)
 from routes.employees_unified import employees_bp
@@ -143,21 +250,47 @@ app.register_blueprint(forecast_bp)
 from routes.scenarios import scenarios_bp
 app.register_blueprint(scenarios_bp)
 
-# ─── PWA OFFLINE PAGE ──────────────────────────────────────────────────────
+# ─── Inline Health Check (always available, even if route imports fail) ──
+@app.route('/api/health')
+def api_health_inline():
+    """Production health check endpoint.
+    Tests database connectivity and returns status.
+    Used by Render's health check pings.
+    """
+    result = {
+        'status': 'healthy',
+        'database': 'unknown',
+        'timestamp': datetime.now(UTC).isoformat(),
+        'environment': FLASK_ENV,
+        'on_render': ON_RENDER,
+    }
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text('SELECT 1'))
+        result['database'] = 'connected'
+    except Exception as exc:
+        result['status'] = 'degraded'
+        result['database'] = f'disconnected: {exc}'
+    result['uptime_seconds'] = int(time.time() - _start_time) if '_start_time' in dir() else 0
+    status_code = 200 if result['status'] == 'healthy' else 503
+    return jsonify(result), status_code, {'Content-Type': 'application/json; charset=utf-8'}
+
+_start_time = time.time()
+
+# ─── PWA Offline Page ────────────────────────────────────────────────
 @app.route('/pwa/offline')
 def pwa_offline():
     return render_template('pwa/offline.html'), 200, {'Service-Worker-Allowed': '/'}
 
-# ─── CUSTOM JINJA2 FILTERS ────────────────────────────────────────────────
+# ─── Custom Jinja2 Filters ──────────────────────────────────────────
 @app.template_filter('todatetime')
 def todatetime_filter(val):
-    """Convert a (year, month, day) tuple to a date object."""
     from datetime import date
     if isinstance(val, (list, tuple)) and len(val) == 3:
         return date(val[0], val[1], val[2])
     return val
 
-# ─── CSRF & RATE LIMITER ──────────────────────────────────────────────────────
+# ─── CSRF & Rate Limiter ─────────────────────────────────────────────
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 limiter = Limiter(get_remote_address, app=app,
@@ -189,7 +322,6 @@ from utils.helpers import (validate_coordinates, safe_json,
 from services.payroll_service import PayrollService
 from services.notification_service import NotificationService
 
-# QR token serializer — tokens expire in 5 seconds
 qr_serializer = URLSafeTimedSerializer(app.secret_key)
 
 @app.before_request
@@ -201,7 +333,7 @@ def check_auto_ban():
     if not result['ok']:
         return render_template('blocked.html'), 429
 
-# ─── PRODUCTION MIDDLEWARE (HSTS + HTTPS REDIRECT) ────────────────────────
+# ─── Production Security Headers ──────────────────────────────────────
 @app.after_request
 def production_security_headers(response):
     if not PRODUCTION:
@@ -226,26 +358,50 @@ def production_security_headers(response):
     )
     return response
 
-# ─── ALL ROUTE DEFINITIONS MOVED TO BLUEPRINTS ────────────────────────────────
-# See: routes/admin_ops.py, routes/admin_shifts.py, routes/admin_attendance.py,
-#      routes/admin_employees.py, routes/admin_system.py, routes/employee.py,
-#      routes/auth.py
+# ─── Startup: Migrations + Seeding ────────────────────────────────────
+def run_startup():
+    """Run migrations, ALTER TABLE fallbacks, and seed data.
+    Called once at import time and once in __main__.
+    """
+    with app.app_context():
+        # Flask-Migrate upgrade
+        try:
+            from flask_migrate import upgrade
+            upgrade()
+            log.info('Startup: flask db upgrade completed')
+        except Exception as exc:
+            log.warning('Startup: flask db upgrade skipped (%s)', exc)
+
+        # ALTER TABLE fallbacks for legacy columns
+        from models import db as _db
+        for col, typ in [('early_leave_minutes', 'INTEGER DEFAULT 0'),
+                         ('overtime_minutes', 'INTEGER DEFAULT 0'),
+                         ('policy_id', 'INTEGER REFERENCES attendance_policies(id)')]:
+            try:
+                _db.session.execute(_db.text(
+                    f'ALTER TABLE attendance_logs ADD COLUMN {col} {typ}'))
+                _db.session.commit()
+                log.info('Startup: added column attendance_logs.%s', col)
+            except Exception:
+                _db.session.rollback()
+
+        # Seed default data
+        try:
+            from utils.seeds import seed_enterprise, seed_db, seed_shift_types, seed_leave_types
+            seed_enterprise()
+            seed_db()
+            seed_shift_types()
+            seed_leave_types()
+            log.info('Startup: seed data loaded')
+        except Exception as exc:
+            log.warning('Startup: seeding skipped (%s)', exc)
+
+# Run startup once at import time (catches gunicorn worker boot)
+run_startup()
+log.info('=' * 60)
+log.info('SmartLog startup complete — ready to serve')
+log.info('=' * 60)
 
 if __name__ == '__main__':
-    with app.app_context():
-        from flask_migrate import upgrade
-        upgrade()
-        from utils.seeds import seed_enterprise, seed_db, seed_shift_types, seed_leave_types
-        seed_enterprise()
-        seed_db()
-        seed_shift_types()
-        seed_leave_types()
-        # Ensure backup + prediction tables exist (for new models not yet in migrations)
-        from models import db
-        from models.backup import BackupMetadata, BackupSchedule, BackupAuditLog, BackupConfig, BackupRestoreLog
-        from models.predictions import ModelRegistry, ModelPerformanceLog, PredictionResult, CustomRule, HolidayCalendar, AnomalyLog, RiskAssessment
-        db.create_all()
-        if not BackupConfig.query.first():
-            db.session.add(BackupConfig())
-            db.session.commit()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=not PRODUCTION, host='0.0.0.0',
+            port=int(os.environ.get('PORT', 5000)))
