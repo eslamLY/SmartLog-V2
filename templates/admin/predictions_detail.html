@@ -2,7 +2,7 @@
 {% set nav_active = 'forecast' %}
 {% block title %}تفاصيل التنبؤات{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="/static/css/forecasting-premium.css">
+<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/forecasting-premium.css\') }}">
 <div class="f-header">
   <h1><i class="ti ti-details"></i> تفاصيل التنبؤات</h1>
   <div class="f-header-actions">
@@ -34,7 +34,7 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/forecasting-api.js"></script>
+<script src="{{ url_for(\'static\', filename=\'js/forecasting-api.js\') }}"></script>
 <script>
 async function loadPredictionHistory(){
   var type=$('#predTypeFilter').value,risk=$('#predRiskFilter').value,date=$('#predDateFilter').value;

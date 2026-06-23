@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="حضور طبرق">
   <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/static/icons/icon-192.svg">
+  <link rel="apple-touch-icon" href="{{ url_for(\'static\', filename=\'icons/icon-192.svg\') }}">
   <title>تسجيل الدخول — بنك دم طبرق</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
@@ -84,8 +84,8 @@
     <div class="fingerprint"><i class="ti ti-heart"></i> بنك دم طبرق — جميع الحقوق محفوظة</div>
   </div>
 
-  <script src="/static/js/encryption-utils.js"></script>
-  <script src="/static/js/indexeddb-manager.js"></script>
+  <script src="{{ url_for(\'static\', filename=\'js/encryption-utils.js\') }}"></script>
+  <script src="{{ url_for(\'static\', filename=\'js/indexeddb-manager.js\') }}"></script>
   <script>
   var isOfflineMode = false;
 

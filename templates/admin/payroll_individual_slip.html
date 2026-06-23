@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>كشف راتب — {{ emp.full_name }}</title>
-  <link rel="stylesheet" href="/static/css/payroll-premium.css">
-  <link rel="stylesheet" href="/static/css/payroll-print.css">
+  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/payroll-premium.css\') }}">
+  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/payroll-print.css\') }}">
   <style>
     @page { size: A4; margin: 1.5cm; }
     body { background: #fff; color: #1a1a2e; font-family: 'Segoe UI', system-ui, sans-serif; padding: 0; margin: 0; }

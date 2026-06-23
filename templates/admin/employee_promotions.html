@@ -2,7 +2,7 @@
 {% set nav_active = 'promotions' %}
 {% block title %}إدارة الترقيات{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/employee-form-premium.css\') }}">
 <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
   <h1 style="font-size:16px;font-weight:700"><i class="ti ti-arrow-up-circle" style="color:var(--accent)"></i> إدارة الترقيات</h1>
 </header>
@@ -104,5 +104,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/promotions.js"></script>
+<script src="{{ url_for(\'static\', filename=\'js/promotions.js\') }}"></script>
 {% endblock %}

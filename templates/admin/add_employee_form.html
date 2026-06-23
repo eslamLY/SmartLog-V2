@@ -2,7 +2,7 @@
 {% set nav_active = 'employees' %}
 {% block title %}إضافة موظف - بيانات متقدمة{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="/static/css/employee-form-premium.css">
+<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/employee-form-premium.css\') }}">
 <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
   <h1 style="font-size:16px;font-weight:700"><i class="ti ti-user-plus" style="color:var(--accent)"></i> إضافة موظف - البيانات المتقدمة</h1>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -424,5 +424,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/employee-form-tabs.js"></script>
+<script src="{{ url_for(\'static\', filename=\'js/employee-form-tabs.js\') }}"></script>
 {% endblock %}

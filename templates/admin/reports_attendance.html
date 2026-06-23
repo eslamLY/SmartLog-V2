@@ -3,8 +3,8 @@
 {% set nav_active = 'reports_attendance' %}
 {% block content %}
 <div id="app">
-  <link rel="stylesheet" href="/static/css/reports-premium.css">
-  <link rel="stylesheet" href="/static/css/reports-responsive.css">
+  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/reports-premium.css\') }}">
+  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/reports-responsive.css\') }}">
 
   <header class="premium-header">
     <div class="header-row">
@@ -415,9 +415,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="/static/js/reports-charts.js"></script>
-<script src="/static/js/reports-filters.js"></script>
-<script src="/static/js/reports-export.js"></script>
+<script src="{{ url_for(\'static\', filename=\'js/reports-charts.js\') }}"></script>
+<script src="{{ url_for(\'static\', filename=\'js/reports-filters.js\') }}"></script>
+<script src="{{ url_for(\'static\', filename=\'js/reports-export.js\') }}"></script>
 <script>
 const API_BASE = '/admin/reports/attendance';
 let currentSort = { by: 'employee_name', dir: 'asc' };

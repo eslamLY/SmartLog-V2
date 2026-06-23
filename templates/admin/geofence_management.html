@@ -3,7 +3,7 @@
 {% block title %}إدارة المناطق الجغرافية{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="/static/css/tracking-premium.css">
+<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/tracking-premium.css\') }}">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   .modal-overlay { z-index: 9999 !important; }
@@ -172,7 +172,7 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/tracking-map.js"></script>
+<script src="{{ url_for(\'static\', filename=\'js/tracking-map.js\') }}"></script>
 <script>
 var GEOFENCE_DATA = {
   bloodBankLat: 32.0755,

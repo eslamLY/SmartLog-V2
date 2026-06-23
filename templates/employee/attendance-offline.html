@@ -10,8 +10,8 @@
   <title>الحضور — بنك دم طبرق</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="/static/css/pwa.css">
-  <link rel="stylesheet" href="/static/css/offline-mode.css">
+  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/pwa.css\') }}">
+  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/offline-mode.css\') }}">
 </head>
 <body>
   <div id="app">
@@ -135,9 +135,9 @@
     </nav>
   </div>
 
-  <script src="/static/js/encryption-utils.js"></script>
-  <script src="/static/js/indexeddb-manager.js"></script>
-  <script src="/static/js/offline-sync.js"></script>
+  <script src="{{ url_for(\'static\', filename=\'js/encryption-utils.js\') }}"></script>
+  <script src="{{ url_for(\'static\', filename=\'js/indexeddb-manager.js\') }}"></script>
+  <script src="{{ url_for(\'static\', filename=\'js/offline-sync.js\') }}"></script>
   <script>
   var currentEmployeeId = '';
   var currentEmployeeName = '';
