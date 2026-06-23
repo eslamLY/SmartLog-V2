@@ -121,3 +121,24 @@ def api_health():
         'disk': {'status': 'ok' if disk.percent < 90 else 'critical', 'used': f'{disk.used//1073741824}GB', 'total': f'{disk.total//1073741824}GB', 'percent': disk.percent},
         'uptime': str(timedelta(seconds=int(time.time() - psutil.boot_time()))) if hasattr(psutil, 'boot_time') else 'غير معروف'
     })
+
+
+
+@auth_bp.route('/api/init-db')
+def init_database():
+      from models import db
+      try:
+                from flask_migrate import upgrade
+                upgrade()
+except Exception:
+        pass
+    try:
+              from utils.seeds import seed_enterprise, seed_db, seed_shift_types, seed_leave_types
+              seed_enterprise()
+              seed_db()
+              seed_shift_types()
+              seed_leave_types()
+              return jsonify({'ok': True, 'msg': 'Database initialized successfully'})
+except Exception as exc:
+          import traceback
+          return jsonify({'ok': False, 'msg': str(exc), 'traceback': traceback.format_exc()})
