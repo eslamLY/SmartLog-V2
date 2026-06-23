@@ -55,8 +55,9 @@ services:
       # ─── Secrets (auto-generated on first deploy) ───
       - key: SECRET_KEY
         generateValue: true
-      - key: FIELD_ENCRYPTION_KEY
-        generateValue: true
+      # FIELD_ENCRYPTION_KEY: Set this in Render Dashboard for independent encryption key.
+      # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      # If unset, derived from SECRET_KEY (still secure, but key rotation breaks data)
 
       # ─── Database (auto-linked from smartlog-db) ───
       - key: DATABASE_URL

@@ -81,10 +81,11 @@ def login():
                 db.session.delete(attempt)
                 db.session.commit()
             session.clear()
+            session.permanent = True
             session.update({'user_id': emp.id, 'username': emp.username,
                             'full_name': emp.full_name, 'role': emp.role,
                             'department': emp.department,
-                            'last_activity': datetime.now(UTC).isoformat()})
+                            'login_time': datetime.now(UTC).isoformat()})
             redir = url_for('admin_ops_bp.admin_dashboard') if emp.role == 'admin' else url_for('employee.employee_dashboard')
             return jsonify({'ok': True, 'redirect': redir})
         else:
@@ -125,6 +126,11 @@ def api_health():
 
 @auth_bp.route('/api/init-db')
 def init_database():
+    if session.get('role') != 'admin':
+        return jsonify({'ok': False, 'msg': 'غير مصرح به. يجب تسجيل الدخول كمسؤول.'}), 403
+    allowed, _ = check_rate_limit('init_db', 2, 3600)
+    if not allowed:
+        return jsonify({'ok': False, 'msg': 'تجاوزت الحد المسموح. يمكنك استخدام هذه الميزة مرة كل 30 دقيقة.'}), 429
     from models import db
     try:
         from flask_migrate import upgrade

@@ -124,6 +124,7 @@ if PRODUCTION and not os.environ.get('SECRET_KEY'):
 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 14400  # 4 hours
 if PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
 
@@ -152,8 +153,12 @@ def inject_static_vars():
 _FIELD_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
 if _FIELD_KEY:
     _key = _FIELD_KEY.encode() if isinstance(_FIELD_KEY, str) else _FIELD_KEY
+    log.info('FIELD_ENCRYPTION_KEY: custom key configured')
 else:
     _key = base64.urlsafe_b64encode(hashlib.sha256(app.secret_key.encode()).digest())
+    log.warning('FIELD_ENCRYPTION_KEY not set — derived from SECRET_KEY. '
+                'Set a separate key for production: '
+                'python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"')
 fernet = Fernet(_key)
 
 # Database Initialization
