@@ -12,7 +12,7 @@ def set_fernet(f):
     _fernet_instance = f
 
 from models.employee import Employee, Branch
-from models.attendance import AttendanceLog
+from models.attendance import AttendanceLog, AttendancePolicy
 from models.misc import LeaveRequest, OutingRequest, GPSLog, BrandingConfig, EmployeeDocument
 from models.biotime_device import BioTimeDevice, DeviceEventLog, DeviceHealthSnapshot
 from models.security import LoginAttempt, BiometricCredential, TrustedDevice, BlockedIP
@@ -42,7 +42,7 @@ from models.employee_enhanced import (
 
 __all__ = [
     'db', 'get_fernet', 'set_fernet',
-    'Employee', 'Department', 'DepartmentCertification', 'DepartmentAnnouncement', 'DepartmentTransfer', 'AttendanceAnomaly', 'EmployeePattern', 'ReportCorrection', 'ScheduledReport', 'AttendanceLog',
+    'Employee', 'Department', 'DepartmentCertification', 'DepartmentAnnouncement', 'DepartmentTransfer', 'AttendanceAnomaly', 'EmployeePattern', 'ReportCorrection', 'ScheduledReport', 'AttendanceLog', 'AttendancePolicy',
     'LeaveRequest', 'OutingRequest', 'GPSLog',
     'BioTimeDevice', 'BrandingConfig', 'TrustedDevice',
     'BiometricCredential', 'Notification', 'EmployeeDocument',
