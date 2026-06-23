@@ -1,0 +1,68 @@
+M
+My Workspace
+SmartLog-V2-1
+Search
+CTRL
++
+K
+K
+New
+Upgrade
+E
+Dashboard
+SmartLog-V2-1
+Events
+Settings
+MONITOR
+Logs
+Metrics
+MANAGE
+Environment
+Shell
+Scaling
+Previews
+Disk
+One-Off Jobs
+Changelog
+Invite a friend
+Contact support
+Render Status
+WEB SERVICE
+SmartLog-V2-1
+Python 3
+Free
+Upgrade your instance
+Connect
+Manual Deploy
+Service ID:
+srv-d8su9cojs32c73cuo030
+eslamLY / SmartLog-V2
+main
+https://smartlog-v2-1.onrender.com
+Environment
+Create environment group
+Environment Variables
+Set environment-specific config and secrets (such as API keys), then read those values from your code. Learn more.
+KEY	VALUE	
+Delete
+Key
+	
+Value
+• • • • • • • • • • • •
+	
+Add variable
+More options
+Save, rebuild, and deploy
+Choose an option
+Cancel
+Secret Files
+Store plaintext files containing secret data (such as a .env file or a private key).
+Access during builds and at runtime from your app's root, or from /etc/secrets/<filename>.
+Add file
+More options
+Linked Environment Groups
+Environment groups are collections of environment variables and secret files that you can share across multiple services.
+No environment groups available to link.
+New Environment Group
+0 services selected:
+Move

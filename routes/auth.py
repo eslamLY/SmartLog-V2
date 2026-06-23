@@ -123,22 +123,21 @@ def api_health():
     })
 
 
-
 @auth_bp.route('/api/init-db')
 def init_database():
-      from models import db
-      try:
-                from flask_migrate import upgrade
-                upgrade()
-except Exception:
+    from models import db
+    try:
+        from flask_migrate import upgrade
+        upgrade()
+    except Exception as exc:
         pass
     try:
-              from utils.seeds import seed_enterprise, seed_db, seed_shift_types, seed_leave_types
-              seed_enterprise()
-              seed_db()
-              seed_shift_types()
-              seed_leave_types()
-              return jsonify({'ok': True, 'msg': 'Database initialized successfully'})
-except Exception as exc:
-          import traceback
-          return jsonify({'ok': False, 'msg': str(exc), 'traceback': traceback.format_exc()})
+        from utils.seeds import seed_enterprise, seed_db, seed_shift_types, seed_leave_types
+        seed_enterprise()
+        seed_db()
+        seed_shift_types()
+        seed_leave_types()
+        return jsonify({'ok': True, 'msg': 'Database initialized successfully'})
+    except Exception as exc:
+        import traceback
+        return jsonify({'ok': False, 'msg': str(exc), 'traceback': traceback.format_exc()})

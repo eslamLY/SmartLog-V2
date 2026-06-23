@@ -11,8 +11,14 @@ from utils.constants import DEPARTMENTS
 
 def seed_db():
     if not Department.query.first():
+        dept_codes = {
+            'مختبر التحليل': 'LAB', 'بنك الدم': 'BB', 'التمريض': 'NUR',
+            'الاستقبال': 'REC', 'الإدارة': 'ADM', 'المستودع': 'WH',
+            'الصيدلية': 'PHA',
+        }
         for d_name in DEPARTMENTS:
-            db.session.add(Department(name_ar=d_name))
+            code = dept_codes.get(d_name, d_name[:3].upper())
+            db.session.add(Department(code=code, name_ar=d_name))
         db.session.commit()
     if not Employee.query.filter_by(username='ADM001').first():
         dept = Department.query.filter_by(name_ar='الإدارة').first()

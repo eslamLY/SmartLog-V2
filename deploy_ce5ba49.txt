@@ -1,0 +1,155 @@
+M
+My Workspace
+SmartLog-V2-1
+Search
+CTRL
++
+K
+K
+New
+Upgrade
+E
+Dashboard
+SmartLog-V2-1
+Events
+Settings
+MONITOR
+Logs
+Metrics
+MANAGE
+Environment
+Shell
+Scaling
+Previews
+Disk
+One-Off Jobs
+Changelog
+Invite a friend
+Contact support
+Render Status
+WEB SERVICE
+SmartLog-V2-1
+Python 3
+Free
+Upgrade your instance
+Connect
+Manual Deploy
+Service ID:
+srv-d8su9cojs32c73cuo030
+eslamLY / SmartLog-V2
+main
+https://smartlog-v2-1.onrender.com
+Your free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
+Upgrade now
+June 23, 2026 at 3:58 AM
+In Progress
+ce5ba49
+fix: don't exit on missing SECRET_KEY in degraded mode (no DATABASE_URL)
+Cancel deploy
+All logs
+Search
+Live tail
+Jun 23
+04:00:41 AM
+Using cached Flask_Migrate-4.1.0-py3-none-any.whl (21 kB)
+04:00:41 AM
+Using cached flask_sqlalchemy-3.1.1-py3-none-any.whl (25 kB)
+04:00:41 AM
+Using cached flask_wtf-1.3.0-py3-none-any.whl (13 kB)
+04:00:41 AM
+Using cached fpdf2-2.8.7-py3-none-any.whl (327 kB)
+04:00:41 AM
+Using cached greenlet-3.5.1-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (660 kB)
+04:00:41 AM
+Using cached gunicorn-23.0.0-py3-none-any.whl (85 kB)
+04:00:41 AM
+Using cached idna-3.18-py3-none-any.whl (65 kB)
+04:00:41 AM
+Using cached itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+04:00:41 AM
+Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
+04:00:41 AM
+Using cached joblib-1.5.3-py3-none-any.whl (309 kB)
+04:00:41 AM
+Using cached limits-5.8.0-py3-none-any.whl (60 kB)
+04:00:41 AM
+Using cached lxml-6.1.1-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+04:00:41 AM
+Using cached mako-1.3.12-py3-none-any.whl (78 kB)
+04:00:41 AM
+Using cached markupsafe-3.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (23 kB)
+04:00:41 AM
+Using cached numpy-2.4.6-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+04:00:41 AM
+Using cached openpyxl-3.1.5-py2.py3-none-any.whl (250 kB)
+04:00:41 AM
+Using cached packaging-26.2-py3-none-any.whl (100 kB)
+04:00:41 AM
+Using cached pillow-12.2.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7.1 MB)
+04:00:41 AM
+Using cached psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
+04:00:41 AM
+Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+04:00:41 AM
+Using cached pypdf-6.13.3-py3-none-any.whl (347 kB)
+04:00:41 AM
+Using cached python_pptx-1.0.2-py3-none-any.whl (472 kB)
+04:00:41 AM
+Using cached requests-2.34.2-py3-none-any.whl (73 kB)
+04:00:41 AM
+Using cached urllib3-2.7.0-py3-none-any.whl (131 kB)
+04:00:41 AM
+Using cached scikit_learn-1.9.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (9.1 MB)
+04:00:41 AM
+Using cached scipy-1.18.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.3 MB)
+04:00:41 AM
+Using cached sqlalchemy-2.0.50-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.3 MB)
+04:00:41 AM
+Using cached threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+04:00:41 AM
+Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+04:00:41 AM
+Using cached tzdata-2026.2-py2.py3-none-any.whl (349 kB)
+04:00:41 AM
+Using cached tzlocal-5.4.3-py3-none-any.whl (18 kB)
+04:00:41 AM
+Using cached werkzeug-3.1.8-py3-none-any.whl (226 kB)
+04:00:41 AM
+Using cached wrapt-2.2.1-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (167 kB)
+04:00:41 AM
+Using cached wtforms-3.2.2-py3-none-any.whl (158 kB)
+04:00:41 AM
+Using cached xlsxwriter-3.2.9-py3-none-any.whl (175 kB)
+04:00:41 AM
+Using cached deprecated-1.3.1-py2.py3-none-any.whl (11 kB)
+04:00:41 AM
+Using cached fonttools-4.63.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.9 MB)
+04:00:41 AM
+Using cached narwhals-2.22.1-py3-none-any.whl (454 kB)
+04:00:41 AM
+Using cached defusedxml-0.7.1-py2.py3-none-any.whl (25 kB)
+04:00:42 AM
+Installing collected packages: xlsxwriter, wrapt, urllib3, tzlocal, tzdata, typing_extensions, threadpoolctl, pypdf, pycparser, psycopg2-binary, psutil, pillow, packaging, ordered-set, numpy, narwhals, MarkupSafe, lxml, joblib, itsdangerous, idna, greenlet, fonttools, et_xmlfile, defusedxml, colorama, click, charset-normalizer, certifi, blinker, WTForms, Werkzeug, SQLAlchemy, scipy, requests, python-pptx, openpyxl, Mako, Jinja2, gunicorn, fpdf2, deprecated, cffi, APScheduler, scikit-learn, limits, Flask, cryptography, alembic, Flask-WTF, Flask-SQLAlchemy, Flask-Limiter, Flask-Migrate
+04:00:59 AM
+04:00:59 AM
+Successfully installed APScheduler-3.11.2 Flask-3.1.3 Flask-Limiter-4.1.1 Flask-Migrate-4.1.0 Flask-SQLAlchemy-3.1.1 Flask-WTF-1.3.0 Jinja2-3.1.6 Mako-1.3.12 MarkupSafe-3.0.3 SQLAlchemy-2.0.50 WTForms-3.2.2 Werkzeug-3.1.8 alembic-1.18.4 blinker-1.9.0 certifi-2026.5.20 cffi-2.0.0 charset-normalizer-3.4.7 click-8.4.1 colorama-0.4.6 cryptography-49.0.0 defusedxml-0.7.1 deprecated-1.3.1 et_xmlfile-2.0.0 fonttools-4.63.0 fpdf2-2.8.7 greenlet-3.5.1 gunicorn-23.0.0 idna-3.18 itsdangerous-2.2.0 joblib-1.5.3 limits-5.8.0 lxml-6.1.1 narwhals-2.22.1 numpy-2.4.6 openpyxl-3.1.5 ordered-set-4.1.0 packaging-26.2 pillow-12.2.0 psutil-7.2.2 psycopg2-binary-2.9.10 pycparser-3.0 pypdf-6.13.3 python-pptx-1.0.2 requests-2.34.2 scikit-learn-1.9.0 scipy-1.18.0 threadpoolctl-3.6.0 typing_extensions-4.15.0 tzdata-2026.2 tzlocal-5.4.3 urllib3-2.7.0 wrapt-2.2.1 xlsxwriter-3.2.9
+04:00:59 AM
+04:00:59 AM
+[notice] A new release of pip is available: 25.3 -> 26.1.2
+04:00:59 AM
+[notice] To update, run: pip install --upgrade pip
+04:01:02 AM
+==> Uploading build...
+04:01:11 AM
+==> Uploaded in 5.3s. Compression took 3.3s
+04:01:11 AM
+==> Build successful 🎉
+04:01:16 AM
+==> Deploying...
+04:01:16 AM
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+
+Need better ways to work with logs? Try theRender CLI, Render MCP Server, or set up a log stream integration 
+
+0 services selected:
+Move

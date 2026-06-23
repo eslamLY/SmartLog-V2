@@ -1,0 +1,214 @@
+M
+My Workspace
+SmartLog-V2-1
+Search
+CTRL
++
+K
+K
+New
+Upgrade
+E
+Dashboard
+SmartLog-V2-1
+Events
+Settings
+MONITOR
+Logs
+Metrics
+MANAGE
+Environment
+Shell
+Scaling
+Previews
+Disk
+One-Off Jobs
+Changelog
+Invite a friend
+Contact support
+Render Status
+WEB SERVICE
+SmartLog-V2-1
+Python 3
+Free
+Upgrade your instance
+Connect
+Manual Deploy
+Service ID:
+srv-d8su9cojs32c73cuo030
+eslamLY / SmartLog-V2
+main
+https://smartlog-v2-1.onrender.com
+Your free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
+Upgrade now
+June 23, 2026 at 5:27 AM
+Failed
+fa48ce1
+fix: add missing AttendancePolicy model (caused ImportError in attendance_policies)
+Rollback
+Exited with status 1 while running your code.
+Read our docs for common ways to troubleshoot your deploy.
+All logs
+Search
+Jun 23, 5:26 AM - 5:29 AM
+GMT+2
+Jun 23
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_NODE_VERSION=24.14.1
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_NODE_VERSION_DETECTED=true
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_PM_DIR=/opt/render/project/src
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_PM_ROOT=/home/render
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_PRE_RUN_COMMAND=source "${VENV_ROOT:-/opt/render/project/src/.venv}/bin/activate"
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_PROJECT_DIR=project
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_PROJECT_ROOT=/opt/render/project
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_REPO_ROOT=/opt/render/project/src
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_ROOT=/opt/render
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,457 [INFO] app   RENDER_SERVICE_CONTEXT_ROOT=/opt/render/project/src
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_SERVICE_ID=srv-d8su9cojs32c73cuo030
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_SERVICE_NAME=smartlog-v2-1
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_SERVICE_NS=own-d8srbomgvqtc73aonodg
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_SERVICE_SLUG=smartlog-v2-1
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_SERVICE_TYPE=web
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_SRC_ROOT=/opt/render/project/src
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_USE_BUILD_TOOL_NODE=true
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RENDER_WEB_CONCURRENCY=1
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RESET=
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   RUSTUP_HOME=/usr/local/rustup
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   SERVER_SOFTWARE=gunicorn/23.0.0
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   SHLVL=0
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   TERM=xterm-256color
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   TMPDIR=/tmp
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   USER_RUN_COMMAND=gunicorn app:app
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   UV_CACHE_DIR=/opt/render/.cache/.python-uv/cache
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   UV_NO_MANAGED_PYTHON=true
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   UV_PYTHON_DOWNLOADS=never
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   UV_SYSTEM_PYTHON=1
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   UV_VERSIONS_DIR=/opt/render/project/uv
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   VENV_ROOT=/opt/render/project/src/.venv
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   VIRTUAL_ENV=/opt/render/project/src/.venv
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   VIRTUAL_ENV_DISABLE_PROMPT=true
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   VIRTUAL_ENV_PROMPT=.venv
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   WEB_CONCURRENCY=1
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   XDG_CACHE_HOME=/opt/render/.cache
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,458 [INFO] app   YARN_CACHE_FOLDER=/opt/render/.cache
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,459 [INFO] app   YELLOW=
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,459 [INFO] app   _=/opt/render/project/src/.venv/bin/gunicorn
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,459 [INFO] app Detected: FLASK_ENV=development ON_RENDER=True PRODUCTION=True
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,459 [INFO] app Checking DATABASE_URL...
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,459 [INFO] app DATABASE_URL found: 101 characters
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,459 [INFO] app DATABASE_URL starts with: postgresql://smartlo...
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,459 [INFO] app DATABASE_URL (masked): postgresql://****:****@dpg-d8svlqurnols739v473g-a/smartlog_db
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,460 [ERROR] app WARNING: SECRET_KEY not set in production!
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,460 [ERROR] app   Using built-in default — set SECRET_KEY env var for security.
+05:28:46 AM
+[hsxz4]
+2026-06-23 03:28:46,460 [ERROR] app FATAL: SECRET_KEY required when database is configured.
+05:28:48 AM
+       
+==> Exited with status 1
+05:28:48 AM
+       
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+05:28:54 AM
+[hsxz4]
+==> Running 'gunicorn app:app'
+
+Need better ways to work with logs? Try theRender CLI, Render MCP Server, or set up a log stream integration 
+
+0 services selected:
+Move
+Debug build issues with AI
+Connect the Render MCP server to AI apps like Cursor and Claude Code. Analyze your build logs and diagnose failures with natural language prompts.
+View
+Dismiss

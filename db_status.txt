@@ -1,0 +1,130 @@
+M
+My Workspace
+smartlog-db
+Search
+CTRL
++
+K
+K
+New
+Upgrade
+E
+Dashboard
+smartlog-db
+Info
+MONITOR
+Logs
+Metrics
+MANAGE
+Apps
+Recovery
+Changelog
+Invite a friend
+Contact support
+Render Status
+POSTGRESQL
+smartlog-db
+Free
+Upgrade your instance
+View docs
+Connect
+Service ID:
+dpg-d8svlqurnols739v473g-a
+Info
+Your database will expire on July 23, 2026. The database will be deleted unless you upgrade to a paid instance type.
+General
+Name
+A unique name for your database.
+Edit
+Created
+15 minutes ago
+Status
+Available
+PostgreSQL Version
+18
+Region
+Frankfurt (EU Central)
+Read Replicas
+Add Read Replica
+Storage
+4.88% used out of 1 GB
+Database storage
+Storage Autoscaling
+Disabled
+Datadog API Key
+Add Datadog API Key
+Postgres Instance
+Instance Type
+Free
+256 MB
+ RAM
+0.1
+ CPU
+1 GB
+ Storage
+Update
+A credit card is required to change instance types.
+Add payment information
+High Availability
+
+Run a standby instance of your database and automatically fail over to it if the primary encounters an issue.
+
+Disabled
+Only available for Pro instances and higher.
+See upgrade options
+Connections
+Hostname
+An internal hostname used by your Render services.
+Port
+Database
+Username
+Password
+Internal Database URL
+External Database URL
+PSQL Command
+Credentials
+Create new default credentials and delete the old ones when ready.
+USERNAME
+1
+smartlog_db_userDefault
+PASSWORD
+••••••••••••
+OPEN CONNECTIONS
+0
+CREATED
+14min
+New default credential
+Networking
+Inbound IP Restrictions
+
+Limit incoming traffic to your services from specific IP ranges. Sources are specified in CIDR block notation.
+
+1
+IP range is allowed from outside of your private network.
+
+Validate IP address
+
+Affected by:
+Workspace
+View rules
+SOURCE
+0.0.0.0/0
+DESCRIPTION
+everywhere
+PostgreSQL Inbound IP Rules
+SOURCE	DESCRIPTION	
+DELETE
+
+
+CIDR block
+	
+Description
+	
+Add source
+Cancel
+Save
+Delete Database
+Restart Database
+Suspend Database
+0 services selected:
+Move
