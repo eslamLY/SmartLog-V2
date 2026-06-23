@@ -1,6 +1,5 @@
 from datetime import datetime, UTC, date
 from sqlalchemy import text as sa_text
-from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash
 
 from models import db, Employee, Department, AttendanceLog, \
@@ -139,16 +138,7 @@ def seed_enterprise():
         db.session.add(BioTimeDevice(serial_no='BT-001', name='جهاز البصمة الرئيسي',
                         device_type='biometric', location='المدخل الرئيسي', is_active=True))
     db.session.commit()
-    try:
-        rows = db.session.execute(sa_text("SELECT id, base_salary FROM employees WHERE base_salary IS NOT NULL AND base_salary_encrypted IS NULL")).fetchall()
-        for row in rows:
-            from models import get_fernet
-            enc = get_fernet().encrypt(str(float(row[1])).encode()).decode()
-            db.session.execute(sa_text("UPDATE employees SET base_salary_encrypted = :enc_val WHERE id = :eid"),
-                               {"enc_val": enc, "eid": row[0]})
-        db.session.commit()
-    except OperationalError:
-        db.session.rollback()
+
     for alog in AttendanceLog.query.filter(AttendanceLog.lat_in.isnot(None), AttendanceLog.lat_in_enc.is_(None)).all():
         alog.set_clock_in_coords(alog.lat_in, alog.lng_in)
     for alog in AttendanceLog.query.filter(AttendanceLog.lat_out.isnot(None), AttendanceLog.lat_out_enc.is_(None)).all():
