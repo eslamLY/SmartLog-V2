@@ -230,21 +230,30 @@ if _DB_CONFIGURED:
             log.info('Tables: ALL verified (db.create_all() completed)')
             # Stamp Alembic to head if not already tracked
             try:
-                from alembic import command
-                from alembic.config import Config
-                alembic_cfg = Config(os.path.join(os.path.dirname(__file__), 'migrations', 'alembic.ini'))
                 with db.engine.connect() as conn:
                     exists = conn.execute(db.text(
                         "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name='alembic_version')"
                     )).scalar()
-                    if exists:
+                    if not exists:
+                        conn.execute(db.text(
+                            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
+                            "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                        ))
+                        conn.execute(db.text(
+                            "INSERT INTO alembic_version (version_num) VALUES ('d4f2c8b1a93e')"
+                        ))
+                        conn.commit()
+                        log.info('Alembic: table created + stamped at d4f2c8b1a93e')
+                    else:
                         current = conn.execute(db.text('SELECT version_num FROM alembic_version')).scalar()
                         if not current:
-                            command.stamp(alembic_cfg, 'd4f2c8b1a93e')
+                            conn.execute(db.text(
+                                "INSERT INTO alembic_version (version_num) VALUES ('d4f2c8b1a93e')"
+                            ))
+                            conn.commit()
                             log.info('Alembic: stamped at d4f2c8b1a93e')
-                    else:
-                        command.stamp(alembic_cfg, 'd4f2c8b1a93e')
-                        log.info('Alembic: created + stamped at d4f2c8b1a93e')
+                        else:
+                            log.info('Alembic: already at %s', current)
             except Exception as e:
                 log.warning('Alembic stamp skipped: %s', e)
         except Exception as exc:
