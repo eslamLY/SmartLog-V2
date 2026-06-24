@@ -1,0 +1,374 @@
+========================================================================
+  SMARTLOG V2 — BASELINE SECURITY ASSESSMENT REPORT
+========================================================================
+  Generated: 2026-06-24 00:49:23
+  Project:   C:\Users\eslam\OneDrive\Desktop\SmartLog V2
+  Assessor:  Phase 1 — Automated Scan
+========================================================================
+
+
+1. PROJECT SUMMARY
+----------------------------------------
+  Python files:      94
+  Python LOC:        36,476
+  Directories:       18
+  Packages:          49
+  Has app.py:        True
+  Has config.py:     True
+  Has Dockerfile:    True
+  Has render.yaml:   True
+
+
+2. DIRECTORY STRUCTURE
+----------------------------------------
+  📁 backups/
+  📁 decorators/
+  📁 deploy_screenshots/
+  📁 fonts/
+  📁 instance/
+  📁 migrations/
+  📁 ml_models/
+  📁 mnt/
+  📁 models/
+  📁 routes/
+  📁 scripts/
+  📁 services/
+  📁 skills/
+  📁 static/
+  📁 templates/
+  📁 tests/
+  📁 uploads/
+  📁 utils/
+  📄 _v.py
+  📄 add_env_var.py
+  📄 add_secret_edit.py
+  📄 admin_login.py
+  📄 app.py
+  📄 browser_login_test.py
+  📄 check_525a372.py
+  📄 check_commit.py
+  📄 check_db.py
+  📄 check_db_ready.py
+  📄 check_deploy.py
+  📄 check_domain.py
+  📄 check_env_state.py
+  📄 check_error.py
+  📄 check_latest.py
+  📄 check_live.py
+  📄 check_log.py
+  📄 check_log2.py
+  📄 check_login.py
+  📄 check_logs.py
+  📄 check_logs2.py
+  📄 check_services.py
+  📄 check_status.py
+  📄 click_edit.py
+  📄 click_env.py
+  📄 click_failed.py
+  📄 config.py
+  📄 create_db.py
+  📄 deploy_auto.py
+  📄 deploy_cdp.py
+  📄 deploy_detail.py
+  📄 deploy_fa48ce1.py
+  📄 deploy_full.py
+  📄 deploy_links.py
+  📄 deploy_v2.py
+  📄 deploy_v3.py
+  📄 diagnose.py
+  📄 env_api.py
+  📄 env_page2.py
+  📄 env_tab.py
+  📄 extract_db.py
+  📄 find_add_var.py
+  📄 find_db.py
+  📄 find_deploy.py
+  📄 find_live.py
+  📄 fresh_check.py
+  📄 gen_key.py
+  📄 gen_pptx.py
+  📄 get_db_url.py
+  📄 get_gh_token.py
+  📄 github_commit.py
+  📄 github_commit2.py
+  📄 github_edit.py
+  📄 github_edit2.py
+  📄 github_edit3.py
+  📄 github_keyboard.py
+  📄 github_view.py
+  📄 manage.py
+  📄 open_deploy.py
+  📄 project_assessment_script.py
+  📄 quick_status.py
+  📄 quick_status2.py
+  📄 quick_status3.py
+  📄 quick_status4.py
+  📄 reveal_db.py
+  📄 reveal_db2.py
+  📄 reveal_db3.py
+  📄 reveal_db_url.py
+  📄 reveal_secrets.py
+  📄 reveal_value.py
+  📄 runtime_logs.py
+  📄 save_env_var.py
+  📄 scroll_logs.py
+  📄 search_startup.py
+  📄 seed_check.py
+  📄 seed_db_direct.py
+  📄 set_env_var.py
+  📄 set_secret.py
+  📄 set_secret2.py
+  📄 set_secret3.py
+  📄 show_all_events.py
+  📄 simulate_login.py
+  📄 startup_search.py
+  📄 static_file_checker.py
+  📄 test_api.py
+  📄 test_login.py
+  📄 verify_secret.py
+  📄 view_deploy.py
+  📄 view_deploy2.py
+  📄 view_deploy3.py
+  📄 view_deploy4.py
+  📄 view_full.py
+  📄 wait_deploy.py
+  📄 wait_deploy2.py
+
+
+3. PYTHON PACKAGES
+----------------------------------------
+  APScheduler == 3.11.2
+  Flask == 3.1.3
+  Flask-Limiter == 4.1.1
+  Flask-Migrate == 4.1.0
+  Flask-SQLAlchemy == 3.1.1
+  Flask-WTF == 1.3.0
+  Jinja2 == 3.1.6
+  Mako == 1.3.12
+  MarkupSafe == 3.0.3
+  SQLAlchemy == 2.0.50
+  WTForms == 3.2.2
+  Werkzeug == 3.1.8
+  alembic == 1.18.4
+  blinker == 1.9.0
+  certifi == 2026.5.20
+  cffi == 2.0.0
+  charset-normalizer == 3.4.7
+  click == 8.4.1
+  colorama == 0.4.6
+  cryptography == 49.0.0
+  et_xmlfile == 2.0.0
+  fpdf2 == 2.8.7
+  greenlet == 3.5.1
+  gunicorn == 23.0.0
+  idna == 3.18
+  itsdangerous == 2.2.0
+  joblib == 1.5.3
+  limits == 5.8.0
+  lxml == 6.1.1
+  numpy == 2.4.6
+  openpyxl == 3.1.5
+  ordered-set == 4.1.0
+  packaging == 26.2
+  pillow == 12.2.0
+  psutil == 7.2.2
+  psycopg2-binary == 2.9.10
+  pycparser == 3.0
+  pypdf == 6.13.3
+  python-pptx == 1.0.2
+  requests == 2.34.2
+  scikit-learn == 1.9.0
+  scipy == 1.18.0
+  threadpoolctl == 3.6.0
+  typing_extensions == 4.15.0
+  tzdata == 2026.2
+  tzlocal == 5.4.3
+  urllib3 == 2.7.0
+  wrapt == 2.2.1
+  xlsxwriter == 3.2.9
+
+  3a. Package Vulnerability Notes
+  ⚠️  cryptography (49.0.0) - Ensure >=41.0.0 for latest security fixes
+  ⚠️  flask (3.1.3) - Ensure >=3.0.0 for latest security
+  ⚠️  gunicorn (23.0.0) - Ensure >=22.0.0 for HTTP Request Smuggling fixes
+  ⚠️  itsdangerous (2.2.0) - Ensure >=2.1.2 for signature hardening
+  ⚠️  Jinja2 (3.1.6) - SSTI vulnerabilities in older versions; ensure >=3.1.2
+  ⚠️  requests (2.34.2) - Ensure >=2.31.0 for CVE-2023-32681 fix
+  ⚠️  sqlalchemy (2.0.50) - Ensure >=2.0.23 for security patches
+  ⚠️  Werkzeug (3.1.8) - Known CVEs in older Werkzeug versions; ensure >=3.0.0
+
+
+4. SECURITY FEATURES
+----------------------------------------
+  ✅ [INFO] Password hashing (Werkzeug)
+       Uses pbkdf2:sha256 for password storage
+  ❌ [INFO] Session cookie HTTPOnly
+       JavaScript cannot read session cookie
+  ❌ [INFO] Session cookie Secure flag (HTTPS only)
+       Cookie only sent over HTTPS
+  ✅ [INFO] Session cookie SameSite
+       CSRF protection via SameSite attribute
+  ✅ [MEDIUM] CSRF protection
+       Flask-WTF CSRF initialized but WTF_CSRF_CHECK_DEFAULT=False
+  ✅ [INFO] Rate limiting
+       Flask-Limiter active with per-endpoint limits
+  ✅ [INFO] Content Security Policy header
+       CSP header set in after_request
+  ✅ [INFO] HSTS header
+       max-age=31536000; includeSubDomains
+  ✅ [INFO] X-Content-Type-Options header
+       nosniff set
+  ✅ [INFO] X-Frame-Options DENY
+       Clickjacking protection
+  ✅ [INFO] Field-level encryption (Fernet/AES)
+       Salary, GPS, email, phone encrypted at rest
+  ✅ [INFO] Login attempt tracking & IP blocking
+       LoginAttempt table tracks IP, blocks after 5 failures
+  ✅ [INFO] SQLAlchemy ORM (parameterized queries)
+       ORM prevents SQL injection in most cases
+  ✅ [MEDIUM] Raw SQL queries (potential risk)
+       Raw SQL used in seeds.py and migrations
+  ✅ [INFO] SECRET_KEY from environment variable
+       Key loaded from env, not hardcoded in production
+  ✅ [MEDIUM] Unauthenticated endpoints
+       Check if sensitive endpoints lack decorators
+  ✅ [INFO] Session timeout / expiry
+       Session expires after configured lifetime
+  ✅ [LOW] Force password change on first login
+       Flag exists but may not be enforced in login flow
+  ✅ [MEDIUM] CORS configuration
+       Check if CORS is properly restricted
+
+
+5. SENSITIVE DATA TYPES
+----------------------------------------
+  📋 Bank account numbers
+  📋 Biometric data
+  📋 Date of birth
+  📋 Encrypted PII (email/phone)
+  📋 GPS/location data
+  📋 Medical/health data
+  📋 National ID numbers
+  📋 Password hashes
+  📋 Payroll/salary data
+
+
+6. FINDINGS
+----------------------------------------
+
+  1. [CRITICAL] — /api/init-db without auth (PARTIALLY FIXED)
+     Category: Authentication
+     Detail:   Auth check was added but verify it blocks non-admin
+     Location: C:\Users\eslam\OneDrive\Desktop\SmartLog V2\github_commit.py:31
+
+  2. [CRITICAL] — /api/init-db without auth (PARTIALLY FIXED)
+     Category: Authentication
+     Detail:   Auth check was added but verify it blocks non-admin
+     Location: C:\Users\eslam\OneDrive\Desktop\SmartLog V2\github_commit2.py:22
+
+  3. [CRITICAL] — /api/init-db without auth (PARTIALLY FIXED)
+     Category: Authentication
+     Detail:   Auth check was added but verify it blocks non-admin
+     Location: C:\Users\eslam\OneDrive\Desktop\SmartLog V2\github_edit2.py:75
+
+  4. [CRITICAL] — /api/init-db without auth (PARTIALLY FIXED)
+     Category: Authentication
+     Detail:   Auth check was added but verify it blocks non-admin
+     Location: C:\Users\eslam\OneDrive\Desktop\SmartLog V2\github_edit3.py:43
+
+  5. [CRITICAL] — /api/init-db without auth (PARTIALLY FIXED)
+     Category: Authentication
+     Detail:   Auth check was added but verify it blocks non-admin
+     Location: C:\Users\eslam\OneDrive\Desktop\SmartLog V2\github_keyboard.py:21
+
+  6. [MEDIUM] — Raw SQL with f-string in manage.py
+     Category: SQL Injection Risk
+     Detail:   Potential SQL injection if user input is concatenated
+     Location: manage.py:84
+
+  7. [MEDIUM] — Raw SQL with f-string in services\backup_service.py
+     Category: SQL Injection Risk
+     Detail:   Potential SQL injection if user input is concatenated
+     Location: services\backup_service.py:127
+
+  8. [MEDIUM] — Raw SQL with f-string in services\backup_service.py
+     Category: SQL Injection Risk
+     Detail:   Potential SQL injection if user input is concatenated
+     Location: services\backup_service.py:473
+
+  9. [MEDIUM] — Raw SQL with f-string in services\backup_service.py
+     Category: SQL Injection Risk
+     Detail:   Potential SQL injection if user input is concatenated
+     Location: services\backup_service.py:493
+
+  10. [MEDIUM] — Raw SQL with f-string in services\restoration_service.py
+     Category: SQL Injection Risk
+     Detail:   Potential SQL injection if user input is concatenated
+     Location: services\restoration_service.py:59
+
+  11. [INFO] — Raw SQL text() in app.py:187
+     Category: SQL
+     Detail:   SQLAlchemy text() used - verify parameters are bound
+     Location: app.py:187
+
+  12. [INFO] — Raw SQL text() in app.py:305
+     Category: SQL
+     Detail:   SQLAlchemy text() used - verify parameters are bound
+     Location: app.py:305
+
+  13. [INFO] — Raw SQL text() in manage.py:39
+     Category: SQL
+     Detail:   SQLAlchemy text() used - verify parameters are bound
+     Location: manage.py:39
+
+
+7. RISK ASSESSMENT
+----------------------------------------
+  Risk Score: 53/100 (HIGH 🟠)
+  CRITICAL: 5
+  HIGH:     0
+  MEDIUM:   5
+  LOW:      0
+
+
+8. TOP CONCERNS
+----------------------------------------
+  🔴 /api/init-db without auth (PARTIALLY FIXED)
+     Auth check was added but verify it blocks non-admin
+  🔴 /api/init-db without auth (PARTIALLY FIXED)
+     Auth check was added but verify it blocks non-admin
+  🔴 /api/init-db without auth (PARTIALLY FIXED)
+     Auth check was added but verify it blocks non-admin
+  🔴 /api/init-db without auth (PARTIALLY FIXED)
+     Auth check was added but verify it blocks non-admin
+  🔴 /api/init-db without auth (PARTIALLY FIXED)
+     Auth check was added but verify it blocks non-admin
+
+
+9. RECOMMENDATIONS
+----------------------------------------
+  → CRITICAL /api/init-db: Add admin-only auth check + rate limit
+  → MEDIUM CSRF: Enable CSRF checks for POST/PUT/DELETE on API routes
+  → MEDIUM Raw SQL: Audit all db.text() calls for parameter binding
+  → MEDIUM Package versions: Pin all packages in requirements.txt
+  → LOW SECRET_KEY: Set FIELD_ENCRYPTION_KEY env var separately from SECRET_KEY
+  → LOW Default passwords: Ensure force_password_change is enforced on first login
+  → INFO Debug mode: Verify app.run(debug=True) is NOT in production config
+  → INFO Error pages: Create custom error pages for 400/403/404/500
+
+
+10. FURTHER TESTING REQUIRED
+----------------------------------------
+  ☐ Penetration test login form for SQL injection, XSS, brute force
+  ☐ Test all API endpoints for proper authorization checks
+  ☐ Verify CSP header is applied to all responses
+  ☐ Test session fixation / hijacking scenarios
+  ☐ Review all third-party dependencies for known CVEs
+  ☐ Verify encrypted data (salaries, GPS) can be decrypted correctly
+  ☐ Test file upload functionality for path traversal / RCE
+  ☐ Review PWA service worker for cache poisoning risks
+
+
+========================================================================
+  END OF REPORT
+========================================================================

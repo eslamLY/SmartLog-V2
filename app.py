@@ -138,8 +138,14 @@ if PRODUCTION:
 # Register static file context processor for all templates
 @app.context_processor
 def inject_static_vars():
-    """Provides static_url() and icon() to all templates."""
+    """Provides static_url(), icon(), csrf_token to all templates."""
     from utils.icon_helper import static_url, icon, icon_html, needed_cdn_libs
+    token = None
+    if 'csrf_token' in session:
+        token = session['csrf_token']
+    else:
+        token = uuid.uuid4().hex
+        session['csrf_token'] = token
     return dict(
         static_url=static_url,
         icon=icon,
@@ -147,6 +153,7 @@ def inject_static_vars():
         needed_cdn_libs=needed_cdn_libs,
         static_version=int(time.time()),
         PRODUCTION=PRODUCTION,
+        csrf_token=token,
     )
 
 # Field-level encryption
@@ -388,6 +395,17 @@ def check_auto_ban():
     result = check_ip_flood(ip, max_requests=266, window_seconds=60)
     if not result['ok']:
         return render_template('blocked.html'), 429
+
+@app.before_request
+def check_csrf():
+    if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
+        return
+    if request.path.startswith(('/static/', '/manifest.json', '/sw.js', '/uploads/', '/api/health')):
+        return
+    if request.is_json:
+        token = request.headers.get('X-CSRFToken')
+        if not token or token != session.get('csrf_token'):
+            return jsonify({'ok': False, 'msg': 'طلب غير مصرح به (CSRF). أعد تحميل الصفحة.'}), 403
 
 # Production Security Headers
 @app.after_request

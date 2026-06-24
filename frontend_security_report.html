@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontend Security Audit — SmartLog V2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'system-ui',sans-serif;background:#080c18;color:#f0f4f9;padding:20px;font-size:14px}
+h1{font-size:22px;font-weight:800;margin-bottom:4px}
+h2{font-size:16px;font-weight:700;margin:24px 0 10px;color:#818cf8;border-bottom:1px solid #1e2a45;padding-bottom:6px}
+.summary{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}
+.summary-card{background:#0f172a;border:1px solid #1e2a45;border-radius:12px;padding:16px;min-width:120px;text-align:center}
+.summary-card .num{font-size:28px;font-weight:800}
+.summary-card .label{font-size:12px;color:#8899b4;margin-top:2px}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #17213a;font-size:13px}
+th{color:#8899b4;font-weight:600;font-size:12px;text-transform:uppercase}
+tr:hover td{background:rgba(255,255,255,.02)}
+.footer{margin-top:24px;padding:12px;background:#0f172a;border-radius:10px;font-size:12px;color:#566580;text-align:center}
+</style>
+</head>
+<body>
+<h1>Frontend Security Audit Report</h1>
+<div style="color:#8899b4;margin-bottom:16px">SmartLog V2 — 2026-06-24 03:08:03</div>
+
+<div class="summary">
+<div class="summary-card"><div class="num" style="color:#ef4444">92</div><div class="label">Total Checks</div></div>
+<div class="summary-card"><div class="num" style="color:#ef4444">47</div><div class="label">Critical/High</div></div>
+<div class="summary-card"><div class="num" style="color:#eab308">19</div><div class="label">Medium</div></div>
+</div>
+
+<h2>Vulnerability Scan Results</h2>
+<table>
+<tr><th>Severity</th><th>Category</th><th>Description</th></tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">TEMPLATES</td>
+<td>85 HTML template files scanned</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>Flask enables Jinja2 autoescaping for .html templates by default</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\admin\analytics.html:141 — |safe filter bypasses autoescaping: const trends = {{ trends|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\admin\analytics.html:143 — |safe filter bypasses autoescaping: const depts = {{ dept_stats_json|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\admin\analytics.html:145 — |safe filter bypasses autoescaping: const late = {{ weekday_late|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\admin\analytics.html:148 — |safe filter bypasses autoescaping: const deds = {{ deduct_by_dept|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\admin\employees_consolidated.html:194 — |safe filter bypasses autoescaping: const GRADES = {{ grades|tojson|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\admin\section_report.html:40 — |safe filter bypasses autoescaping: &lt;span style=&quot;background:{{ badge_bg }};color:{{ badge_color }};padding:2px 10px;</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\archive_or_future\analytics.html:197 — |safe filter bypasses autoescaping: const trends = {{ trends|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\archive_or_future\analytics.html:208 — |safe filter bypasses autoescaping: const depts = {{ dept_stats_json|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\archive_or_future\analytics.html:219 — |safe filter bypasses autoescaping: const late = {{ weekday_late|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">JINJA2</td>
+<td>templates\archive_or_future\analytics.html:228 — |safe filter bypasses autoescaping: const deds = {{ deduct_by_dept|safe }};</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>200 innerHTML assignments found across templates — potential XSS</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\base.html:362 — list.innerHTML += &#x27;&lt;div style=&quot;padding:10px 14px;border-bottom:1px solid var(--b</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\attendance-review-queue.html:236 — tbody.innerHTML += &#x27;&lt;tr&gt;&#x27; +</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\attendance_policies.html:111 — document.getElementById(&#x27;modalTitle&#x27;).innerHTML = &#x27;&lt;i class=&quot;ti ti-settings&quot; sty</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\documents.html:276 — thumb.innerHTML = &#x27;&lt;i class=&quot;ti &#x27; + fileIcon + &#x27;&quot; style=&quot;font-size:28px;color:va</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\documents.html:279 — reader.onload = function(ev){ thumb.innerHTML = &#x27;&lt;img src=&quot;&#x27;+ev.target.result+&#x27;&quot;</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\employees_consolidated.html:491 — b.innerHTML = &#x27;&lt;i class=&quot;ti ti-&#x27;+icon+&#x27;&quot;&gt;&lt;/i&gt;&#x27;;</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\employees_consolidated.html:517 — div.innerHTML = label + &#x27;: &lt;strong&gt;&lt;/strong&gt;&#x27;;</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\leaves.html:90 — container.innerHTML+=</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\notifications.html:155 — status.innerHTML=&#x27;&lt;span style=&quot;color:var(--red)&quot;&gt;&lt;i class=&quot;ti ti-alert-circle&quot;&gt;&lt;</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  templates\admin\payroll.html:151 — tbody.innerHTML += &#x27;&lt;tr&gt;&lt;td&gt;&#x27; + r.date + &#x27;&lt;/td&gt;&lt;td style=&quot;direction:ltr;text-ali</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>  ... and 14 more</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\error_429.html:28 — Jinja2 var in &lt;script&gt; (may break escaping): remaining</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\analytics.html:141 — Jinja2 var in &lt;script&gt; (may break escaping): trends|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\analytics.html:143 — Jinja2 var in &lt;script&gt; (may break escaping): dept_stats_json|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\analytics.html:145 — Jinja2 var in &lt;script&gt; (may break escaping): weekday_late|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\analytics.html:148 — Jinja2 var in &lt;script&gt; (may break escaping): deduct_by_dept|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\employees_consolidated.html:194 — Jinja2 var in &lt;script&gt; (may break escaping): grades|tojson|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\employee_delegations.html:58 — Jinja2 var in &lt;script&gt; (may break escaping): employee.id</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\employee_discipline.html:54 — Jinja2 var in &lt;script&gt; (may break escaping): employee.id</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\employee_performance.html:61 — Jinja2 var in &lt;script&gt; (may break escaping): employee.id</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\employee_profile.html:262 — Jinja2 var in &lt;script&gt; (may break escaping): employee.id</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\employee_training.html:60 — Jinja2 var in &lt;script&gt; (may break escaping): employee.id</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\geofence_management.html:180 — Jinja2 var in &lt;script&gt; (may break escaping): zones | tojson | safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\geofence_management.html:181 — Jinja2 var in &lt;script&gt; (may break escaping): employees | tojson | safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\gps_tracking.html:241 — Jinja2 var in &lt;script&gt; (may break escaping): geofence_zones | tojson | safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\gps_tracking.html:242 — Jinja2 var in &lt;script&gt; (may break escaping): employees | tojson | safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\location_analytics.html:131 — Jinja2 var in &lt;script&gt; (may break escaping): employees | tojson | safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\location_analytics.html:132 — Jinja2 var in &lt;script&gt; (may break escaping): zones | tojson | safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\payroll.html:135 — Jinja2 var in &lt;script&gt; (may break escaping): pay_rows | tojson | safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\payroll.html:136 — Jinja2 var in &lt;script&gt; (may break escaping): month</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\payroll.html:136 — Jinja2 var in &lt;script&gt; (may break escaping): year</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\payroll_main.html:323 — Jinja2 var in &lt;script&gt; (may break escaping): month</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\payroll_main.html:324 — Jinja2 var in &lt;script&gt; (may break escaping): year</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\payroll_main.html:325 — Jinja2 var in &lt;script&gt; (may break escaping): dept</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\admin\shift_coverage.html:140 — Jinja2 var in &lt;script&gt; (may break escaping): year</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\archive_or_future\analytics.html:197 — Jinja2 var in &lt;script&gt; (may break escaping): trends|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\archive_or_future\analytics.html:208 — Jinja2 var in &lt;script&gt; (may break escaping): dept_stats_json|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\archive_or_future\analytics.html:219 — Jinja2 var in &lt;script&gt; (may break escaping): weekday_late|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\archive_or_future\analytics.html:228 — Jinja2 var in &lt;script&gt; (may break escaping): deduct_by_dept|safe</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\archive_or_future\shift_coverage.html:133 — Jinja2 var in &lt;script&gt; (may break escaping): year</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\archive_or_future\shift_coverage.html:134 — Jinja2 var in &lt;script&gt; (may break escaping): month</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\archive_or_future\shift_coverage.html:134 — Jinja2 var in &lt;script&gt; (may break escaping): year</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\employee\my_profile.html:113 — Jinja2 var in &lt;script&gt; (may break escaping): employee.id</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\employee\shifts.html:279 — Jinja2 var in &lt;script&gt; (may break escaping): month</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">XSS</td>
+<td>templates\employee\shifts.html:279 — Jinja2 var in &lt;script&gt; (may break escaping): year</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">CSRF</td>
+<td>CSRF meta tag found (used by api() function)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">CSRF</td>
+<td>16 HTML forms found, 0 with CSRF</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">CSRF</td>
+<td>16 forms missing CSRF tokens</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">CSRF</td>
+<td>api() function sends X-CSRFToken for POST requests</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">HEADERS</td>
+<td>CSP via meta tag: not found (set via server headers)</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>templates\admin\reports_attendance.html — uses client-side storage</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>templates\auth\login.html — uses client-side storage</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>templates\employee\attendance-offline.html — uses client-side storage</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>static\js\dashboard.js — uses client-side storage</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>static\js\encryption-utils.js — uses client-side storage</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>static\js\offline-sync.js — uses client-side storage</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#000;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>static\js\payroll-tabs.js — uses client-side storage</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">STORAGE</td>
+<td>templates\base.html — possible sensitive data handled in client JS</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/sweetalert2@11</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/chart.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://unpkg.com/leaflet@1.9.4/dist/leaflet.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://d3js.org/d3.v7.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External script: https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External CSS/font: https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External CSS/font: https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External CSS/font: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External CSS/font: https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&amp;display=swap</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External CSS/font: https://unpkg.com/leaflet@1.9.4/dist/leaflet.css</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External CSS/font: https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>External CSS/font: https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">THIRDPARTY</td>
+<td>No Subresource Integrity (integrity=) attributes on any CDN resource</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">JS-SAFE</td>
+<td>No dangerous JS functions found</td>
+</tr>
+</table>
+
+<div class="footer">
+Generated by frontend_security_checker.py — 2026-06-24 03:08:03
+</div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# User data
+uploads/*
+backups/*
+ml_models/*
+instance/
+
+# Logs & temp
+*.log
+*.tmp
+*.pid
+
+# Tests
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Security reports (generated, not needed in container)
+*_report.html
+*_report.txt
+*_executive_summary.pdf
+*_executive_summary.txt
+
+# Documentation (not needed at runtime)
+*.md
+SECURITY_ARCHITECTURE.md
+
+# Audit scripts (not needed at runtime)
+*_checker.py
+*_audit.py
+*_audit.js
+*_checker.js
+*_config.py
+*_config.sql
+*_test*.py
+penetration_*.py
+generate_*.py
+project_assessment_script.py
+
+# Skills
+skills/
+
+# Config files not needed at runtime
+render.yaml
+docker-compose*.yml

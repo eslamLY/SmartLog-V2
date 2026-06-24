@@ -2,8 +2,9 @@ import time
 from datetime import datetime, timedelta, UTC
 from flask import (Blueprint, render_template, request, redirect, url_for,
                    session, jsonify, make_response)
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from models import db, Employee, LoginAttempt, BrandingConfig
+from utils.helpers import validate_password_strength
 from utils.constants import MAX_LOGIN_ATTEMPTS
 from utils.rate_limit import check_rate_limit, rate_limit_headers
 
@@ -86,7 +87,10 @@ def login():
                             'full_name': emp.full_name, 'role': emp.role,
                             'department': emp.department,
                             'login_time': datetime.now(UTC).isoformat()})
-            redir = url_for('admin_ops_bp.admin_dashboard') if emp.role == 'admin' else url_for('employee.employee_dashboard')
+            if emp.force_password_change:
+                redir = url_for('auth.force_password_change')
+            else:
+                redir = url_for('admin_ops_bp.admin_dashboard') if emp.role == 'admin' else url_for('employee.employee_dashboard')
             return jsonify({'ok': True, 'redirect': redir})
         else:
             if not attempt:
@@ -108,6 +112,29 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/force-password-change', methods=['GET', 'POST'])
+def force_password_change():
+    eid = session.get('user_id')
+    if not eid:
+        return redirect(url_for('auth.login'))
+    emp = Employee.query.get(eid)
+    if not emp:
+        return redirect(url_for('auth.login'))
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        new_pass = data.get('password', '').strip()
+        valid, msg = validate_password_strength(new_pass)
+        if not valid:
+            return jsonify({'ok': False, 'msg': msg}), 400
+        emp.password_hash = generate_password_hash(new_pass)
+        emp.force_password_change = False
+        emp.password_changed_at = datetime.now(UTC)
+        db.session.commit()
+        redir = url_for('admin_ops_bp.admin_dashboard') if emp.role == 'admin' else url_for('employee.employee_dashboard')
+        return jsonify({'ok': True, 'msg': 'تم تغيير كلمة المرور بنجاح.', 'redirect': redir})
+    return render_template('force_password_change.html')
 
 
 @auth_bp.route('/api/health')

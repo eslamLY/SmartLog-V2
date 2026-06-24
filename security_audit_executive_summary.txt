@@ -1,0 +1,5 @@
+SmartLog V2 — Security Score: 62/100 (Risk: MEDIUM)
+CRITICAL: 2
+HIGH: 8
+MEDIUM: 13
+LOW: 7

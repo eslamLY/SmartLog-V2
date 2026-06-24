@@ -4,8 +4,21 @@ from typing import Optional
 
 from models import db
 from flask import current_app
+from sqlalchemy import inspect
 
 logger = logging.getLogger(__name__)
+
+def _known_table_names():
+    insp = inspect(db.engine)
+    return set(insp.get_table_names())
+
+def _validate_tables(table_names):
+    known = _known_table_names()
+    valid = [t for t in table_names if t in known]
+    invalid = set(table_names) - known
+    if invalid:
+        logger.warning('Skipping unknown tables: %s', invalid)
+    return valid
 
 
 def restore_from_backup(filepath: str, master_password: str = None,
@@ -29,7 +42,8 @@ def restore_from_backup(filepath: str, master_password: str = None,
         if tables:
             db_data = {k: v for k, v in db_data.items() if k in tables}
         total_records = sum(len(v) for v in db_data.values())
-        from sqlalchemy import text
+        valid_tables = _validate_tables(list(db_data.keys()))
+        db_data = {t: db_data[t] for t in valid_tables}
         for table, rows in db_data.items():
             if not rows:
                 continue

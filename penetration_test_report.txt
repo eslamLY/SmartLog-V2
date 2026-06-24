@@ -1,0 +1,109 @@
+========================================================================
+  SMARTLOG V2 — PENETRATION TEST REPORT
+========================================================================
+  Target:    https://smartlog-v2-1.onrender.com
+  Date:      2026-06-24 00:52:05
+  Tests:     10
+  Passed:    7
+  Failed:    3
+  Risk:      MEDIUM
+========================================================================
+
+
+EXECUTIVE SUMMARY
+----------------------------------------
+  3 test(s) FAILED. See detailed findings below.
+
+
+TEST RESULTS
+----------------------------------------
+
+  [PASS] INFO - SQLi on login form
+    Category: SQL Injection
+    Detail:   All 10 payloads were rejected
+    Evidence: No SQLi payload succeeded
+
+  [PASS] INFO - XSS on login form
+    Category: XSS
+    Detail:   No payload was reflected in response
+    Evidence: All XSS payloads neutralized
+
+  [PASS] INFO - Brute force protection active
+    Category: Rate Limiting
+    Detail:   Server returned 429 after repeated login attempts
+    Evidence: Responses: [429]
+
+  [FAIL] MEDIUM - Missing cookie flags: HttpOnly, Secure, SameSite=Lax, SameSite=Strict
+    Category: Session Security
+    Detail:   Session cookie missing security flags
+
+  [FAIL] CRITICAL - 5 endpoints accessible without auth
+    Category: Authorization
+    Detail:   Sensitive endpoints return 200 without authentication
+    Evidence: Admin dashboard (unauthorized) (200)
+Employee list API (200)
+System health page (200)
+Backup management (200)
+Payroll data (200)
+
+  [PASS] INFO - 4 security headers present
+    Category: Security Headers
+    Detail:   CSP, HSTS, X-Content-Type-Options, X-Frame-Options found
+    Evidence: {'CSP': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.c", 'HSTS': 'max-age=31536000; includeSubDomains; preload', 'X
+
+  [PASS] INFO - No sensitive files exposed
+    Category: Information Disclosure
+    Detail:   All tested paths returned non-200 status
+    Evidence: All paths properly restricted
+
+  [PASS] INFO - Path traversal not possible
+    Category: Path Traversal
+    Detail:   All traversal payloads returned non-200 or harmless content
+    Evidence: Traversal blocked
+
+  [PASS] INFO - CORS properly restricted
+    Category: CORS
+    Detail:   No Access-Control-Allow-Origin header (same-origin only)
+    Evidence: CORS not configured for external origins
+
+
+DETAILED FINDINGS
+----------------------------------------
+
+  1. [INFO] SQLi on login form
+     All 10 payloads were rejected
+
+  2. [INFO] XSS on login form
+     No payload was reflected in response
+
+  3. [INFO] Brute force protection active
+     Server returned 429 after repeated login attempts
+
+  4. [MEDIUM] Missing cookie flags: HttpOnly, Secure, SameSite=Lax, SameSite=Strict
+     Session cookie missing security flags
+
+  5. [CRITICAL] 5 endpoints accessible without auth
+     Sensitive endpoints return 200 without authentication
+
+  6. [INFO] 4 security headers present
+     CSP, HSTS, X-Content-Type-Options, X-Frame-Options found
+
+  7. [INFO] No sensitive files exposed
+     All tested paths returned non-200 status
+
+  8. [INFO] Path traversal not possible
+     All traversal payloads returned non-200 or harmless content
+
+  9. [INFO] CORS properly restricted
+     No Access-Control-Allow-Origin header (same-origin only)
+
+
+RECOMMENDATIONS
+----------------------------------------
+  → 5 endpoints accessible without auth: Sensitive endpoints return 200 without authentication
+  → Missing cookie flags: HttpOnly, Secure, SameSite=Lax, SameSite=Strict: Session cookie missing security flags
+
+
+========================================================================
+  END OF REPORT
+========================================================================

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8">
+<title>Database Security Audit — SmartLog V2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'system-ui',sans-serif;background:#080c18;color:#f0f4f9;padding:20px;font-size:14px}
+h1{font-size:22px;font-weight:800}
+.summary{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}
+.summary-card{background:#0f172a;border:1px solid #1e2a45;border-radius:12px;padding:16px;min-width:120px;text-align:center}
+.summary-card .num{font-size:28px;font-weight:800}
+.summary-card .label{font-size:12px;color:#8899b4}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #17213a;font-size:13px}
+th{color:#8899b4;font-size:12px}
+</style></head>
+<body>
+<h1>Database Security Audit</h1>
+<div style="color:#8899b4;margin-bottom:16px">2026-06-24 03:12:23</div>
+<div class="summary">
+<div class="summary-card"><div class="num" style="color:#22c55e">36</div><div class="label">Checks</div></div>
+<div class="summary-card"><div class="num" style="color:#ef4444">0</div><div class="label">High/Critical</div></div>
+<div class="summary-card"><div class="num" style="color:#eab308">3</div><div class="label">Medium</div></div>
+</div>
+<table><tr><th>Severity</th><th>Category</th><th>Description</th></tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">CONNECTION</td>
+<td>SSL mode: require (production)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">CONNECTION</td>
+<td>DATABASE_URL masked in logs</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">CONNECTION</td>
+<td>Connection pool settings: 5/5 configured</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">CONNECTION</td>
+<td>DATABASE_URL from environment variable (not hardcoded)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">PRIVILEGES</td>
+<td>Privilege check skipped (no live connection)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Salary: Fernet AES-128 encrypted</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Email: Fernet AES-128 encrypted</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Phone: Fernet AES-128 encrypted</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Government model encrypted fields: base_salary_encrypted, email_encrypted, phone_encrypted</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Backup encryption: Fernet (AES-128) with PBKDF2 key derivation</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>PBKDF2 iterations: 600000 (meets OWASP recommendations)</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>National ID (الرقم الوطني) stored in plaintext</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Bank account number stored in plaintext</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Emergency contact phone stored in plaintext</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>FIELD_ENCRYPTION_KEY not set — derived from SECRET_KEY</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>BACKUP_ENCRYPTION_KEY: environment variable required</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENCRYPTION</td>
+<td>Password hashing: pbkdf2:sha256 (werkzeug)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUDIT</td>
+<td>AuditLog model found and used</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUDIT</td>
+<td>audit_log_action decorator exists</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUDIT</td>
+<td>audit_log_action used 0 times in routes</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUDIT</td>
+<td>LoginAttempt model tracks failed logins by IP</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUDIT</td>
+<td>Rate limit blocks logged to AuditLog</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Backup service found</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Backup encryption available (Fernet AES-128)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Backup compression: zlib level 9</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Backup integrity: SHA-256 checksum</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Automated backup scheduling</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Automatic old backup cleanup</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Backup restoration service found</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Pre-restore backup created automatically</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Restore preview available</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">BACKUPS</td>
+<td>Auto-scheduling found in database_security_checker.py</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ACCESS</td>
+<td>IP flood detection active (266 req/min)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ACCESS</td>
+<td>CORS not configured (restricted by default)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ACCESS</td>
+<td>Session-based authentication (no direct DB access)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ACCESS</td>
+<td>Not on Render (check firewall rules manually)</td>
+</tr></table>
+<div class="footer" style="margin-top:24px;padding:12px;background:#0f172a;border-radius:10px;font-size:12px;color:#566580;text-align:center">
+Generated by database_security_checker.py
+</div>
+</body>
+</html>

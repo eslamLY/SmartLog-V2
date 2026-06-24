@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backend Security Audit Report — SmartLog V2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'system-ui',sans-serif;background:#080c18;color:#f0f4f9;padding:20px;font-size:14px;line-height:1.6}
+h1{font-size:22px;font-weight:800;margin-bottom:4px}
+h2{font-size:16px;font-weight:700;margin:24px 0 10px;color:#818cf8;border-bottom:1px solid #1e2a45;padding-bottom:6px}
+.summary{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}
+.summary-card{background:#0f172a;border:1px solid #1e2a45;border-radius:12px;padding:16px;min-width:120px;text-align:center}
+.summary-card .num{font-size:28px;font-weight:800}
+.summary-card .label{font-size:12px;color:#8899b4;margin-top:2px}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #17213a;font-size:13px}
+th{color:#8899b4;font-weight:600;font-size:12px;text-transform:uppercase}
+tr:hover td{background:rgba(255,255,255,.02)}
+.footer{margin-top:24px;padding:12px;background:#0f172a;border-radius:10px;font-size:12px;color:#566580;text-align:center}
+</style>
+</head>
+<body>
+<h1>Backend Security Audit Report</h1>
+<div style="color:#8899b4;margin-bottom:16px">SmartLog V2 — 2026-06-24 02:26:10</div>
+
+<div class="summary">
+<div class="summary-card"><div class="num" style="color:#ef4444">142</div><div class="label">Total Checks</div></div>
+<div class="summary-card"><div class="num" style="color:#ef4444">4</div><div class="label">High/Critical</div></div>
+<div class="summary-card"><div class="num" style="color:#eab308">61</div><div class="label">Medium</div></div>
+</div>
+
+<h2>Findings</h2>
+<table>
+<tr><th>Severity</th><th>Category</th><th>Description</th></tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">ENV</td>
+<td>Default dev SECRET_KEY found in BaseConfig</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>backend_security_checker.py — traceback.format_exc() may leak stack traces</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>backend_security_config.py — traceback.format_exc() may leak stack traces</td>
+</tr>
+<tr>
+<td><span style="background:#f97316;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">HIGH</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\auth.py — traceback.format_exc() may leak stack traces</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>/api/auth/token has no rate limiting</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>API tokens stored in-memory dict (lost on restart, not worker-safe)</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>No custom 500 error handler — stack may leak</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">SQLI</td>
+<td>backend_security_checker.py:102 — text() with f-string: if &#x27;text(&#x27; in stripped and &#x27;f&quot;&#x27; in stripped:</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\admin_ops.py near line 238 — /api/hardware/punch may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\admin_system.py near line 50 — /api/branding may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\auth.py near line 154 — /api/init-db may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 131 — /api/create may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 162 — /api/delete/&lt;int:backup_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 175 — /api/restore may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 20 — /api/stats may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 205 — /api/preview/&lt;int:backup_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 217 — /api/verify/&lt;int:backup_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 231 — /api/verify-all may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 251 — /api/schedules may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 257 — /api/schedules/create may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 277 — /api/schedules/update/&lt;int:schedule_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 285 — /api/schedules/delete/&lt;int:schedule_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 292 — /api/schedules/run/&lt;int:schedule_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 299 — /api/schedules/status may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 305 — /api/schedules/toggle/&lt;int:schedule_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 315 — /api/audit may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 340 — /api/config may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 377 — /api/restore-logs may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 403 — /api/export-sql may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 410 — /api/delete-old may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 419 — /api/archived may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 60 — /api/list may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\backup_management.py near line 94 — /api/upload may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 100 — /api/managers may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 111 — /api/devices may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 118 — /api/shifts may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 125 — /api/employees may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 136 — /api/add may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 208 — /api/&lt;int:dept_id&gt;/edit may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 282 — /api/&lt;int:dept_id&gt;/delete may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 301 — /api/&lt;int:dept_id&gt;/toggle may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 316 — /api/bulk-toggle may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 335 — /api/&lt;int:dept_id&gt;/clone may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 37 — /api/list may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 384 — /api/&lt;int:dept_id&gt;/dashboard may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 44 — /api/tree may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 457 — /api/&lt;int:dept_id&gt;/announcements may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 465 — /api/&lt;int:dept_id&gt;/announcements/send may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 523 — /api/transfers may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 530 — /api/transfers/create may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 563 — /api/transfers/&lt;int:t_id&gt;/approve-manager may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 575 — /api/transfers/&lt;int:t_id&gt;/approve-hr may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 587 — /api/transfers/&lt;int:t_id&gt;/execute may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 604 — /api/transfers/&lt;int:t_id&gt;/reject may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 613 — /api/export may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 646 — /api/import-template may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 663 — /api/import may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 70 — /api/&lt;int:dept_id&gt; may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 735 — /api/&lt;int:dept_id&gt;/employees may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 751 — /api/icons may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 77 — /api/check-code may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 87 — /api/generate-code may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\departments.py near line 93 — /api/parents may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>routes\employee.py near line 192 — /api/qr-token may lack auth decorator</td>
+</tr>
+<tr>
+<td><span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MEDIUM</span></td>
+<td style="color:#8899b4;font-size:12px">SQLI</td>
+<td>tests\test_encryption.py:120 — text() with f-string: row = db.session.execute(text(f&quot;SELECT {col} FROM {table} LIMIT 1&quot;)).fetchone()</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>app.py:370 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>app.py:451 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>backend_security_checker.py:23 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">MODEL</td>
+<td>bank_account_number in to_dict (controlled by include_sensitive flag)</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\attendance.py:82 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\attendance.py:90 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\biotime_device.py:112 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\biotime_device.py:127 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\biotime_device.py:142 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\employee.py:150 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\employee.py:165 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\employee_government.py:162 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\employee_government.py:191 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\employee_government.py:297 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\employee_government.py:75 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\employee_government.py:94 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\hrms.py:58 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>models\misc.py:50 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>project_assessment_script.py:231 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>project_assessment_script.py:245 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>project_assessment_script.py:257 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\admin_attendance.py:164 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\admin_attendance.py:218 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\admin_ops.py:1064 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\admin_ops.py:1088 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\admin_ops.py:1110 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\api_offline_sync.py:105 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\api_offline_sync.py:88 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\backup_management.py:34 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\backup_management.py:43 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\departments.py:441 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\devices.py:312 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\employee.py:211 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\employees.py:445 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\employees.py:463 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>routes\reports_attendance.py:36 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\ai_forecasting.py:274 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\ai_forecasting.py:74 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\backup_service.py:89 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\biotime_service.py:157 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\biotime_service.py:173 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\biotime_service.py:189 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\biotime_service.py:251 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\document_service.py:60 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\encryption_service.py:94 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\ml_models.py:372 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\ml_models.py:422 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\prediction_service.py:303 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>services\prediction_service.py:91 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>tests\test_encryption.py:81 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>utils\decorators.py:75 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>utils\helpers.py:176 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>utils\rate_limit.py:144 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>utils\rate_limit.py:192 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>utils\rate_limit.py:99 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">LOW</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>utils\seeds.py:106 — bare except without logging</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENV</td>
+<td>BACKUP_ENCRYPTION_KEY handling present</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>CORS not configured (restricted by default)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>CSRFProtect imported, but WTF_CSRF_CHECK_DEFAULT=False</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ERROR</td>
+<td>Custom 429 error handler present</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>Custom CSRF token validation active (X-CSRFToken)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENV</td>
+<td>DATABASE_URL properly masked in logs</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENV</td>
+<td>FIELD_ENCRYPTION_KEY handling present</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">MODEL</td>
+<td>Field-level encryption for sensitive data (salary, email, phone)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">INPUT</td>
+<td>File upload extension validation present</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">INPUT</td>
+<td>GPS coordinate validation present</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUTH</td>
+<td>IP blocking after max login attempts</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUTH</td>
+<td>Login rate limiting active (5 attempts / 5 min)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">INPUT</td>
+<td>MAX_CONTENT_LENGTH configured</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">SQLI</td>
+<td>No SQL injection risks in ORM queries</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUTH</td>
+<td>Password hashing: werkzeug.security.generate_password_hash (pbkdf2:sha256)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">INPUT</td>
+<td>Password min length: 8</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">INPUT</td>
+<td>Password strength validation present (8+ chars, upper+lower+digit)</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">API</td>
+<td>Rate limiting implemented</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">ENV</td>
+<td>SECRET_KEY handled</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">AUTH</td>
+<td>Session timeout tracking via last_activity</td>
+</tr>
+<tr>
+<td><span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">INFO</span></td>
+<td style="color:#8899b4;font-size:12px">MODEL</td>
+<td>password_hash stored on model</td>
+</tr>
+</table>
+
+<div class="footer">
+Generated by backend_security_checker.py — 2026-06-24 02:26:10
+</div>
+</body>
+</html>
