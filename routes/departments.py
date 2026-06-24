@@ -1,4 +1,4 @@
-import json, csv, io
+import json, csv, io, re
 from datetime import datetime, date, UTC
 
 from flask import Blueprint, request, jsonify, session, send_file
@@ -506,7 +506,7 @@ def send_announcement(dept_id):
             notif = Notification(
                 employee_id=emp.id,
                 title='إعلان قسم' if priority == 'normal' else ('إعلان عاجل' if priority == 'urgent' else 'إعلان مهم جداً'),
-                message=ann.message,
+                message=re.sub(r'<[^>]*>', '', ann.message),
                 ntype='announcement',
                 is_read=False,
             )

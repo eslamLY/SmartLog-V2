@@ -1,9 +1,13 @@
+import hashlib
+import html
+import logging
+import secrets
 from datetime import datetime, date, timedelta, UTC
 from flask import (Blueprint, render_template, request, session,
                    jsonify, current_app)
 from models import db, Employee, AttendanceLog, LeaveRequest, OutingRequest, \
     ShiftSchedule, ShiftSwapRequest, BiometricCredential, GPSLog, ShiftType, \
-    Notification, EmployeeDocument, Department
+    Notification, EmployeeDocument, Department, QRToken
 from utils.decorators import login_required
 from utils.helpers import validate_coordinates, work_hours_str, monthly_deduction
 from utils.rate_limit import check_rate_limit, rate_limit_headers
@@ -15,6 +19,7 @@ from sqlalchemy import extract
 employee_bp = Blueprint('employee', __name__)
 
 QR_TOKEN_MAX_AGE = 5
+LOGGER = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ■ AREA 1 — DASHBOARD, CLOCK-IN, CLOCK-OUT
@@ -190,26 +195,47 @@ def geofence_check():
 
 
 @employee_bp.route('/api/qr-token')
+@login_required
 def qr_token():
-    from itsdangerous import URLSafeTimedSerializer
-    s = URLSafeTimedSerializer(current_app.secret_key)
-    token = s.dumps({'type': 'clockin'})
-    return jsonify({'token': token, 'expires_in': QR_TOKEN_MAX_AGE})
+    raw = secrets.token_urlsafe(32)
+    h   = QRToken.hash_raw(raw)
+    now = datetime.now(UTC)
+    t   = QRToken(token_hash=h, expires_at=now + timedelta(seconds=QR_TOKEN_MAX_AGE))
+    db.session.add(t)
+    db.session.commit()
+    QRToken.cleanup_expired()
+    return jsonify({'token': raw, 'expires_in': QR_TOKEN_MAX_AGE})
 
 
 @employee_bp.route('/employee/clock-in/qr', methods=['POST'])
 @login_required
 def clock_in_qr():
-    from itsdangerous import URLSafeTimedSerializer
     data = request.get_json() or {}
     raw  = data.get('token', '')
     if not raw:
         return jsonify({'ok': False, 'msg': 'رمز QR غير صالح.'}), 400
-    try:
-        s = URLSafeTimedSerializer(current_app.secret_key)
-        s.loads(raw, max_age=QR_TOKEN_MAX_AGE)
-    except Exception:
+
+    h = QRToken.hash_raw(raw)
+    t = QRToken.query.filter_by(token_hash=h).first()
+
+    now = datetime.now(UTC)
+
+    if not t:
+        LOGGER.warning('QR_CLOCKIN_FAIL token_not_found ip=%s user=%s',
+                       request.remote_addr, session.get('user_id'))
         return jsonify({'ok': False, 'msg': 'رمز QR منتهي الصلاحية أو غير صالح. أعد المسح.'}), 400
+
+    if t.used_at is not None:
+        LOGGER.warning('QR_CLOCKIN_FAIL token_reused ip=%s user=%s token_id=%s used_at=%s',
+                       request.remote_addr, session.get('user_id'), t.id, t.used_at)
+        return jsonify({'ok': False, 'msg': 'رمز QR مستخدم مسبقاً. كل رمز يستخدم مرة واحدة فقط.'}), 400
+
+    if t.expires_at < now:
+        LOGGER.warning('QR_CLOCKIN_FAIL token_expired ip=%s user=%s token_id=%s',
+                       request.remote_addr, session.get('user_id'), t.id)
+        db.session.delete(t)
+        db.session.commit()
+        return jsonify({'ok': False, 'msg': 'رمز QR منتهي الصلاحية. أعد المسح.'}), 400
 
     emp   = Employee.query.get(session['user_id'])
     today = date.today()
@@ -217,22 +243,25 @@ def clock_in_qr():
     if log and log.clock_in:
         return jsonify({'ok': False, 'msg': 'سجّلت حضورك اليوم بالفعل.'})
 
-    now      = datetime.now()
-    late_min = ClockService.calc_late_minutes(now)
-    status   = 'late' if late_min > 0 else 'present'
+    now_local = datetime.now()
+    late_min  = ClockService.calc_late_minutes(now_local)
+    status    = 'late' if late_min > 0 else 'present'
+
     if log:
-        log.clock_in = now; log.is_inside_geofence = True
+        log.clock_in = now_local; log.is_inside_geofence = True
         log.status = status; log.late_minutes = late_min
         log.override_reason = 'QR_Backup'
     else:
         log = AttendanceLog(employee_id=emp.id, log_date=today,
-                            clock_in=now, is_inside_geofence=True,
+                            clock_in=now_local, is_inside_geofence=True,
                             status=status, late_minutes=late_min,
                             override_reason='QR_Backup')
         db.session.add(log)
+
+    t.used_at = now
     db.session.commit()
 
-    msg = f'✅ تم تسجيل حضورك عبر QR — {now.strftime("%H:%M")}'
+    msg = f'✅ تم تسجيل حضورك عبر QR — {now_local.strftime("%H:%M")}'
     if late_min > 0:
         msg += f' (متأخر {late_min} دقيقة)'
     return jsonify({'ok': True, 'msg': msg})
@@ -586,7 +615,9 @@ def notification_history():
         db.or_(Notification.employee_id == emp_id, Notification.is_global == True)
     ).order_by(Notification.created_at.desc()).limit(50).all()
     return jsonify([{
-        'id': n.id, 'title': n.title, 'message': n.message,
+        'id': n.id,
+        'title': html.escape(n.title or ''),
+        'message': html.escape(n.message or ''),
         'ntype': n.ntype, 'icon': n.icon, 'url': n.url,
         'is_read': n.is_read, 'created_at': n.created_at.isoformat()
     } for n in notes])

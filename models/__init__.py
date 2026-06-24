@@ -17,6 +17,7 @@ from models.misc import LeaveRequest, OutingRequest, GPSLog, BrandingConfig, Emp
 from models.biotime_device import BioTimeDevice, DeviceEventLog, DeviceHealthSnapshot
 from models.security import LoginAttempt, BiometricCredential, TrustedDevice, BlockedIP
 from models.notifications import Notification
+from models.qr_token import QRToken
 from models.shifts import ShiftType, ShiftSchedule, ShiftSwapRequest, ShiftCoverageRule, ShiftException
 from models.admin import AuditLog, Role, Permission, EmployeePermission
 from models.communications import EmailTemplate, EmailLog, SmsLog
@@ -47,7 +48,7 @@ __all__ = [
     'Employee', 'Department', 'DepartmentCertification', 'DepartmentAnnouncement', 'DepartmentTransfer', 'AttendanceAnomaly', 'EmployeePattern', 'ReportCorrection', 'ScheduledReport', 'AttendanceLog', 'AttendancePolicy',
     'LeaveRequest', 'OutingRequest', 'GPSLog',
     'BioTimeDevice', 'BrandingConfig', 'TrustedDevice',
-    'BiometricCredential', 'Notification', 'EmployeeDocument',
+    'BiometricCredential', 'Notification', 'QRToken', 'EmployeeDocument',
     'AuditLog', 'Role', 'Permission', 'EmployeePermission',
     'EmailTemplate', 'EmailLog', 'SmsLog',
     'LoginAttempt', 'ShiftType', 'ShiftSchedule', 'ShiftSwapRequest', 'ShiftCoverageRule', 'ShiftException',

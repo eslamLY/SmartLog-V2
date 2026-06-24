@@ -1,4 +1,4 @@
-import json, math
+import html, json, math
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
 
@@ -477,8 +477,8 @@ def api_dashboard_notifications():
     return jsonify({
         'notifications': [{
             'id': n.id,
-            'title': n.title,
-            'message': n.message,
+            'title': html.escape(n.title or ''),
+            'message': html.escape(n.message or ''),
             'ntype': n.ntype,
             'created_at': n.created_at.isoformat() if n.created_at else None,
             'is_read': n.is_read,

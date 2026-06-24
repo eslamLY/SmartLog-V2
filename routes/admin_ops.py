@@ -1,4 +1,4 @@
-import os, io, json, uuid, calendar, math, hmac, logging
+import os, io, json, uuid, calendar, math, hmac, logging, re
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
 
@@ -380,8 +380,8 @@ def admin_notifications():
 def send_notification():
     d = request.get_json() or {}
     emp_id = d.get('employee_id')
-    title = d.get('title', '').strip()
-    message = d.get('message', '').strip()
+    title = re.sub(r'<[^>]*>', '', d.get('title', '').strip())
+    message = re.sub(r'<[^>]*>', '', d.get('message', '').strip())
     ntype = d.get('ntype', 'info')
     icon = d.get('icon', '')
     url = d.get('url', '')
