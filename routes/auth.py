@@ -216,8 +216,16 @@ def admin_db_check():
         if miss:
             mismatched[t] = sorted(miss)
 
+    alembic_version = None
+    try:
+        r = db.session.execute(text('SELECT version_num FROM alembic_version')).scalar()
+        alembic_version = r
+    except Exception:
+        alembic_version = 'NOT_FOUND'
+
     return jsonify({
         'table_count': len(existing),
+        'alembic_version': alembic_version,
         'tables': result,
         'missing_tables': missing_tables,
         'extra_tables': extra_tables,
