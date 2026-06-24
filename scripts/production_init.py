@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Production Database Initialization
 ===================================
@@ -22,8 +22,18 @@ def count_rows(conn, table):
     return conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
 
 
-def run(conn, commit):
-    """Core logic — uses a connection-like object and a commit callback."""
+def safe_commit(conn):
+    try:
+        conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+
+
+def run(conn):
+    """Core logic — uses a connection-like object (Flask db.session or SQLAlchemy Connection)."""
 
     # ─────────────────────────────────────────────────
     # STEP 1 — Admin user
@@ -47,7 +57,7 @@ def run(conn, commit):
             "UPDATE employees SET password_hash = :pw, role = 'admin', "
             "is_active = TRUE, force_password_change = FALSE WHERE username = 'ADMIN'"
         ), {'pw': pw_hash})
-        commit()
+        safe_commit(conn)
         print("  Updated.")
     else:
         print("  Creating admin user ...")
@@ -56,10 +66,10 @@ def run(conn, commit):
                 (username, full_name, department, password_hash, role, is_active,
                  email, permission_level, force_password_change, created_at)
             VALUES
-                ('ADMIN', 'مدير النظام', 'الإدارة', :pw, 'admin', TRUE,
+                ('ADMIN', :name, :dept, :pw, 'admin', TRUE,
                  'admin@smartlog.local', 'admin', FALSE, NOW())
-        """), {'pw': pw_hash})
-        commit()
+        """), {'pw': pw_hash, 'name': 'مدير النظام', 'dept': 'الإدارة'})
+        safe_commit(conn)
         print("  Created.")
 
     admin_count = conn.execute(
@@ -118,12 +128,13 @@ def run(conn, commit):
                 if table == 'employees':
                     pre = count_rows(conn, "employees")
                     conn.execute(text("DELETE FROM employees WHERE username != 'ADMIN'"))
+                    safe_commit(conn)
                     post = count_rows(conn, "employees")
                     deleted = pre - post
                 else:
                     conn.execute(text(f"DELETE FROM {table}"))
+                    safe_commit(conn)
                     deleted = cnt
-                commit()
                 if deleted > 0:
                     print(f"  {table + ':':45s} {deleted:>6} rows deleted")
                     total_deleted += deleted
@@ -131,7 +142,7 @@ def run(conn, commit):
                 if "relation" in str(e) and "does not exist" in str(e):
                     continue
                 print(f"  {table + ':':45s} SKIP ({e})")
-                commit()  # commit after handling to clear aborted txn state
+                safe_commit(conn)
 
     print(f"\n  Total deleted : {total_deleted} rows")
     print()
@@ -162,7 +173,7 @@ def run(conn, commit):
     for seq, start in sequences:
         try:
             conn.execute(text(f"ALTER SEQUENCE {seq} RESTART WITH {start}"))
-            commit()
+            safe_commit(conn)
             print(f"  {seq + ':':40s} RESTART WITH {start}")
         except Exception:
             pass
@@ -215,14 +226,13 @@ def run(conn, commit):
 def main(db_session=None):
     """
     Main entry point.
-    
+
     If db_session is provided (Flask route mode), use it.
     Otherwise create a standalone engine+connection (CLI mode).
     """
     if db_session is not None:
-        return run(db_session, db_session.commit)
+        return run(db_session)
 
-    # Standalone mode
     url = os.environ.get('DATABASE_URL', '').strip()
     if not url:
         print("FATAL: DATABASE_URL environment variable is not set.")
@@ -239,7 +249,7 @@ def main(db_session=None):
     print("Connected.\n")
 
     try:
-        result = run(conn, conn.commit)
+        result = run(conn)
     finally:
         conn.close()
         engine.dispose()
