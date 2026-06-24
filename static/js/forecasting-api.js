@@ -68,7 +68,7 @@ async function loadDashboard() {
     html += '<div class="f-card f-stat-card"><div class="f-stat-icon" style="background:#f59e0b22;color:#f59e0b"><i class="ti ti-user-x"></i></div><div class="f-stat-number">' + (predictions.absence_predictions || []).length + '</div><div class="f-stat-label">غياب متوقع</div></div>';
     html += '<div class="f-card f-stat-card"><div class="f-stat-icon" style="background:#ef444422;color:#ef4444"><i class="ti ti-users-x"></i></div><div class="f-stat-number">' + (predictions.turnover_predictions || []).length + '</div><div class="f-stat-label">خطر الرحيل</div></div>';
     html += '<div class="f-card f-stat-card"><div class="f-stat-icon" style="background:#22c55e22;color:#22c55e"><i class="ti ti-alert-triangle"></i></div><div class="f-stat-number">' + (predictions.shortage_warnings || []).length + '</div><div class="f-stat-label">إنذارات النقص</div></div>';
-    html += '<div class="f-card f-stat-card"><div class="f-stat-icon" style="background:#6366f122;color:#6366f1"><i class="ti ti-bug"></i></div><div class="f-stat-number">' + (predictions.anomalies || []).length + '</div><div class="f-stat-label">شذوذ مكتشف</div></div>';
+    html += '<div class="f-card f-stat-card"><div class="f-stat-icon" style="background:#6366f122;color:#6366f1"><i class="ti ti-bug"></i></div><div class="f-stat-number">' + (predictions.anomalies || []).length + '</div><div class="f-stat-label">التجاوزات مكتشفة</div></div>';
     html += '<div class="f-card f-stat-card"><div class="f-stat-icon" style="background:#10b98122;color:#10b981"><i class="ti ti-brain"></i></div><div class="f-stat-number">' + ((perf.performance || []).length || 0) + '</div><div class="f-stat-label">نماذج نشطة</div></div>';
     html += '<div class="f-card" style="grid-column:1/-1"><h3>💡 توصيات ذكية</h3>';
     var recommendations = recs.recommendations || [];
@@ -189,7 +189,7 @@ async function loadAnomalies() {
       html += '<tr><td>' + a.anomaly_type + '</td><td>' + a.description + '</td><td><span class="f-badge f-badge-' + (a.severity === 'critical' ? 'red' : a.severity === 'high' ? 'amber' : 'green') + '">' + a.severity + '</span></td><td>' + (a.score * 100).toFixed(0) + '%</td><td>' + (a.detected_date || '—') + '</td><td>' + (a.resolved ? '✅' : '<button class="f-btn f-btn-sm f-btn-accent" onclick="resolveAnomaly(' + a.id + ')">حل</button>') + '</td></tr>';
     });
     html += '</tbody></table>';
-    if (!data.anomalies || !data.anomalies.length) html = '<p style="color:var(--muted)">لا توجد شذوذ في آخر 7 أيام</p>';
+    if (!data.anomalies || !data.anomalies.length) html = '<p style="color:var(--muted)">لا توجد تجاوزات في آخر 7 أيام</p>';
     container.innerHTML = html;
   } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>'; }
 }
@@ -199,7 +199,7 @@ async function scanAnomalies() {
   container.innerHTML = '<div class="f-spinner" style="margin:0 auto"></div>';
   try {
     var result = await postJSON('/api/forecast/anomalies/scan', {});
-    container.innerHTML = '<p style="color:#22c55e">✅ تم الفحص: ' + result.stats.anomalies_found + ' شذوذ مكتشف</p>';
+    container.innerHTML = '<p style="color:#22c55e">✅ تم الفحص: ' + result.stats.anomalies_found + ' تجاوزات مكتشفة</p>';
     loadAnomalies();
   } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>'; }
 }

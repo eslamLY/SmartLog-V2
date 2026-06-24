@@ -83,7 +83,7 @@ function renderTable() {
   pageRows.forEach((r, i) => {
     const statusColor = r.overall_status === 'excellent' ? '#22c55e' : r.overall_status === 'good' ? '#3b82f6' : r.overall_status === 'acceptable' ? '#f59e0b' : '#ef4444';
     const statusLabel = r.overall_status === 'excellent' ? 'ممتاز' : r.overall_status === 'good' ? 'جيد' : r.overall_status === 'acceptable' ? 'مقبول' : 'ضعيف';
-    const hasAnomaly = r.anomaly_count > 0 ? `<span class="badge badge-danger" title="شذوذ">!${r.anomaly_count}</span>` : '';
+    const hasAnomaly = r.anomaly_count > 0 ? `<span class="badge badge-danger" title="تجاوز">!${r.anomaly_count}</span>` : '';
     html += `<tr>
       <td>${start + i + 1}</td>
       <td><strong>${r.emp_name}</strong><br><small class="text-muted">${r.emp_code}</small></td>

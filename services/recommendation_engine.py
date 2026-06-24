@@ -154,7 +154,7 @@ class RecommendationEngine:
             name = emp.full_name if emp else a.anomaly_type
             self.recommendations.append({
                 'category': 'المراقبة',
-                'title': f'شذوذ: {a.anomaly_type}',
+                'title': f'تجاوز: {a.anomaly_type}',
                 'message': f'{name}: {a.description}',
                 'severity': a.severity or 'medium',
                 'confidence': 78,

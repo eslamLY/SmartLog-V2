@@ -991,7 +991,7 @@
           var html = '<div class="behavior-alert-card glass-card mb-3" style="padding:12px 16px;border:1px solid ' + border + ';background:' + bg + ';border-radius:12px;display:flex;align-items:center;gap:12px">' +
             '<div style="flex:1;min-width:0">' +
             '<p style="font-size:13px;color:var(--text)">📉 فجوة دوام: تم رصد انحراف جماعي في <strong>' + p.department + '</strong> (خروج مبكر بمعدل ' + p.avg_deviation + ' د).</p>' +
-            '<small style="font-size:11px;color:var(--muted2)">درجة الشذوذ الإحصائي: Z = ' + p.z_score + ' · احتمال العشوائية أقل من 2%</small>' +
+            '<small style="font-size:11px;color:var(--muted2)">درجة التجاوز الإحصائي: Z = ' + p.z_score + ' · احتمال العشوائية أقل من 2%</small>' +
             '</div></div>';
           container.insertAdjacentHTML('beforeend', html);
         });
