@@ -170,7 +170,7 @@ fernet = Fernet(_key)
 
 # Database Initialization
 from models import db, set_fernet as _set_fernet
-from models import (Employee, Department, AttendanceLog,
+from models import (Employee, EmployeeGovernment, Department, AttendanceLog,
     LeaveRequest, OutingRequest, GPSLog,
     BioTimeDevice, BrandingConfig, TrustedDevice,
     BiometricCredential, Notification, EmployeeDocument,

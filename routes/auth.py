@@ -192,7 +192,7 @@ def admin_db_check():
         'rbac_roles': ['id', 'name', 'name_ar', 'description', 'parent_id', 'scope', 'is_system', 'is_active', 'risk_level', 'max_assignees', 'created_at', 'updated_at'],
         'rbac_permissions': ['id', 'name', 'name_ar', 'code', 'description', 'module', 'is_high_risk', 'requires_2fa', 'requires_approval', 'created_at'],
         'employee_grades': ['id', 'name', 'level', 'min_salary', 'max_salary', 'is_active', 'created_at'],
-        'employee_government': ['id', 'employee_id', 'first_name', 'second_name', 'family_name', 'national_id', 'username', 'is_active', 'created_at'],
+        'employees_government': ['id', 'username', 'first_name', 'second_name', 'family_name', 'national_id', 'role', 'is_active', 'created_at'],
         'blocked_ips': ['id', 'ip_address', 'violation_count', 'banned_at', 'ban_expiry', 'is_permanent', 'is_active', 'updated_at'],
         'geofence_zones': ['id', 'name', 'latitude', 'longitude', 'radius_meters', 'is_active', 'created_at'],
     }

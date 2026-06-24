@@ -31,6 +31,7 @@ from models.backup import BackupMetadata, BackupSchedule, BackupAuditLog, Backup
 from models.rbac import RbacRole, RbacPermission, RbacEmployeeRole, RbacAuditLog, RbacPermissionRequest, RbacRoleTemplate, RbacDelegation
 from models.predictions import ModelRegistry, ModelPerformanceLog, PredictionResult, CustomRule, HolidayCalendar, AnomalyLog, RiskAssessment
 from models.ml_performance import MLPerformanceTracker
+from models.employee_government import EmployeeGovernment
 from models.employee_enhanced import (
     EmployeeExtended, EmployeeChild, EmployeeGrade,
     EmployeeQualification, EmployeeCertification,
@@ -42,6 +43,7 @@ from models.employee_enhanced import (
 
 __all__ = [
     'db', 'get_fernet', 'set_fernet',
+    'EmployeeGovernment',
     'Employee', 'Department', 'DepartmentCertification', 'DepartmentAnnouncement', 'DepartmentTransfer', 'AttendanceAnomaly', 'EmployeePattern', 'ReportCorrection', 'ScheduledReport', 'AttendanceLog', 'AttendancePolicy',
     'LeaveRequest', 'OutingRequest', 'GPSLog',
     'BioTimeDevice', 'BrandingConfig', 'TrustedDevice',
