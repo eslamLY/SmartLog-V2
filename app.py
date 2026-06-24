@@ -512,6 +512,13 @@ log.info('=' * 60)
 log.info('SmartLog startup complete — ready to serve')
 log.info('=' * 60)
 
+# ── CLI Commands ────────────────────────────────────
+@app.cli.command('init-production')
+def init_production_cli():
+    """Initialize production database: create admin user + clear test data."""
+    import scripts.production_init as init
+    sys.exit(init.main())
+
 if __name__ == '__main__':
     app.run(debug=not PRODUCTION, host='0.0.0.0',
             port=int(os.environ.get('PORT', 5000)))
