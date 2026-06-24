@@ -400,7 +400,7 @@ def check_auto_ban():
 def check_csrf():
     if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
         return
-    if request.path.startswith(('/static/', '/manifest.json', '/sw.js', '/uploads/', '/api/health')):
+    if request.path.startswith(('/static/', '/manifest.json', '/sw.js', '/uploads/', '/api/health', '/login')):
         return
     if request.is_json:
         token = request.headers.get('X-CSRFToken')
