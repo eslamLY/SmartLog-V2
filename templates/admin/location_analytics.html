@@ -3,7 +3,7 @@
 {% block title %}تحليلات المواقع{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/tracking-premium.css\') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tracking-premium.css') }}">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
@@ -122,8 +122,8 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for(\'static\', filename=\'js/tracking-map.js\') }}"></script>
-<script src="{{ url_for(\'static\', filename=\'js/tracking-analytics.js\') }}"></script>
+<script src="{{ url_for('static', filename='js/tracking-map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tracking-analytics.js') }}"></script>
 <script>
 var ANALYTICS_DATA = {
   bloodBankLat: 32.0755,

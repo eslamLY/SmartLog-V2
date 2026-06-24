@@ -3,7 +3,7 @@
 {% block title %}تتبع GPS المتقدم{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/tracking-premium.css\') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tracking-premium.css') }}">
 <style>
   .track-layout { height: calc(100vh - 200px); min-height: 500px; }
   .track-main { flex: 1; }
@@ -231,9 +231,9 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for(\'static\', filename=\'js/tracking-map.js\') }}"></script>
-<script src="{{ url_for(\'static\', filename=\'js/tracking-realtime.js\') }}"></script>
-<script src="{{ url_for(\'static\', filename=\'js/tracking-analytics.js\') }}"></script>
+<script src="{{ url_for('static', filename='js/tracking-map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tracking-realtime.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tracking-analytics.js') }}"></script>
 <script>
 var TRACKING_DATA = {
   bloodBankLat: 32.0755,

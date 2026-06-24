@@ -2,7 +2,7 @@
 {% set nav_active = 'devices' %}
 {% block title %}الأجهزة{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'css/devices.css\') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/devices.css') }}">
 <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <h1 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="ti ti-devices" style="color:var(--accent)"></i> أجهزة BioTime</h1>
@@ -357,5 +357,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for(\'static\', filename=\'js/devices.js\') }}"></script>
+<script src="{{ url_for('static', filename='js/devices.js') }}"></script>
 {% endblock %}
