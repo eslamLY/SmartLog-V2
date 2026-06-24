@@ -1,4 +1,4 @@
-﻿import os, json, logging, threading
+import os, json, logging, threading
 from datetime import datetime, timedelta, UTC
 from typing import Optional
 
