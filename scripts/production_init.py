@@ -7,46 +7,23 @@ Production Database Initialization
 3. Reset ID sequences
 
 Usage:
-    python scripts/production_init.py
+    python scripts/production_init.py               # standalone (needs DATABASE_URL)
+    flask init-production                           # Flask CLI
 
-Environment:
-    DATABASE_URL  (required) — PostgreSQL connection string
+Or via route: /admin/init-production (protected by admin login)
 """
 
-import os, sys, time
-from sqlalchemy import create_engine, text
+import os, sys
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash
 
 
-def get_db_url():
-    url = os.environ.get('DATABASE_URL', '').strip()
-    if not url:
-        print("FATAL: DATABASE_URL environment variable is not set.")
-        sys.exit(1)
-    if url.startswith('postgres://'):
-        url = url.replace('postgres://', 'postgresql://', 1)
-    return url
-
-
-def execute(conn, sql, params=None):
-    """Execute a raw SQL statement and return the rowcount."""
-    result = conn.execute(text(sql), params or {})
-    conn.commit()
-    return result.rowcount
-
-
 def count_rows(conn, table):
-    result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
-    return result.scalar()
+    return conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
 
 
-def main():
-    url = get_db_url()
-    masked = url.split('@')[0].split('://')[0] + '://****:****@' + url.split('@')[1]
-    print(f"Connecting to: {masked}")
-    engine = create_engine(url, pool_pre_ping=True)
-    conn = engine.connect()
-    print("Connected.\n")
+def run(conn, commit):
+    """Core logic — uses a connection-like object and a commit callback."""
 
     # ─────────────────────────────────────────────────
     # STEP 1 — Admin user
@@ -60,26 +37,34 @@ def main():
     print(f"  Password      : {password}")
     print(f"  Hash (first 40): {pw_hash[:40]}...")
 
-    # Check if admin already exists
     existing = conn.execute(
         text("SELECT id, username, role FROM employees WHERE username = 'ADMIN'")
     ).fetchone()
 
     if existing:
-        print(f"  Admin user already exists — id={existing[0]}, updating password_hash + role ...")
-        execute(conn, "UPDATE employees SET password_hash = :pw, role = 'admin', is_active = TRUE, force_password_change = FALSE WHERE username = 'ADMIN'", {'pw': pw_hash})
+        print(f"  Admin user already exists — id={existing[0]}, updating ...")
+        conn.execute(text(
+            "UPDATE employees SET password_hash = :pw, role = 'admin', "
+            "is_active = TRUE, force_password_change = FALSE WHERE username = 'ADMIN'"
+        ), {'pw': pw_hash})
+        commit()
         print("  Updated.")
     else:
         print("  Creating admin user ...")
-        execute(conn, """
+        conn.execute(text("""
             INSERT INTO employees
-                (username, full_name, department, password_hash, role, is_active, email, permission_level, force_password_change, created_at)
+                (username, full_name, department, password_hash, role, is_active,
+                 email, permission_level, force_password_change, created_at)
             VALUES
-                ('ADMIN', 'مدير النظام', 'الإدارة', :pw, 'admin', TRUE, 'admin@smartlog.local', 'admin', FALSE, NOW())
-        """, {'pw': pw_hash})
+                ('ADMIN', 'مدير النظام', 'الإدارة', :pw, 'admin', TRUE,
+                 'admin@smartlog.local', 'admin', FALSE, NOW())
+        """), {'pw': pw_hash})
+        commit()
         print("  Created.")
 
-    admin_count = conn.execute(text("SELECT COUNT(*) FROM employees WHERE username = 'ADMIN'")).scalar()
+    admin_count = conn.execute(
+        text("SELECT COUNT(*) FROM employees WHERE username = 'ADMIN'")
+    ).scalar()
     print(f"  Admin records : {admin_count}")
     print()
 
@@ -90,11 +75,9 @@ def main():
     print("  STEP 2/3 : Clear test data")
     print("=" * 55)
 
-    # Ordered from most-dependent → least-dependent
     deletion_groups = [
-        # Group A — child tables referencing employees
         ['rbac_delegations', 'rbac_permission_requests', 'rbac_employee_roles', 'rbac_audit_logs'],
-        ['employee_permissions'],  # admin.py
+        ['employee_permissions'],
         ['employee_leave_requests', 'employee_leave_balances', 'employee_training',
          'employee_performance', 'employee_disciplinary_actions', 'employee_delegations',
          'employee_children', 'employee_extended'],
@@ -122,7 +105,6 @@ def main():
         ['report_corrections', 'scheduled_reports'],
         ['email_logs', 'sms_logs'],
         ['backup_restore_logs', 'backup_audit_logs', 'backup_metadata', 'backup_schedules'],
-        # Group B — employees (keeping admin)
         ['employees'],
     ]
 
@@ -134,22 +116,22 @@ def main():
                 if cnt == 0:
                     continue
                 if table == 'employees':
-                    # Keep only the admin user
                     pre = count_rows(conn, "employees")
-                    execute(conn, "DELETE FROM employees WHERE username != 'ADMIN'")
+                    conn.execute(text("DELETE FROM employees WHERE username != 'ADMIN'"))
                     post = count_rows(conn, "employees")
                     deleted = pre - post
                 else:
-                    execute(conn, f"DELETE FROM {table}")
+                    conn.execute(text(f"DELETE FROM {table}"))
                     deleted = cnt
+                commit()
                 if deleted > 0:
                     print(f"  {table + ':':45s} {deleted:>6} rows deleted")
                     total_deleted += deleted
             except Exception as e:
-                # Skip junction / non-existent tables gracefully
                 if "relation" in str(e) and "does not exist" in str(e):
                     continue
                 print(f"  {table + ':':45s} SKIP ({e})")
+                commit()  # commit after handling to clear aborted txn state
 
     print(f"\n  Total deleted : {total_deleted} rows")
     print()
@@ -162,7 +144,7 @@ def main():
     print("=" * 55)
 
     sequences = [
-        ('employees_id_seq', 2),  # 1 = admin
+        ('employees_id_seq', 2),
         ('attendance_logs_id_seq', 1),
         ('leave_requests_id_seq', 1),
         ('outing_requests_id_seq', 1),
@@ -179,10 +161,10 @@ def main():
 
     for seq, start in sequences:
         try:
-            execute(conn, f"ALTER SEQUENCE {seq} RESTART WITH {start}")
+            conn.execute(text(f"ALTER SEQUENCE {seq} RESTART WITH {start}"))
+            commit()
             print(f"  {seq + ':':40s} RESTART WITH {start}")
         except Exception:
-            # sequence may not exist
             pass
 
     print()
@@ -212,9 +194,6 @@ def main():
             all_ok = False
         print(f"  [{status}] {label + ':':20s} {cnt} {'(expected ' + str(expected) + ')' if status == 'FAIL' else ''}")
 
-    conn.close()
-    engine.dispose()
-
     print()
     if all_ok:
         print("  " + "#" * 45)
@@ -231,6 +210,41 @@ def main():
     else:
         print("  WARNING: Some checks did not pass. Review output above.")
         return 1
+
+
+def main(db_session=None):
+    """
+    Main entry point.
+    
+    If db_session is provided (Flask route mode), use it.
+    Otherwise create a standalone engine+connection (CLI mode).
+    """
+    if db_session is not None:
+        return run(db_session, db_session.commit)
+
+    # Standalone mode
+    url = os.environ.get('DATABASE_URL', '').strip()
+    if not url:
+        print("FATAL: DATABASE_URL environment variable is not set.")
+        return 1
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+
+    masked = url.split('@')[0].split('://')[0] + '://****:****@' + url.split('@')[1]
+    print(f"Connecting to: {masked}")
+
+    from sqlalchemy import create_engine
+    engine = create_engine(url, pool_pre_ping=True)
+    conn = engine.connect()
+    print("Connected.\n")
+
+    try:
+        result = run(conn, conn.commit)
+    finally:
+        conn.close()
+        engine.dispose()
+
+    return result
 
 
 if __name__ == '__main__':

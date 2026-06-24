@@ -528,8 +528,22 @@ def admin_init_production():
     from scripts.production_init import main as run_init
     import io, contextlib
     buf = io.StringIO()
-    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
-        rc = run_init()
+    rc = 1
+    try:
+        from models import db as _db
+        _db.session.rollback()  # clear any aborted txn
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            rc = run_init(db_session=_db.session)
+        _db.session.commit()
+    except Exception as e:
+        buf.write(f'\nERROR: {e}\n')
+        import traceback
+        traceback.print_exc(file=buf)
+        try:
+            _db.session.rollback()
+        except Exception:
+            pass
+        rc = 1
     output = buf.getvalue()
     session.clear()
     return f"""<!DOCTYPE html><html dir=rtl lang=ar><head><meta charset=utf-8>
