@@ -38,7 +38,7 @@ function emailPayslip(empId) {
         'الضرائب: ' + d.comp.total_tax + ' د.ل\n' +
         'صافي الراتب: ' + d.comp.net + ' د.ل\n\n' +
         'للاستفسار، يرجى التواصل مع إدارة الموارد البشرية.\n' +
-        'منظمة صحة الدم - طبرق'
+        'SMARTLOG'
       );
       window.open('mailto:' + d.emp.email + '?subject=' + subject + '&body=' + body, '_blank');
     });
@@ -55,7 +55,7 @@ function whatsappPayslip(empId) {
         '➕ الإضافات: ' + d.comp.total_allowances + ' د.ل\n' +
         '➖ الخصومات: ' + d.comp.total_deductions + ' د.ل\n' +
         '💵 *الصافي: ' + d.comp.net + ' د.ل*\n' +
-        'منظمة صحة الدم - طبرق'
+        'SMARTLOG'
       );
       window.open('https://wa.me/218' + d.emp.phone + '?text=' + msg, '_blank');
     });

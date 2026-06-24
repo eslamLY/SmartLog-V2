@@ -112,7 +112,7 @@ def export_excel():
 
     ws.merge_cells('A1:J1')
     title = ws['A1']
-    title.value = f"تقرير الحضور والانصراف — {MONTH_NAMES[month-1]} {year} — بنك دم طبرق"
+    title.value = f"تقرير الحضور والانصراف — {MONTH_NAMES[month-1]} {year} — SMARTLOG"
     title.font  = Font(bold=True, size=14, color='FFFFFF')
     title.fill  = PatternFill("solid", fgColor='991B1B')
     title.alignment = Alignment(horizontal='center', vertical='center')

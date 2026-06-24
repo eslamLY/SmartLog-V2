@@ -430,7 +430,7 @@ def export_shifts_excel():
     ws.sheet_view.rightToLeft = True
     ws.merge_cells(f'A1:{get_column_letter(days_in_month + 1)}1')
     t = ws['A1']
-    t.value = f"جدول المناوبات — {MONTH_NAMES[month-1]} {year} — بنك دم طبرق"
+    t.value = f"جدول المناوبات — {MONTH_NAMES[month-1]} {year} — SMARTLOG"
     t.font  = Font(bold=True, size=13, color='FFFFFF')
     t.fill  = PatternFill("solid", fgColor='991B1B')
     t.alignment = Alignment(horizontal='center')

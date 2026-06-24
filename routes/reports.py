@@ -441,7 +441,7 @@ def api_export_excel():
     ws.sheet_view.rightToLeft = True
     ws.merge_cells('A1:L1')
     title_cell = ws['A1']
-    title_cell.value = f'تقرير الحضور والانصراف — {month:02d}-{year} — بنك دم طبرق'
+    title_cell.value = f'تقرير الحضور والانصراف — {month:02d}-{year} — SMARTLOG'
     title_cell.font = Font(bold=True, size=14, color='FFFFFF')
     title_cell.fill = PatternFill('solid', fgColor='991B1B')
     title_cell.alignment = Alignment(horizontal='center', vertical='center')

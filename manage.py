@@ -92,10 +92,10 @@ def run_seed():
         print('  + Login attempts placeholder')
 
         # Seed branding config
-        r = conn.execute(text("SELECT id FROM branding_config WHERE tenant_name='بنك دم طبرق'"))
+        r = conn.execute(text("SELECT id FROM branding_config WHERE tenant_name='SMARTLOG'"))
         if not r.fetchone():
             conn.execute(
-                text("INSERT INTO branding_config (tenant_name, primary_color, bg_color) VALUES ('بنك دم طبرق', '#e53935', '#0f172a')")
+                text("INSERT INTO branding_config (tenant_name, primary_color, bg_color) VALUES ('SMARTLOG', '#dc2626', '#0f172a')")
             )
             conn.commit()
             print('  + Branding config')

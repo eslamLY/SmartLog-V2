@@ -55,7 +55,7 @@ class ReportGenerationService:
             .footer {{ text-align: center; font-size: 10px; color: #9ca3af; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px; }}
         </style>
         </head><body>
-            <h1>بنك دم طبرق</h1>
+            <h1>SMARTLOG</h1>
             <div class="subtitle">تقرير الحضور والانصراف — {month:02d}-{year}</div>
             <div class="summary">
                 <div class="summary-item"><div class="summary-value">{summary['total_employees']}</div><div class="summary-label">إجمالي الموظفين</div></div>
@@ -70,7 +70,7 @@ class ReportGenerationService:
                 </tr></thead>
                 <tbody>{rows_html}</tbody>
             </table>
-            <div class="footer">تم إنشاء هذا التقرير في {datetime.now().strftime('%Y-%m-%d %H:%M')} — جميع الحقوق محفوظة &copy; بنك دم طبرق</div>
+            <div class="footer">تم إنشاء هذا التقرير في {datetime.now().strftime('%Y-%m-%d %H:%M')} — جميع الحقوق محفوظة &copy; SMARTLOG</div>
         </body></html>'''
         return html
 
@@ -108,7 +108,7 @@ class ReportGenerationService:
         header_style = ParagraphStyle('Header', fontName=bold_font, fontSize=9, textColor=HexColor('#FFFFFF'), alignment=TA_CENTER)
         doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
         elements = []
-        elements.append(Paragraph('بنك دم طبرق', title_style))
+        elements.append(Paragraph('SMARTLOG', title_style))
         elements.append(Paragraph(f'تقرير الحضور والانصراف — {month:02d}-{year}', subtitle_style))
         elements.append(Spacer(1, 8))
         s = data['summary']
@@ -157,7 +157,7 @@ class ReportGenerationService:
         elements.append(data_table)
         elements.append(Spacer(1, 12))
         footer_style = ParagraphStyle('Footer', fontName=normal_font, fontSize=8, textColor=HexColor('#9CA3AF'), alignment=TA_CENTER)
-        elements.append(Paragraph(f'تم إنشاء هذا التقرير في {datetime.now().strftime("%Y-%m-%d %H:%M")} — جميع الحقوق محفوظة &copy; بنك دم طبرق', footer_style))
+        elements.append(Paragraph(f'تم إنشاء هذا التقرير في {datetime.now().strftime("%Y-%m-%d %H:%M")} — جميع الحقوق محفوظة &copy; SMARTLOG', footer_style))
         doc.build(elements)
         buf.seek(0)
         return buf.read()

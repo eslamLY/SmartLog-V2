@@ -49,11 +49,11 @@ def client():
 def _seed_test_data():
     from werkzeug.security import generate_password_hash
     admin = Employee(username='ADM001', full_name='مدير النظام', department='إدارة', password_hash=generate_password_hash('admin123'),
-        role='admin', email='admin@bloodbank.ly', phone='+218911111111', is_active=True, base_salary=5000)
+        role='admin', email='admin@smartlog.ly', phone='+218911111111', is_active=True, base_salary=5000)
     emp = Employee(username='EMP001', full_name='موظف اختبار', department='اختبار', password_hash=generate_password_hash('123456'),
-        role='employee', email='emp@bloodbank.ly', phone='+218922222222', is_active=True, base_salary=3000)
+        role='employee', email='emp@smartlog.ly', phone='+218922222222', is_active=True, base_salary=3000)
     emp2 = Employee(username='EMP002', full_name='موظف اختبار 2', department='اختبار', password_hash=generate_password_hash('123456'),
-        role='employee', email='emp2@bloodbank.ly', phone='+218922222223', is_active=True, base_salary=0)
+        role='employee', email='emp2@smartlog.ly', phone='+218922222223', is_active=True, base_salary=0)
     _db.session.add_all([admin, emp, emp2])
     _db.session.commit()
     if not Department.query.get(1):

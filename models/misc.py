@@ -67,7 +67,7 @@ class GPSLog(db.Model):
 class BrandingConfig(db.Model):
     __tablename__ = 'branding_config'
     id            = db.Column(db.Integer, primary_key=True)
-    tenant_name   = db.Column(db.String(100), default='منظومة بنك دم طبرق')
+    tenant_name   = db.Column(db.String(100), default='SMARTLOG')
     logo_url      = db.Column(db.String(300), nullable=True)
     primary_color = db.Column(db.String(10), default='#dc2626')
     accent_color  = db.Column(db.String(10), default='#818cf8')

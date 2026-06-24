@@ -115,7 +115,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 
 # Secret Key
-app.secret_key = os.environ.get('SECRET_KEY', 'blood-bank-tobruk-secret-2024')
+app.secret_key = os.environ.get('SECRET_KEY', 'smartlog-tobruk-secret-2024')
 if PRODUCTION and not os.environ.get('SECRET_KEY'):
     log.error('WARNING: SECRET_KEY not set in production!')
     log.error('  Using built-in default — set SECRET_KEY env var for security.')
