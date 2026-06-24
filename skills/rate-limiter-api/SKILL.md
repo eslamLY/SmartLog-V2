@@ -12,7 +12,7 @@ description: |
 # Rate Limiter & Anti-Flooding Protocol
 
 This skill enforces strict request throttling and abuse prevention for the
-**Tobruk Blood Bank** attendance system. Every Flask route that accepts
+**SMARTLOG** attendance system. Every Flask route that accepts
 external or semi-external traffic MUST be evaluated against the rules below
 before any code is submitted.
 

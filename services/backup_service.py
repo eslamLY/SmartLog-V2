@@ -460,7 +460,7 @@ def export_backup_to_sql(backup_id: int = None) -> dict:
     from sqlalchemy import text
     try:
         lines = []
-        lines.append('-- Blood Bank Database Export')
+        lines.append('-- SMARTLOG Database Export')
         lines.append(f'-- Generated: {datetime.now(UTC).isoformat()}')
         lines.append('')
         engine = db.engine

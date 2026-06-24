@@ -1,7 +1,7 @@
 # برومت مراجعة الكود وإضافة Endpoints الجديدة
 
 ## السياق
-أنت مطور Python/Flask خبير. المشروع هو نظام إدارة الحضور والانصراف لبنك دم طبرق (Tobruk Blood Bank - Attendance Management System).
+أنت مطور Python/Flask خبير. المشروع هو SMARTLOG — نظام إدارة الحضور والموارد البشرية الذكي (SMARTLOG - Attendance & HR Management System).
 
 ## الملف الرئيسي
 - `app.py` (3028 سطر) - تطبيق Flask مع SQLAlchemy

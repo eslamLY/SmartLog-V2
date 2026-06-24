@@ -12,7 +12,7 @@ description: |
 # Clean Code & Dead-Code Elimination Protocol
 
 This skill enforces rigorous dead-code elimination and performance optimization
-for the **Tobruk Blood Bank** attendance system. Every removal must be proven
+for the **SMARTLOG** attendance system. Every removal must be proven
 safe via full execution-graph tracing before deletion.
 
 ---

@@ -1,5 +1,5 @@
 /* =============================================================
- * Attendance System — Blood Bank Tobruk
+ * SMARTLOG — Attendance & HR Management System
  * PWA Initialization & Offline Support  v1.0
  * ============================================================= */
 
@@ -127,7 +127,7 @@ function csrfToken() {
   });
 
   /* ── IndexedDB: local data persistence ── */
-  var DB_NAME = 'BloodBankDB';
+  var DB_NAME = 'SmartLogDB';
   var DB_VERSION = 1;
 
   function openDB() {

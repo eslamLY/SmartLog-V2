@@ -1,4 +1,4 @@
-# Master Security Implementation — Blood Bank Attendance System
+# Master Security Implementation — SMARTLOG Attendance & HR System
 
 **Tech Stack:** Flask 3.x + Jinja2 + SQLAlchemy + SQLite/PostgreSQL  
 **Interface:** Arabic RTL  
@@ -102,7 +102,7 @@ longitude_enc   = db.Column(db.Text, nullable=True)   # Fernet-encrypted lng
 ```bash
 # Required in production (hard-fail if missing):
 SECRET_KEY=<256-bit random hex>
-DATABASE_URL=postgresql://user:pass@host:5432/bloodbank
+DATABASE_URL=postgresql://user:pass@host:5432/smartlog
 FIELD_ENCRYPTION_KEY=<Fernet 32-byte base64 key>
 
 # Required for SMTP:
@@ -139,13 +139,13 @@ Used for all template variables rendered with `|safe` in `<script>` contexts.
 # On production server (Linux/Windows):
 export SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
 export FIELD_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
-export DATABASE_URL="sqlite:///bloodbank.db"  # or PostgreSQL
+export DATABASE_URL="sqlite:///smartlog.db"  # or PostgreSQL
 export FLASK_ENV=production
 ```
 
 **Step 2: Database migration**
 ```bash
-cd /opt/bloodbank
+cd /opt/smartlog
 flask shell
 >>> from app import db, seed_enterprise, seed_db, seed_shift_types
 >>> db.create_all()

@@ -1,5 +1,5 @@
 """
-Tobruk Blood Bank - Attendance Management System
+SMARTLOG — Attendance & HR Management System
 Production entry point with bulletproof database startup.
 """
 import os, sys, math, uuid, io, json, base64, hashlib, time, logging

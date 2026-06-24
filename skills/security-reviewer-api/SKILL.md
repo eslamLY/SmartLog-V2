@@ -12,7 +12,7 @@ description: |
 # Security Reviewer & Precision Coding Protocol
 
 This skill enforces a strict security-first code discipline for the
-**Tobruk Blood Bank** attendance system (`app.py`, templates, models).
+**SMARTLOG** attendance system (`app.py`, templates, models).
 
 ## 1. Input Sanitization — Zero Trust
 
