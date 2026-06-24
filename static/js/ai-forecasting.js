@@ -2,8 +2,8 @@ const API={master:'/api/ai/master-forecast',leave:'/api/ai/leave-forecast',absen
 let masterData=null,allEmployees=[];
 function $(s,p){return(p||document).querySelector(s)}
 function $$(s,p){return(p||document).querySelectorAll(s)}
-async function getJSON(u){const r=await fetch(u);if(!r.ok)throw new Error(await r.text());return r.json()}
-async function postJSON(u,d){const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json()}
+async function getJSON(u){const m=document.querySelector('meta[name="csrf-token"]');const t=m?m.getAttribute('content'):'';const r=await fetch(u,{headers:{'X-CSRFToken':t}});if(!r.ok)throw new Error(await r.text());return r.json()}
+async function postJSON(u,d){const m=document.querySelector('meta[name="csrf-token"]');const t=m?m.getAttribute('content'):'';const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':t},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json()}
 
 // ─── TABS ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',function(){

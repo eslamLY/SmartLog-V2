@@ -7,8 +7,17 @@ function $(id) { return document.getElementById(id); }
 function qs(s, p) { return (p || document).querySelector(s); }
 function qsa(s, p) { return (p || document).querySelectorAll(s); }
 
+function getCSRFToken() {
+  var meta = document.querySelector('meta[name="csrf-token"]');
+  return meta ? meta.getAttribute('content') : '';
+}
+
+function apiHeaders() {
+  return { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() };
+}
+
 async function getJSON(url) {
-  var r = await fetch(API_BASE + url);
+  var r = await fetch(API_BASE + url, { headers: apiHeaders() });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -16,7 +25,7 @@ async function getJSON(url) {
 async function postJSON(url, data) {
   var r = await fetch(API_BASE + url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders(),
     body: JSON.stringify(data || {}),
   });
   if (!r.ok) throw new Error(await r.text());

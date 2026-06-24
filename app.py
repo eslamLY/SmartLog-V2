@@ -16,6 +16,7 @@ from itsdangerous import URLSafeTimedSerializer
 from cryptography.fernet import Fernet
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import generate_csrf
 
 from flask_migrate import Migrate
 
@@ -140,12 +141,6 @@ if PRODUCTION:
 def inject_static_vars():
     """Provides static_url(), icon(), csrf_token to all templates."""
     from utils.icon_helper import static_url, icon, icon_html, needed_cdn_libs
-    token = None
-    if 'csrf_token' in session:
-        token = session['csrf_token']
-    else:
-        token = uuid.uuid4().hex
-        session['csrf_token'] = token
     return dict(
         static_url=static_url,
         icon=icon,
@@ -153,7 +148,7 @@ def inject_static_vars():
         needed_cdn_libs=needed_cdn_libs,
         static_version=int(time.time()),
         PRODUCTION=PRODUCTION,
-        csrf_token=token,
+        csrf_token=generate_csrf(),
     )
 
 # Field-level encryption
@@ -382,6 +377,8 @@ def todatetime_filter(val):
     return val
 
 # CSRF & Rate Limiter
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_TIME_LIMIT'] = None
 limiter = Limiter(get_remote_address, app=app,
     default_limits=["10000 per day", "2000 per hour"])
 
