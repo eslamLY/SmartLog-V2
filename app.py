@@ -387,6 +387,21 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 limiter = Limiter(get_remote_address, app=app,
     default_limits=["10000 per day", "2000 per hour"])
 
+@app.errorhandler(500)
+def internal_error_handler(e):
+    import traceback, sys
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    tb = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    log.error('500 Internal Server Error:\n%s', tb)
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    if request.path.startswith('/api/') or request.headers.get('Accept') == 'application/json':
+        return jsonify({'ok': False, 'error': str(exc_value), 'traceback': tb}), 500
+    return f"""<!doctype html><meta charset="utf-8"><title>500 Error</title>
+<pre style="background:#1a1a2e;color:#e2e8f0;padding:20px;font-size:13px;direction:ltr;text-align:left;overflow:auto;height:100vh">{tb}</pre>""", 500, {'Content-Type': 'text/html; charset=utf-8'}
+
 @app.errorhandler(429)
 def rate_limit_handler(e):
     ip = request.remote_addr or 'unknown'
