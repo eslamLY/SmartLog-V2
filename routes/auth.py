@@ -174,3 +174,53 @@ def init_database():
     except Exception as exc:
         import traceback
         return jsonify({'ok': False, 'msg': str(exc), 'traceback': traceback.format_exc()})
+
+
+@auth_bp.route('/admin/db-check')
+def admin_db_check():
+    if session.get('role') != 'admin':
+        return jsonify({'ok': False, 'msg': 'Unauthorized'}), 403
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+    existing = sorted(inspector.get_table_names())
+
+    EXPECTED_TABLES = {
+        'employees': ['id', 'full_name', 'username', 'password_hash', 'email', 'phone', 'department', 'role', 'device_id', 'is_active', 'force_password_change', 'password_changed_at', 'created_at', 'updated_at', 'deleted_at'],
+        'departments': ['id', 'name_ar', 'name_en', 'code', 'is_active', 'created_at', 'updated_at'],
+        'attendance_logs': ['id', 'employee_id', 'clock_in', 'clock_out', 'date', 'status', 'latitude', 'longitude', 'gps_accuracy', 'device_id', 'sync_id', 'created_at'],
+        'payroll_records': ['id', 'employee_id', 'month', 'year', 'base_salary', 'allowances', 'deductions', 'net_salary', 'status', 'generated_at', 'paid_at'],
+        'rbac_roles': ['id', 'name', 'name_ar', 'description', 'parent_id', 'scope', 'is_system', 'is_active', 'risk_level', 'max_assignees', 'created_at', 'updated_at'],
+        'rbac_permissions': ['id', 'name', 'name_ar', 'code', 'description', 'module', 'is_high_risk', 'requires_2fa', 'requires_approval', 'created_at'],
+        'employee_grades': ['id', 'name', 'level', 'min_salary', 'max_salary', 'is_active', 'created_at'],
+        'employee_government': ['id', 'employee_id', 'first_name', 'second_name', 'family_name', 'national_id', 'username', 'is_active', 'created_at'],
+        'blocked_ips': ['id', 'ip_address', 'violation_count', 'banned_at', 'ban_expiry', 'is_permanent', 'is_active', 'updated_at'],
+        'geofence_zones': ['id', 'name', 'latitude', 'longitude', 'radius_meters', 'is_active', 'created_at'],
+    }
+
+    result = {}
+    for t in existing:
+        cols = [c['name'] for c in inspector.get_columns(t)]
+        pk = inspector.get_pk_constraint(t).get('constrained_columns', [])
+        fks = [(fk['constrained_columns'], fk['referred_table']) for fk in inspector.get_foreign_keys(t)]
+        result[t] = {'columns': cols, 'primary_key': pk, 'foreign_keys': fks}
+
+    expected_set = set(EXPECTED_TABLES.keys())
+    existing_set = set(existing)
+    missing_tables = sorted(expected_set - existing_set)
+    extra_tables = sorted(existing_set - expected_set)
+    mismatched = {}
+    for t in sorted(existing_set & expected_set):
+        have = {c['name'] for c in inspector.get_columns(t)}
+        want = set(EXPECTED_TABLES[t])
+        miss = want - have
+        if miss:
+            mismatched[t] = sorted(miss)
+
+    return jsonify({
+        'table_count': len(existing),
+        'tables': result,
+        'missing_tables': missing_tables,
+        'extra_tables': extra_tables,
+        'incomplete_tables': mismatched,
+        'needs_migration': bool(missing_tables or mismatched)
+    })
