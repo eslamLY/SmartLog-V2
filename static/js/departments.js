@@ -3,6 +3,11 @@ let editDeptId = null;
 let addStep = 1;
 let editStep = 1;
 let addRecipients = [];
+
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
 let editRecipients = [];
 let annDeptId = null;
 const DEPT_ICONS = ['building','flask','droplet','users','wallet','tool','clipboard-list','truck-medical','microscope','box','shield','heart-pulse','hospital','stethoscope','syringe','bandage','file-medical','chart-bar','clock','calendar-check'];
@@ -944,7 +949,7 @@ async function doImport() {
   const formData = new FormData();
   formData.append('file', fileInput.files[0]);
   try {
-    const resp = await fetch('/admin/departments/api/import', {method:'POST', body:formData});
+    const resp = await fetch('/admin/departments/api/import', {method:'POST', headers:{'X-CSRFToken': csrfToken()}, body:formData});
     const r = await resp.json();
     if (r.success) {
       toast('تم استيراد '+r.imported+' قسم','ok');

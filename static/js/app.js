@@ -3,6 +3,11 @@
  * PWA Initialization & Offline Support  v1.0
  * ============================================================= */
 
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 (function() {
   'use strict';
 
@@ -196,7 +201,7 @@
         items.forEach(function(item) {
           fetch('/api/' + item.action, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
             body: JSON.stringify(item.payload)
           }).then(function() { store.delete(item.id); });
         });

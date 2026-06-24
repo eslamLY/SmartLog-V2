@@ -1,6 +1,11 @@
 /* ===== Employee Management ===== */
 var editingEmpId = null;
 
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 /* ── Tab Switching ── */
 function switchTab(ctx, tab){
   var tabs = document.querySelectorAll('#'+ctx+'EmpModal .emp-tab');
@@ -196,7 +201,7 @@ async function checkDuplicate(ctx){
   if(!name && !nid) return;
   try {
     var r = await fetch('/admin/employees/check-duplicate', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({full_name: name, national_id: nid})
     });
     var data = await r.json();
@@ -271,7 +276,7 @@ async function doAddEmp(){
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>';
   try {
     var r = await fetch('/admin/employees/add', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify(data)
     });
     var res = await r.json();
@@ -448,7 +453,7 @@ async function doEditEmp(){
   };
   try {
     var r = await fetch('/admin/employees/'+id+'/edit', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify(data)
     });
     var res = await r.json();
@@ -558,7 +563,7 @@ async function doBioSync(){
   document.getElementById('bsResult').innerHTML = '<div style="color:var(--muted)">⏳ جاري المزامنة...</div>';
   try {
     var r = await fetch('/admin/employees/'+id+'/biotime-sync', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({device_ids: deviceIds})
     });
     var data = await r.json();
@@ -581,7 +586,7 @@ async function biotimeSyncFromForm(ctx){
   if(!deviceIds.length){ toast('اختر جهازاً.','err'); return; }
   try {
     var r = await fetch('/admin/employees/'+empId+'/biotime-sync', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({device_ids: deviceIds})
     });
     var data = await r.json();
@@ -595,7 +600,7 @@ function esc(s){ if(!s) return ''; var d=document.createElement('div'); d.append
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 async function api(url, data){
   var r = await fetch(url, {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify(data||{})
   });
   return r.json();

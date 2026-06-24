@@ -1,6 +1,11 @@
 let currentPayrollTab = 1;
 let payslipData = {};
 
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 function switchPayrollTab(tab, btn) {
   currentPayrollTab = tab;
   document.querySelectorAll('.payroll-tab').forEach(b => b.classList.remove('active'));
@@ -115,7 +120,7 @@ function submitApproval() {
   };
   fetch(API_BASE + '/api/approvals/initiate', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify(data),
   })
   .then(r => r.json())
@@ -219,7 +224,7 @@ function submitAdvance() {
   if (!empId || !amount) { toast('الرجاء إدخال البيانات', 'err'); return; }
   fetch(API_BASE + '/api/advances/create', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify({employee_id: parseInt(empId), amount: amount, installments: installments, reason: reason, auto_deduct: autoDeduct}),
   })
   .then(r => r.json())
@@ -234,7 +239,7 @@ function repayAdvance(aid) {
   if (!amt) return;
   fetch(API_BASE + '/api/advances/' + aid + '/repay', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify({amount: parseFloat(amt)}),
   })
   .then(r => r.json())
@@ -295,7 +300,7 @@ function actOnApproval(wid, action) {
   if (action === 'reject' && comment === null) return;
   fetch(API_BASE + '/api/approvals/' + wid + '/act', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify({action: action, comment: comment || ''}),
   })
   .then(r => r.json())
@@ -324,7 +329,7 @@ function loadBankPayments() {
 }
 
 function generateBankPayments() {
-  fetch(API_BASE + '/api/bank/generate?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR, {method: 'POST'})
+  fetch(API_BASE + '/api/bank/generate?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR, {method: 'POST', headers: {'X-CSRFToken': csrfToken()}})
     .then(r => r.json())
     .then(d => { toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadBankPayments(); });
 }
@@ -333,7 +338,7 @@ function updateBankStatus(id, status) {
   if (!status) return;
   fetch(API_BASE + '/api/bank/update-status', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify({ids: [id], status: status}),
   })
   .then(r => r.json())
@@ -358,7 +363,7 @@ function validateBankIBAN() {
 }
 
 function bulkSaveAll() {
-  fetch(API_BASE + '/api/bulk-save?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR, {method: 'POST'})
+  fetch(API_BASE + '/api/bulk-save?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR, {method: 'POST', headers: {'X-CSRFToken': csrfToken()}})
     .then(r => r.json())
     .then(d => toast(d.msg, d.ok ? 'ok' : 'err'));
 }

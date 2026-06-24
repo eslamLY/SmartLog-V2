@@ -1,5 +1,10 @@
 /* ===== BioTime Device Management ===== */
 
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 /* ── Tab Switching ── */
 function switchTab(ctx, tab){
   var prefix = ctx === 'add' ? 'ad' : 'ed';
@@ -66,7 +71,7 @@ async function testConn(ctx){
   resultDiv.innerHTML = '<span style="color:var(--muted)">⏳ جاري الاختبار...</span>';
   try {
     var r = await fetch('/admin/devices/test-connection', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({ip:ip, port:parseInt(port)})
     });
     var data = await r.json();
@@ -89,7 +94,7 @@ async function fetchDeviceInfo(ctx){
   if(!ip){ toast('أدخل IP أولاً.','err'); return; }
   try {
     var r = await fetch('/admin/devices/fetch-info', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({ip:ip, port:parseInt(port), password:pass})
     });
     var data = await r.json();
@@ -160,7 +165,7 @@ async function doAddDevice(){
   };
   try {
     var r = await fetch('/admin/devices/add', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify(data)
     });
     var res = await r.json();
@@ -236,7 +241,7 @@ async function doEditDevice(){
   };
   try {
     var r = await fetch('/admin/devices/'+id+'/edit', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify(data)
     });
     var res = await r.json();
@@ -329,7 +334,7 @@ async function syncOne(id){
   var btn = event.target.closest('button');
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>';
   try {
-    var r = await fetch('/admin/devices/'+id+'/sync', {method:'POST'});
+    var r = await fetch('/admin/devices/'+id+'/sync', {method:'POST', headers:{'X-CSRFToken': csrfToken()}});
     var data = await r.json();
     toast(data.msg, data.ok ? 'ok' : 'err');
     if(data.ok){
@@ -344,7 +349,7 @@ async function syncOne(id){
 async function bulkSync(){
   if(!confirm('مزامنة جميع الأجهزة النشطة؟')) return;
   try {
-    var r = await fetch('/admin/devices/bulk-sync', {method:'POST'});
+    var r = await fetch('/admin/devices/bulk-sync', {method:'POST', headers:{'X-CSRFToken': csrfToken()}});
     var data = await r.json();
     var ok = data.results.filter(function(r){ return r.status==='synced'; }).length;
     var fail = data.results.filter(function(r){ return r.status==='failed'; }).length;
@@ -356,7 +361,7 @@ async function bulkSync(){
 /* ── Toggle ── */
 async function toggleDevice(id){
   try {
-    var r = await fetch('/admin/devices/'+id+'/toggle', {method:'POST'});
+    var r = await fetch('/admin/devices/'+id+'/toggle', {method:'POST', headers:{'X-CSRFToken': csrfToken()}});
     var data = await r.json();
     toast(data.msg, 'ok');
     setTimeout(function(){ location.reload(); }, 1000);
@@ -367,7 +372,7 @@ async function toggleDevice(id){
 async function restartDevice(id){
   if(!confirm('إعادة تشغيل الجهاز؟ قد يستغرق ذلك بضع ثوان.')) return;
   try {
-    var r = await fetch('/admin/devices/'+id+'/restart', {method:'POST'});
+    var r = await fetch('/admin/devices/'+id+'/restart', {method:'POST', headers:{'X-CSRFToken': csrfToken()}});
     var data = await r.json();
     toast(data.msg, data.ok ? 'ok' : 'err');
   } catch(e){ toast(e.message,'err'); }
@@ -384,7 +389,7 @@ async function doDeleteDevice(){
   var action = document.getElementById('delDeviceAttAction').value;
   try {
     var r = await fetch('/admin/devices/'+id+'/delete', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({attendance_action: action})
     });
     var data = await r.json();
@@ -423,7 +428,7 @@ async function detectDevice(ctx){
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> جاري الفحص...';
   try {
     var r = await fetch('/admin/devices/scan-network', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({subnet: subnet})
     });
     var data = await r.json();
@@ -444,7 +449,7 @@ async function detectDevice(ctx){
 function esc(s){ if(!s) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 async function api(url, data){
   var r = await fetch(url, {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify(data||{})
   });
   return r.json();

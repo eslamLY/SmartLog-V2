@@ -1,6 +1,11 @@
 ﻿let currentBackupPage = 1;
 let currentAuditPage = 1;
 
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 function loadStats() {
   fetch('/admin/backup/api/stats').then(function(r){return r.json()}).then(function(d){
     if(!d.ok)return;
@@ -76,7 +81,7 @@ function verifySingle(id) {
 }
 
 function verifyAll() {
-  fetch('/admin/backup/api/verify-all', {method:'POST'})
+  fetch('/admin/backup/api/verify-all', {method:'POST', headers:{'X-CSRFToken': csrfToken()}})
   .then(function(r){return r.json()}).then(function(d){
     if(!d.ok) return;
     var ok = d.results.filter(function(r){return r.ok}).length;
@@ -153,7 +158,7 @@ function executeCreateBackup() {
     byId('createProgressFill').style.width = progress + '%';
     byId('createProgressText').textContent = Math.round(progress) + '%';
   }, 400);
-  fetch('/admin/backup/api/create', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+  fetch('/admin/backup/api/create', {method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()}, body:JSON.stringify(body)})
   .then(function(r){return r.json()}).then(function(d){
     clearInterval(iv);
     byId('createProgressFill').style.width = '100%';
@@ -228,7 +233,7 @@ function loadSchedules() {
 }
 
 function runScheduleNow(id) {
-  fetch('/admin/backup/api/schedules/run/' + id, {method:'POST'})
+  fetch('/admin/backup/api/schedules/run/' + id, {method:'POST', headers:{'X-CSRFToken': csrfToken()}})
   .then(function(r){return r.json()}).then(function(d){
     toast(d.ok ? 'تم تشغيل النسخة بنجاح' : 'فشل: ' + (d.error || ''), d.ok ? 'success' : 'error');
     loadSchedules(); loadBackups(); loadStats();
@@ -236,7 +241,7 @@ function runScheduleNow(id) {
 }
 
 function toggleSchedule(id) {
-  fetch('/admin/backup/api/schedules/toggle/' + id, {method:'POST'})
+  fetch('/admin/backup/api/schedules/toggle/' + id, {method:'POST', headers:{'X-CSRFToken': csrfToken()}})
   .then(function(r){return r.json()}).then(function(d){
     if(d.ok) loadSchedules();
   });
@@ -283,7 +288,7 @@ function saveSchedule() {
     notify_on_failure: byId('schedNotifyFailure').checked
   };
   if(!data.name) { toast('الرجاء إدخال اسم الجدول', 'warning'); return; }
-  fetch('/admin/backup/api/schedules/create', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
+  fetch('/admin/backup/api/schedules/create', {method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()}, body:JSON.stringify(data)})
   .then(function(r){return r.json()}).then(function(d){
     if(d.ok) {
       toast('تم حفظ الجدول', 'success');
@@ -326,7 +331,7 @@ function restoreStep3() {
 function executeRestore() {
   var id = byId('restoreBackupId').value;
   var createPre = byId('createPreBackup').checked;
-  fetch('/admin/backup/api/restore', {method:'POST', headers:{'Content-Type':'application/json'},
+  fetch('/admin/backup/api/restore', {method:'POST', headers:{'Content-Type':'application/json', 'X-CSRFToken': csrfToken()},
     body:JSON.stringify({backup_id: parseInt(id), create_backup_first: createPre})})
   .then(function(r){return r.json()}).then(function(d){
     byId('wizConfirm').style.display = 'none';
@@ -434,7 +439,7 @@ function saveConfig() {
 }
 
 function exportSQL() {
-  fetch('/admin/backup/api/export-sql', {method:'POST'})
+  fetch('/admin/backup/api/export-sql', {method:'POST', headers:{'X-CSRFToken': csrfToken()}})
   .then(function(r){return r.json()}).then(function(d){
     toast(d.ok ? 'تم تصدير SQL' : (d.error || 'فشل'), d.ok ? 'success' : 'error');
   });

@@ -3,6 +3,11 @@ var lastFetchTs = 0;
 var currentEmployeeFilter = '';
 var trackData = {};
 
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 function initRealtimeTracking(data) {
   trackData = data;
   realtimeInterval = setInterval(fetchLiveLocations, 5000);
@@ -131,7 +136,7 @@ function refreshNow() {
 function acknowledgeAlert(alertId) {
   fetch('/api/admin/alerts/' + alertId + '/acknowledge', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
     body: JSON.stringify({})
   }).then(function(r) { return r.json(); }).then(function(resp) {
     if (resp.ok) {

@@ -1,3 +1,8 @@
+function csrfToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 function exportPayroll(type) {
   document.getElementById('payrollExportMenu').style.display = 'none';
   const params = new URLSearchParams({month: CURRENT_MONTH, year: CURRENT_YEAR});
@@ -63,7 +68,7 @@ function downloadPayslipPDF(empId) {
 function archivePayslip(empId) {
   fetch(API_BASE + '/api/save-record', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
     body: JSON.stringify({employee_id: empId, month: CURRENT_MONTH, year: CURRENT_YEAR}),
   })
   .then(r => r.json())
