@@ -16,7 +16,7 @@ from itsdangerous import URLSafeTimedSerializer
 from cryptography.fernet import Fernet
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import generate_csrf
+from flask_wtf.csrf import generate_csrf, validate_csrf, ValidationError
 
 from flask_migrate import Migrate
 
@@ -442,7 +442,11 @@ def check_csrf():
         return
     if request.is_json:
         token = request.headers.get('X-CSRFToken')
-        if not token or token != session.get('csrf_token'):
+        if not token:
+            return jsonify({'ok': False, 'msg': 'طلب غير مصرح به (CSRF). أعد تحميل الصفحة.'}), 403
+        try:
+            validate_csrf(token)
+        except ValidationError:
             return jsonify({'ok': False, 'msg': 'طلب غير مصرح به (CSRF). أعد تحميل الصفحة.'}), 403
 
 # Production Security Headers
