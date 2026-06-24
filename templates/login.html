@@ -119,11 +119,10 @@
       var now = Date.now();
       var loginTime = sessionData.login_time || 0;
       var maxAge = 30 * 24 * 60 * 60 * 1000;
-      if (now - loginTime < maxAge) { showOfflineMode(sessionData); return; }
-      clearStoredSession();
+      if (now - loginTime < maxAge) { showOfflineMode(sessionData); }
+      else { clearStoredSession(); }
     }
     if (!navigator.onLine) {
-      document.getElementById('loginForm').style.display = 'none';
       document.getElementById('offlineModeCard').style.display = 'block';
       document.getElementById('offlineAvatar').textContent = '?';
       document.getElementById('offlineEmpName').textContent = 'لا توجد جلسة سابقة';
@@ -134,7 +133,6 @@
   }
 
   function showOfflineMode(sessionData) {
-    document.getElementById('loginForm').style.display = 'none';
     document.getElementById('offlineModeCard').style.display = 'block';
     document.getElementById('offlineAvatar').textContent = (sessionData.employee_name || '?')[0];
     document.getElementById('offlineEmpName').textContent = sessionData.employee_name || 'موظف';
@@ -160,7 +158,6 @@
   }
 
   function showLoginForm() {
-    document.getElementById('loginForm').style.display = 'block';
     document.getElementById('offlineModeCard').style.display = 'none';
     isOfflineMode = false;
   }

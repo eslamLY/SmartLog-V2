@@ -270,6 +270,9 @@ body.login-page {
 .offline-mode-card {
   display: none;
   text-align: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(30,38,66,0.5);
 }
 
 .offline-mode-card .emp-avatar {
