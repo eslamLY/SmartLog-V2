@@ -18,8 +18,8 @@ def manifest():
     bg = cfg.bg_color if cfg and cfg.bg_color else '#0f172a'
     name = cfg.tenant_name if cfg and cfg.tenant_name else 'SMARTLOG'
     return jsonify({
-        "name": name, "short_name": "حضور طبرق",
-        "description": "نظام الحضور والانصراف",
+        "name": name, "short_name": "SMARTLOG",
+        "description": "نظام الحضور والموارد البشرية الذكي",
         "start_url": "/", "display": "standalone",
         "orientation": "portrait",
         "background_color": bg, "theme_color": primary,
@@ -34,7 +34,7 @@ def manifest():
 @auth_bp.route('/sw.js')
 def service_worker():
     content = r"""
-const CACHE='bb-v3';
+const CACHE='smartlog-v1';
 const OFFLINE=['/login','/manifest.json'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(OFFLINE)));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));});

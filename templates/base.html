@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="بنك دم طبرق">
+  <meta name="apple-mobile-web-app-title" content="SMARTLOG">
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.svg') }}">
   <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='icons/icon-512.svg') }}">
-  <title>{% block title %}منظومة بنك دم طبرق{% endblock %}</title>
+  <title>{% block title %}SMARTLOG{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -199,9 +199,9 @@
       <div class="logo-section">
         <div style="display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:22px">
           <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#dc2626,#991b1b);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(220,38,38,.3)">
-            <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+            <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           </div>
-          <div><div style="font-size:13px;font-weight:700">بنك دم طبرق</div><div style="font-size:11px;color:var(--muted)">لوحة التحكم</div></div>
+          <div><div style="font-size:13px;font-weight:700">SMARTLOG</div><div style="font-size:11px;color:var(--muted)">لوحة التحكم</div></div>
         </div>
         <nav class="nav">
           <a href="/admin" class="nav-link {% if nav_active == 'dashboard' %}active{% endif %}"><i class="ti ti-layout-dashboard"></i>الرئيسية</a>
