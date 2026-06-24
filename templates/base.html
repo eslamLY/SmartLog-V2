@@ -34,6 +34,17 @@
       --accent: #818cf8;
       --glow: rgba(99,102,241,.12);
     }
+    html.light-mode, .light-mode {
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --card2: #f8f9fc;
+      --border: #e0e4ec;
+      --border2: #e8ecf2;
+      --text: #1a1a2e;
+      --muted: #5a6a85;
+      --muted2: #8899b4;
+      --glow: rgba(99,102,241,.08);
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Cairo', 'Arial', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
     a { color: inherit; text-decoration: none; }
@@ -237,6 +248,7 @@
         </nav>
       </div>
       <div class="nav-bottom">
+        <div class="nav-link" onclick="toggleTheme()" id="themeToggle" style="cursor:pointer;color:var(--muted)"><i class="ti ti-moon"></i><span>السمة الفاتحة</span></div>
         <a href="/logout" class="nav-link" style="color:#ef4444"><i class="ti ti-logout"></i>تسجيل الخروج</a>
       </div>
     </aside>
@@ -402,6 +414,27 @@ setInterval(updateNotifBadge, 30000);
 updateNotifBadge();
 {% endif %}
 
+function toggleTheme() {
+  var isLight = document.documentElement.classList.toggle('light-mode');
+  document.body.classList.toggle('light-mode', isLight);
+  var icon = document.querySelector('#themeToggle i');
+  var label = document.querySelector('#themeToggle span');
+  if (icon) icon.className = isLight ? 'ti ti-sun' : 'ti ti-moon';
+  if (label) label.textContent = isLight ? 'السمة الداكنة' : 'السمة الفاتحة';
+  localStorage.setItem('smartlog_theme', isLight ? 'light' : 'dark');
+}
+
+(function initTheme() {
+  var saved = localStorage.getItem('smartlog_theme');
+  var icon = document.querySelector('#themeToggle i');
+  var label = document.querySelector('#themeToggle span');
+  if (saved === 'light') {
+    document.documentElement.classList.add('light-mode');
+    document.body.classList.add('light-mode');
+    if (icon) icon.className = 'ti ti-sun';
+    if (label) label.textContent = 'السمة الداكنة';
+  }
+})();
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}" defer></script>
 {% block scripts %}{% endblock %}

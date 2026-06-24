@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bb-attendance-v4';
+const CACHE_NAME = 'bb-attendance-v5';
 const STATIC_CACHES = [CACHE_NAME + '-assets', CACHE_NAME + '-pages'];
 
 const STATIC_ASSETS = [

@@ -267,36 +267,6 @@ body.login-page {
   line-height: 1.6;
 }
 
-.offline-mode-card {
-  display: none;
-  text-align: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(30,38,66,0.5);
-}
-
-.offline-mode-card .emp-avatar {
-  width: 64px; height: 64px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #e53935, #c62828);
-  display: flex;
-  align-items: center; justify-content: center;
-  margin: 0 auto 12px;
-  font-size: 26px; color: #fff; font-weight: 800;
-}
-
-.offline-mode-card .emp-name {
-  font-size: 16px; font-weight: 700; margin-bottom: 2px; color: #e2e8f0;
-}
-
-.offline-mode-card .emp-dept {
-  font-size: 12px; color: #94a3b8; margin-bottom: 18px;
-}
-
-.offline-mode-card .last-sync {
-  font-size: 11px; color: #64748b; margin-bottom: 18px;
-}
-
 .btn-green {
   background: linear-gradient(135deg, #16a34a, #15803d);
 }

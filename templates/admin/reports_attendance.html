@@ -677,14 +677,22 @@ function generateCustomReport() {
 }
 
 function toggleTheme() {
-  document.body.classList.toggle('light-mode');
-  const icon = document.querySelector('#themeToggle i');
-  icon.className = document.body.classList.contains('light-mode') ? 'ti ti-sun' : 'ti ti-moon';
-  localStorage.setItem('reports_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+  var isLight = document.documentElement.classList.toggle('light-mode');
+  document.body.classList.toggle('light-mode', isLight);
+  var icon = document.querySelector('#themeToggle i');
+  if (icon) icon.className = isLight ? 'ti ti-sun' : 'ti ti-moon';
+  localStorage.setItem('smartlog_theme', isLight ? 'light' : 'dark');
 }
 
-const savedTheme = localStorage.getItem('reports_theme');
-if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.querySelector('#themeToggle i').className = 'ti ti-sun'; }
+(function () {
+  var saved = localStorage.getItem('smartlog_theme');
+  if (saved === 'light') {
+    document.documentElement.classList.add('light-mode');
+    document.body.classList.add('light-mode');
+    var icon = document.querySelector('#themeToggle i');
+    if (icon) icon.className = 'ti ti-sun';
+  }
+})();
 
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.export-dropdown')) {
