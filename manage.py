@@ -136,10 +136,16 @@ if __name__ == '__main__':
         run_reset_sequences()
     elif cmd in ('db-check', 'dbcheck'):
         run_check()
+    elif cmd == 'stamp':
+        print('Stamping Alembic to head (d4f2c8b1a93e)...')
+        import subprocess
+        subprocess.run(['flask', 'db', 'stamp', 'd4f2c8b1a93e'], check=True)
+        print('Done.')
     else:
         print('Usage: python manage.py <command>')
         print('Commands:')
         print('  check-db       Check database state')
         print('  seed           Seed initial data')
         print('  reset-sequence Reset auto-increment sequences')
+        print('  stamp          Stamp Alembic to head revision')
         sys.exit(1)
