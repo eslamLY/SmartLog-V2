@@ -236,8 +236,8 @@
 <script src="{{ url_for('static', filename='js/tracking-analytics.js') }}"></script>
 <script>
 var TRACKING_DATA = {
-  bloodBankLat: 32.0755,
-  bloodBankLng: 23.9752,
+  orgLat: 32.0755,
+  orgLng: 23.9752,
   zones: {{ geofence_zones | tojson | safe }},
   employees: {{ employees | tojson | safe }}
 };

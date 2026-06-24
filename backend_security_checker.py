@@ -316,7 +316,7 @@ def check_env():
             for m in matches:
                 # Filter out 'placeholder', 'new_password' etc
                 val = m.split('=')[1].strip().strip('"\'')
-                if len(val) > 8 and val not in ('blood-bank-tobruk-secret-2024',
+                if len(val) > 8 and val not in ('smartlog-tobruk-secret-2024',
                                                   'dev-secret-change-in-prod'):
                     rel = os.path.relpath(fp, BASE)
                     issues.append((key, 'HIGH', f'{rel} — possible hardcoded secret: {m[:50]}'))

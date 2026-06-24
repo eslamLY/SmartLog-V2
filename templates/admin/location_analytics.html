@@ -126,8 +126,8 @@
 <script src="{{ url_for('static', filename='js/tracking-analytics.js') }}"></script>
 <script>
 var ANALYTICS_DATA = {
-  bloodBankLat: 32.0755,
-  bloodBankLng: 23.9752,
+  orgLat: 32.0755,
+  orgLng: 23.9752,
   employees: {{ employees | tojson | safe }},
   zones: {{ zones | tojson | safe }}
 };

@@ -173,7 +173,7 @@ def send_emergency_recall(employees_data):
         phone = emp.get('phone', '')
         confirm_link = emp.get('confirm_link', '')
         message = (
-            f'🚨 استدعاء طارئ من بنك الدم 🚨\n\n'
+            f'🚨 استدعاء طارئ من SMARTLOG 🚨\n\n'
             f'نحتاج حضورك فوراً للعمل.\n'
             f'الرجاء الرد: هل يمكنك الحضور الآن؟\n\n'
             f'✅ نعم، سأحضر: {confirm_link}?response=yes\n'

@@ -49,7 +49,7 @@ function getDarkTileLayer() {
 function initTrackingMap(data) {
   if (document.getElementById('trackingMap')) {
     trackingMap = L.map('trackingMap', {
-      center: [data.bloodBankLat || 32.0755, data.bloodBankLng || 23.9752],
+      center: [data.orgLat || 32.0755, data.orgLng || 23.9752],
       zoom: 15,
       zoomControl: false,
       attributionControl: false
@@ -70,7 +70,7 @@ function initTrackingMap(data) {
 function initGeofenceMap(data) {
   if (document.getElementById('geofenceMap')) {
     geofenceMap = L.map('geofenceMap', {
-      center: [data.bloodBankLat || 32.0755, data.bloodBankLng || 23.9752],
+      center: [data.orgLat || 32.0755, data.orgLng || 23.9752],
       zoom: 15,
       zoomControl: false,
       attributionControl: false
@@ -95,7 +95,7 @@ function initGeofenceMap(data) {
 function initHeatmapMap(data) {
   if (document.getElementById('heatmapMap') && !heatmapMap) {
     heatmapMap = L.map('heatmapMap', {
-      center: [data.bloodBankLat || 32.0755, data.bloodBankLng || 23.9752],
+      center: [data.orgLat || 32.0755, data.orgLng || 23.9752],
       zoom: 14,
       zoomControl: false,
       attributionControl: false

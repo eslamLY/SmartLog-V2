@@ -382,7 +382,7 @@ class ProjectAssessor:
         secret_fallback = re.search(r"SECRET_KEY.*=.*['\"](?!\{|env)[a-zA-Z].*['\"]", app_py)
         if secret_fallback:
             self.finding('LOW', 'Hardcoded Secrets', 'Fallback SECRET_KEY in app.py',
-                         'Default key "blood-bank-tobruk-secret-2024" used when not in env',
+                         'Default key "smartlog-tobruk-secret-2024" used when not in env',
                          filepath='app.py')
             print(f'    {SEVERITY["LOW"]} Fallback SECRET_KEY found in app.py')
 
