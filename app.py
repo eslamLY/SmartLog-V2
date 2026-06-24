@@ -16,7 +16,7 @@ from itsdangerous import URLSafeTimedSerializer
 from cryptography.fernet import Fernet
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFProtect
+
 from flask_migrate import Migrate
 
 logging.basicConfig(level=logging.INFO,
@@ -382,8 +382,6 @@ def todatetime_filter(val):
     return val
 
 # CSRF & Rate Limiter
-csrf = CSRFProtect(app)
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 limiter = Limiter(get_remote_address, app=app,
     default_limits=["10000 per day", "2000 per hour"])
 
