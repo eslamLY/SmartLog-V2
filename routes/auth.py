@@ -16,7 +16,7 @@ def manifest():
     cfg = BrandingConfig.query.first()
     primary = cfg.primary_color if cfg and cfg.primary_color else '#dc2626'
     bg = cfg.bg_color if cfg and cfg.bg_color else '#0f172a'
-    name = cfg.tenant_name if cfg and cfg.tenant_name else 'منظومة بنك دم طبرق'
+    name = cfg.tenant_name if cfg and cfg.tenant_name else 'SMARTLOG'
     return jsonify({
         "name": name, "short_name": "حضور طبرق",
         "description": "نظام الحضور والانصراف",
