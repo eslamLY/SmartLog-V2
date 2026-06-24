@@ -512,6 +512,38 @@ log.info('=' * 60)
 log.info('SmartLog startup complete — ready to serve')
 log.info('=' * 60)
 
+# ── Init Route (protected by admin login) ──────────
+@app.route('/admin/init-production', methods=['GET', 'POST'])
+def admin_init_production():
+    """One-time production initialization: create ADMIN user + clear test data.
+    Accessible only by existing admin users (e.g. ADM001).
+    WARNING: Deletes ALL employees including the current admin user.
+    After running, login with ADMIN / admin2020.
+    """
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('auth.login'))
+    if request.method == 'GET':
+        return render_template('admin/admin_init.html',
+                               employee_name=session.get('full_name', ''))
+    from scripts.production_init import main as run_init
+    import io, contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+        rc = run_init()
+    output = buf.getvalue()
+    session.clear()
+    return f"""<!DOCTYPE html><html dir=rtl lang=ar><head><meta charset=utf-8>
+<title>تهيئة قاعدة البيانات</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel=stylesheet>
+<style>body{{font-family:'Cairo',sans-serif;background:#080c18;color:#e2e8f0;padding:24px;max-width:800px;margin:auto;line-height:1.8}}
+pre{{background:#0f172a;padding:16px;border-radius:10px;border:1px solid #1e2a45;overflow-x:auto;font-size:13px}}
+.btn{{display:inline-block;padding:10px 24px;background:#6366f1;color:#fff;border-radius:10px;text-decoration:none;font-weight:700}}
+.rc{{color:#22c55e;font-size:24px;font-weight:700}}</style></head><body>
+<h1>{'تهيئة قاعدة البيانات' if rc == 0 else 'حدث خطأ'}</h1>
+<div class=rc>{'اكتملت بنجاح ✓' if rc == 0 else 'فشلت ✗'}</div>
+<pre>{output}</pre>
+<a href='/login' class=btn>تسجيل الدخول بحساب ADMIN / admin2020</a></body></html>"""
+
 # ── CLI Commands ────────────────────────────────────
 @app.cli.command('init-production')
 def init_production_cli():
