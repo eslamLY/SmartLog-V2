@@ -49,6 +49,7 @@ def require_department_manager():
         return jsonify({'error': 'Unauthorized'}), 403
 
 @admin_departments_bp.route('/api/list')
+@safe_json
 def list_departments():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -56,6 +57,7 @@ def list_departments():
     return jsonify({'departments': [serialize_department(d) for d in depts]})
 
 @admin_departments_bp.route('/api/tree')
+@safe_json
 def department_tree():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -82,6 +84,7 @@ def build_tree_node(d):
     return node
 
 @admin_departments_bp.route('/api/<int:dept_id>')
+@safe_json
 def get_department(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -89,6 +92,7 @@ def get_department(dept_id):
     return jsonify(serialize_department(d))
 
 @admin_departments_bp.route('/api/check-code')
+@safe_json
 def check_code():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -99,12 +103,14 @@ def check_code():
     return jsonify({'available': not bool(existing), 'message': 'الكود متاح' if not existing else 'الكود مستخدم بالفعل'})
 
 @admin_departments_bp.route('/api/generate-code')
+@safe_json
 def generate_code():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
     return jsonify({'code': Department.generate_code()})
 
 @admin_departments_bp.route('/api/parents')
+@safe_json
 def list_parents():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -112,6 +118,7 @@ def list_parents():
     return jsonify({'parents': [{'id': d.id, 'name_ar': d.name_ar, 'hierarchy_path': d.hierarchy_path} for d in depts]})
 
 @admin_departments_bp.route('/api/managers')
+@safe_json
 def list_managers():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -139,6 +146,7 @@ def list_shifts():
     return jsonify({'shifts': [{'id': s.id, 'name_ar': s.name_ar} for s in shifts]})
 
 @admin_departments_bp.route('/api/employees')
+@safe_json
 def list_employees():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -150,6 +158,7 @@ def list_employees():
     return jsonify({'employees': [{'id': e.id, 'full_name': e.full_name, 'username': e.username} for e in emps]})
 
 @admin_departments_bp.route('/api/add', methods=['POST'])
+@safe_json
 def add_department():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -222,6 +231,7 @@ def add_department():
     return jsonify({'success': True, 'department': serialize_department(d)})
 
 @admin_departments_bp.route('/api/<int:dept_id>/edit', methods=['POST'])
+@safe_json
 def edit_department(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -296,6 +306,7 @@ def edit_department(dept_id):
     return jsonify({'success': True, 'department': serialize_department(d)})
 
 @admin_departments_bp.route('/api/<int:dept_id>/delete', methods=['POST'])
+@safe_json
 def delete_department(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -315,6 +326,7 @@ def delete_department(dept_id):
     return jsonify({'success': True})
 
 @admin_departments_bp.route('/api/<int:dept_id>/toggle', methods=['POST'])
+@safe_json
 def toggle_department(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -330,6 +342,7 @@ def toggle_department(dept_id):
     return jsonify({'success': True, 'is_active': d.is_active})
 
 @admin_departments_bp.route('/api/bulk-toggle', methods=['POST'])
+@safe_json
 def bulk_toggle():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -349,6 +362,7 @@ def bulk_toggle():
     return jsonify({'success': True, 'updated': count})
 
 @admin_departments_bp.route('/api/<int:dept_id>/clone', methods=['POST'])
+@safe_json
 def clone_department(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -398,6 +412,7 @@ def clone_department(dept_id):
     return jsonify({'success': True, 'department': serialize_department(d)})
 
 @admin_departments_bp.route('/api/<int:dept_id>/dashboard')
+@safe_json
 def department_dashboard(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -471,6 +486,7 @@ def department_dashboard(dept_id):
     })
 
 @admin_departments_bp.route('/api/<int:dept_id>/announcements', methods=['GET'])
+@safe_json
 def list_announcements(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -479,6 +495,7 @@ def list_announcements(dept_id):
     return jsonify({'announcements': [a.to_dict() for a in announcements]})
 
 @admin_departments_bp.route('/api/<int:dept_id>/announcements/send', methods=['POST'])
+@safe_json
 def send_announcement(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -537,6 +554,7 @@ def send_announcement(dept_id):
     })
 
 @admin_departments_bp.route('/api/transfers', methods=['GET'])
+@safe_json
 def list_transfers():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -544,6 +562,7 @@ def list_transfers():
     return jsonify({'transfers': [t.to_dict() for t in transfers]})
 
 @admin_departments_bp.route('/api/transfers/create', methods=['POST'])
+@safe_json
 def create_transfer():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -577,6 +596,7 @@ def create_transfer():
     return jsonify({'success': True, 'transfer': t.to_dict()})
 
 @admin_departments_bp.route('/api/transfers/<int:t_id>/approve-manager', methods=['POST'])
+@safe_json
 def approve_transfer_manager(t_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -589,6 +609,7 @@ def approve_transfer_manager(t_id):
     return jsonify({'success': True, 'transfer': t.to_dict()})
 
 @admin_departments_bp.route('/api/transfers/<int:t_id>/approve-hr', methods=['POST'])
+@safe_json
 def approve_transfer_hr(t_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -601,6 +622,7 @@ def approve_transfer_hr(t_id):
     return jsonify({'success': True, 'transfer': t.to_dict()})
 
 @admin_departments_bp.route('/api/transfers/<int:t_id>/execute', methods=['POST'])
+@safe_json
 def execute_transfer(t_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -618,6 +640,7 @@ def execute_transfer(t_id):
     return jsonify({'success': True, 'transfer': t.to_dict()})
 
 @admin_departments_bp.route('/api/transfers/<int:t_id>/reject', methods=['POST'])
+@safe_json
 def reject_transfer(t_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -677,6 +700,7 @@ def import_template():
     )
 
 @admin_departments_bp.route('/api/import', methods=['POST'])
+@safe_json
 def import_departments():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -749,6 +773,7 @@ def import_departments():
     return jsonify({'success': True, 'imported': imported, 'errors': errors})
 
 @admin_departments_bp.route('/api/<int:dept_id>/employees')
+@safe_json
 def dept_employees(dept_id):
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -765,5 +790,6 @@ def dept_employees(dept_id):
     } for e in employees]})
 
 @admin_departments_bp.route('/api/icons')
+@safe_json
 def list_icons():
     return jsonify({'icons': DEPARTMENT_ICONS})
