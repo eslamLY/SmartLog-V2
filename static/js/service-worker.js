@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartlog-v1';
+const CACHE_NAME = 'smartlog-v2.0';
 const STATIC_CACHES = [CACHE_NAME + '-assets', CACHE_NAME + '-pages'];
 
 const STATIC_ASSETS = [

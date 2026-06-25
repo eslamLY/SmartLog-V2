@@ -55,11 +55,15 @@ def service_worker():
         with open(sw_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception:
-        content = r"""const C='smartlog-v1';const O=['/login','/manifest.json'];self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(O)))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request).then(r=>r||new Response(JSON.stringify({ok:false,msg:'\u063A\u064A\u0631 \u0645\u062A\u0635\u0644 \u0628\u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A'}),{status:503,headers:{'Content-Type':'application/json'}})).catch(()=>new Response(JSON.stringify({ok:false,msg:'\u063A\u064A\u0631 \u0645\u062A\u0635\u0644 \u0628\u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A'}),{status:503,headers:{'Content-Type':'application/json'}})))})"""
-    return make_response(content, 200, {
-        'Content-Type': 'application/javascript',
-        'Service-Worker-Allowed': '/',
-    })
+        content = r"""const C='smartlog-v2.0';const O=['/login','/manifest.json'];self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(O)).then(()=>self.skipWaiting()))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET'||e.request.url.includes('/api/'))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(r=>{if(r&&r.status===200){var c=r.clone();caches.open(C).then(ca=>ca.put(e.request,c))}return r}).catch(()=>caches.match(e.request).then(r=>r||new Response('',{status:503})))))});"""
+    resp = make_response(content, 200)
+    resp.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+    resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    return resp
 
 
 @auth_bp.route('/')
