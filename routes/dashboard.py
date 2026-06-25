@@ -13,6 +13,7 @@ from models.attendance import AttendanceLog
 from models.misc import LeaveRequest, EmployeeDocument
 from models.misc import EmployeeDocument
 from models.biotime_device import BioTimeDevice
+from models.shifts import ShiftType
 from models.notifications import Notification
 from models.employee_enhanced import EmployeeExtended, EmployeeLeaveRequest as NewLeaveRequest, EmployeePromotion, EmployeeGrade
 from utils.decorators import admin_required
@@ -416,8 +417,9 @@ def api_dashboard_schedule():
             in_range = sd['start'] <= current_hour < sd['end']
         else:
             in_range = current_hour >= sd['start'] or current_hour < sd['end']
+        st = ShiftType.query.filter_by(name_ar=sd['label']).first()
         scheduled_count = Employee.query.filter_by(deleted_at=None, is_active=True,
-            shift_type_id=ShiftType.query.filter_by(name_ar=sd['label']).first().id if ShiftType.query.filter_by(name_ar=sd['label']).first() else None
+            shift_type_id=st.id if st else None
         ).count()
         if sd['start'] < sd['end']:
             clocked_in = AttendanceLog.query.filter(
