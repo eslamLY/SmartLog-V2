@@ -59,7 +59,13 @@ def upload_logo():
 @admin_system_bp.route('/uploads/<path:filename>')
 @admin_required
 def uploaded_file(filename):
-    return send_file(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+    safe = os.path.normpath(filename)
+    if safe.startswith('..') or os.path.isabs(safe):
+        return jsonify({'ok': False, 'msg': 'مسار غير صالح'}), 400
+    full = os.path.join(current_app.config['UPLOAD_FOLDER'], safe)
+    if not os.path.realpath(full).startswith(os.path.realpath(current_app.config['UPLOAD_FOLDER'])):
+        return jsonify({'ok': False, 'msg': 'مسار غير صالح'}), 400
+    return send_file(full)
 
 
 @admin_system_bp.route('/api/branding')

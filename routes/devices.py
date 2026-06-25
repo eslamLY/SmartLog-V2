@@ -148,6 +148,9 @@ def fetch_device_info():
 def scan_network_for_devices():
     d = request.get_json() or {}
     subnet = d.get('subnet', '192.168.1')
+    import re
+    if not re.match(r'^\d{1,3}(\.\d{1,3}){0,2}$', subnet):
+        return jsonify({'ok': False, 'msg': 'subnet غير صالح'})
     found = scan_network(subnet)
     return jsonify({'ok': True, 'devices': found})
 

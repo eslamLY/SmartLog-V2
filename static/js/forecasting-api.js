@@ -6,6 +6,7 @@ const API_BASE = '';
 function $(id) { return document.getElementById(id); }
 function qs(s, p) { return (p || document).querySelector(s); }
 function qsa(s, p) { return (p || document).querySelectorAll(s); }
+function esc(s) { if(!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function getCSRFToken() {
   var meta = document.querySelector('meta[name="csrf-token"]');
@@ -85,7 +86,7 @@ async function loadDashboard() {
       return { model_key: m.model_key, avg_accuracy: m.avg_accuracy, avg_precision: m.avg_precision, avg_recall: m.avg_recall };
     });
     if (perfData.length) setTimeout(function () { renderModelPerformanceChart('dashPerfChart', perfData); }, 100);
-  } catch (e) { grid.innerHTML = '<div class="f-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">❌ خطأ: ' + e.message + '</div>'; }
+  } catch (e) { grid.innerHTML = '<div class="f-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">❌ خطأ: ' + esc(e.message) + '</div>'; }
 }
 
 // ─── PREDICTIONS TAB ───────────────────────────────────────
@@ -96,19 +97,19 @@ async function loadPredictionsTab() {
     var data = await postJSON('/api/forecast/generate', {});
     var html = '<div class="f-card" style="grid-column:1/-1"><h3>🔮 تنبؤات الإجازات</h3>';
     (data.leave_predictions || []).slice(0, 10).forEach(function (p) {
-      html += '<div class="f-stat-row"><span class="f-stat-label">' + p.employee_name + ' (' + p.department + ')</span><span class="f-stat-value"><span class="f-badge f-badge-' + (p.risk_level === 'high' ? 'red' : p.risk_level === 'medium' ? 'amber' : 'green') + '">' + (p.probability * 100).toFixed(0) + '%</span></span></div>';
+      html += '<div class="f-stat-row"><span class="f-stat-label">' + esc(p.employee_name) + ' (' + esc(p.department) + ')</span><span class="f-stat-value"><span class="f-badge f-badge-' + (p.risk_level === 'high' ? 'red' : p.risk_level === 'medium' ? 'amber' : 'green') + '">' + (p.probability * 100).toFixed(0) + '%</span></span></div>';
     });
     html += '</div><div class="f-card" style="grid-column:1/-1"><h3>🔮 تنبؤات الغياب</h3>';
     (data.absence_predictions || []).slice(0, 10).forEach(function (p) {
-      html += '<div class="f-stat-row"><span class="f-stat-label">' + p.employee_name + ' (' + p.department + ')</span><span class="f-stat-value"><span class="f-badge f-badge-' + (p.risk_level === 'high' ? 'red' : p.risk_level === 'medium' ? 'amber' : 'green') + '">' + (p.risk_score * 100).toFixed(0) + '%</span></span></div>';
+      html += '<div class="f-stat-row"><span class="f-stat-label">' + esc(p.employee_name) + ' (' + esc(p.department) + ')</span><span class="f-stat-value"><span class="f-badge f-badge-' + (p.risk_level === 'high' ? 'red' : p.risk_level === 'medium' ? 'amber' : 'green') + '">' + (p.risk_score * 100).toFixed(0) + '%</span></span></div>';
     });
     html += '</div><div class="f-card" style="grid-column:1/-1"><h3>🔮 تنبؤات الرحيل</h3>';
     (data.turnover_predictions || []).slice(0, 10).forEach(function (p) {
-      html += '<div class="f-stat-row"><span class="f-stat-label">' + p.employee_name + ' (' + p.department + ')</span><span class="f-stat-value"><span class="f-badge f-badge-' + (p.risk_level === 'high' ? 'red' : p.risk_level === 'medium' ? 'amber' : 'green') + '">' + (p.risk_score * 100).toFixed(0) + '%</span></span></div>';
+      html += '<div class="f-stat-row"><span class="f-stat-label">' + esc(p.employee_name) + ' (' + esc(p.department) + ')</span><span class="f-stat-value"><span class="f-badge f-badge-' + (p.risk_level === 'high' ? 'red' : p.risk_level === 'medium' ? 'amber' : 'green') + '">' + (p.risk_score * 100).toFixed(0) + '%</span></span></div>';
     });
     html += '</div>';
     grid.innerHTML = html;
-  } catch (e) { grid.innerHTML = '<div class="f-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">❌ خطأ: ' + e.message + '</div>'; }
+  } catch (e) { grid.innerHTML = '<div class="f-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">❌ خطأ: ' + esc(e.message) + '</div>'; }
 }
 
 // ─── MODELS TAB ────────────────────────────────────────────
@@ -119,18 +120,18 @@ async function loadModelsTab() {
     var [models, perf] = await Promise.all([getJSON('/api/forecast/models'), getJSON('/api/forecast/models/performance')]);
     var html = '<div class="f-card" style="grid-column:1/-1"><h3>🤖 النماذج المسجلة</h3><table class="f-table"><thead><tr><th>النموذج</th><th>النوع</th><th>تاريخ التدريب</th><th>الحالة</th></tr></thead><tbody>';
     (models.models || []).forEach(function (m) {
-      html += '<tr><td>' + m.key + '</td><td>' + m.type + '</td><td>' + (m.training_date || '—') + '</td><td><span class="f-badge f-badge-green">نشط</span></td></tr>';
+      html += '<tr><td>' + esc(m.key) + '</td><td>' + esc(m.type) + '</td><td>' + esc(m.training_date || '—') + '</td><td><span class="f-badge f-badge-green">نشط</span></td></tr>';
     });
     html += '</tbody></table></div>';
     html += '<div class="f-card" style="grid-column:1/-1"><h3>📈 أداء النماذج (آخر 30 يوم)</h3><table class="f-table"><thead><tr><th>النموذج</th><th>الدقة</th><th>الضبط</th><th>الاستدعاء</th><th>F1</th><th>التنبؤات</th></tr></thead><tbody>';
     (perf.performance || []).forEach(function (m) {
-      html += '<tr><td>' + m.model_key + '</td><td><span style="color:' + (m.avg_accuracy >= 85 ? '#22c55e' : m.avg_accuracy >= 70 ? '#f59e0b' : '#ef4444') + ';font-weight:700">' + m.avg_accuracy + '%</span></td><td>' + (m.avg_precision || 0) + '%</td><td>' + (m.avg_recall || 0) + '%</td><td>' + (m.avg_f1 || 0) + '%</td><td>' + (m.total_predictions || 0) + '</td></tr>';
+      html += '<tr><td>' + esc(m.model_key) + '</td><td><span style="color:' + (m.avg_accuracy >= 85 ? '#22c55e' : m.avg_accuracy >= 70 ? '#f59e0b' : '#ef4444') + ';font-weight:700">' + esc(m.avg_accuracy) + '%</span></td><td>' + esc(m.avg_precision || 0) + '%</td><td>' + esc(m.avg_recall || 0) + '%</td><td>' + esc(m.avg_f1 || 0) + '%</td><td>' + esc(m.total_predictions || 0) + '</td></tr>';
     });
     html += '</tbody></table></div>';
     html += '<div class="f-card" style="grid-column:1/-1"><canvas id="perfRadarChart" height="250"></canvas></div>';
     grid.innerHTML = html;
     if ((perf.performance || []).length) setTimeout(function () { renderModelPerformanceChart('perfRadarChart', perf.performance); }, 100);
-  } catch (e) { grid.innerHTML = '<div class="f-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">❌ خطأ: ' + e.message + '</div>'; }
+  } catch (e) { grid.innerHTML = '<div class="f-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">❌ خطأ: ' + esc(e.message) + '</div>'; }
 }
 
 // ─── RULES ────────────────────────────────────────────────
@@ -141,11 +142,11 @@ async function loadRules() {
     var rules = await getJSON('/api/forecast/rules');
     var html = '<table class="f-table"><thead><tr><th>الاسم</th><th>القياس</th><th>الحد</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
     (rules || []).forEach(function (r) {
-      html += '<tr><td>' + r.name + '</td><td>' + r.metric + '</td><td>' + (r.threshold * 100).toFixed(0) + '%</td><td><span class="f-badge f-badge-' + (r.is_active ? 'green' : 'gray') + '">' + (r.is_active ? 'نشط' : 'متوقف') + '</span></td><td><button class="f-btn f-btn-sm f-btn-outline" onclick="toggleRule(' + r.id + ')"><i class="ti ti-toggle"></i></button> <button class="f-btn f-btn-sm f-btn-outline f-btn-red" onclick="deleteRule(' + r.id + ')"><i class="ti ti-trash"></i></button></td></tr>';
+      html += '<tr><td>' + esc(r.name) + '</td><td>' + esc(r.metric) + '</td><td>' + (r.threshold * 100).toFixed(0) + '%</td><td><span class="f-badge f-badge-' + (r.is_active ? 'green' : 'gray') + '">' + (r.is_active ? 'نشط' : 'متوقف') + '</span></td><td><button class="f-btn f-btn-sm f-btn-outline" onclick="toggleRule(' + r.id + ')"><i class="ti ti-toggle"></i></button> <button class="f-btn f-btn-sm f-btn-outline f-btn-red" onclick="deleteRule(' + r.id + ')"><i class="ti ti-trash"></i></button></td></tr>';
     });
     html += '</tbody></table>';
     container.innerHTML = html;
-  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>'; }
+  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + esc(e.message) + '</p>'; }
 }
 
 async function toggleRule(id) {
@@ -186,12 +187,12 @@ async function loadAnomalies() {
     var data = await getJSON('/api/forecast/anomalies');
     var html = '<table class="f-table"><thead><tr><th>النوع</th><th>الوصف</th><th>الخطورة</th><th>الدرجة</th><th>التاريخ</th><th>حل</th></tr></thead><tbody>';
     (data.anomalies || []).forEach(function (a) {
-      html += '<tr><td>' + a.anomaly_type + '</td><td>' + a.description + '</td><td><span class="f-badge f-badge-' + (a.severity === 'critical' ? 'red' : a.severity === 'high' ? 'amber' : 'green') + '">' + a.severity + '</span></td><td>' + (a.score * 100).toFixed(0) + '%</td><td>' + (a.detected_date || '—') + '</td><td>' + (a.resolved ? '✅' : '<button class="f-btn f-btn-sm f-btn-accent" onclick="resolveAnomaly(' + a.id + ')">حل</button>') + '</td></tr>';
+      html += '<tr><td>' + esc(a.anomaly_type) + '</td><td>' + esc(a.description) + '</td><td><span class="f-badge f-badge-' + (a.severity === 'critical' ? 'red' : a.severity === 'high' ? 'amber' : 'green') + '">' + esc(a.severity) + '</span></td><td>' + (a.score * 100).toFixed(0) + '%</td><td>' + esc(a.detected_date || '—') + '</td><td>' + (a.resolved ? '✅' : '<button class="f-btn f-btn-sm f-btn-accent" onclick="resolveAnomaly(' + a.id + ')">حل</button>') + '</td></tr>';
     });
     html += '</tbody></table>';
     if (!data.anomalies || !data.anomalies.length) html = '<p style="color:var(--muted)">لا توجد تجاوزات في آخر 7 أيام</p>';
     container.innerHTML = html;
-  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>'; }
+  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + esc(e.message) + '</p>'; }
 }
 
 async function scanAnomalies() {
@@ -199,9 +200,9 @@ async function scanAnomalies() {
   container.innerHTML = '<div class="f-spinner" style="margin:0 auto"></div>';
   try {
     var result = await postJSON('/api/forecast/anomalies/scan', {});
-    container.innerHTML = '<p style="color:#22c55e">✅ تم الفحص: ' + result.stats.anomalies_found + ' تجاوزات مكتشفة</p>';
+    container.innerHTML = '<p style="color:#22c55e">✅ تم الفحص: ' + esc(result.stats ? result.stats.anomalies_found : 0) + ' تجاوزات مكتشفة</p>';
     loadAnomalies();
-  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>'; }
+  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + esc(e.message) + '</p>'; }
 }
 
 async function resolveAnomaly(id) {
@@ -217,20 +218,20 @@ async function loadSegmentation() {
   if (!container) return;
   try {
     var data = await getJSON('/api/forecast/segmentation');
-    if (data.error) { container.innerHTML = '<p style="color:var(--muted)">' + data.error + '</p>'; return; }
+    if (data.error) { container.innerHTML = '<p style="color:var(--muted)">' + esc(data.error) + '</p>'; return; }
     var html = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">';
-    html += '<div class="f-stat-card" style="flex:1;min-width:100px"><div class="f-stat-number">' + data.n_clusters + '</div><div class="f-stat-label">المجموعات</div></div>';
-    html += '<div class="f-stat-card" style="flex:1;min-width:100px"><div class="f-stat-number">' + (data.metrics.silhouette_score || 0).toFixed(2) + '</div><div class="f-stat-label">جودة التقسيم</div></div>';
-    html += '<div class="f-stat-card" style="flex:1;min-width:100px"><div class="f-stat-number">' + (data.employees || []).length + '</div><div class="f-stat-label">الموظفون</div></div>';
+    html += '<div class="f-stat-card" style="flex:1;min-width:100px"><div class="f-stat-number">' + esc(data.n_clusters) + '</div><div class="f-stat-label">المجموعات</div></div>';
+    html += '<div class="f-stat-card" style="flex:1;min-width:100px"><div class="f-stat-number">' + esc((data.metrics.silhouette_score || 0).toFixed(2)) + '</div><div class="f-stat-label">جودة التقسيم</div></div>';
+    html += '<div class="f-stat-card" style="flex:1;min-width:100px"><div class="f-stat-number">' + esc((data.employees || []).length) + '</div><div class="f-stat-label">الموظفون</div></div>';
     html += '</div><canvas id="segChart" height="250"></canvas>';
     html += '<table class="f-table" style="margin-top:12px"><thead><tr><th>الموظف</th><th>القسم</th><th>المجموعة</th></tr></thead><tbody>';
     (data.employees || []).forEach(function (e) {
       var colors = ['#8b5cf6', '#f59e0b', '#22c55e', '#ef4444', '#6366f1', '#ec4899'];
-      html += '<tr><td>' + e.employee_name + '</td><td>' + e.department + '</td><td><span style="color:' + (colors[e.cluster] || '#8b5cf6') + ';font-weight:700">مجموعة ' + e.cluster + '</span></td></tr>';
+      html += '<tr><td>' + esc(e.employee_name) + '</td><td>' + esc(e.department) + '</td><td><span style="color:' + (colors[e.cluster] || '#8b5cf6') + ';font-weight:700">مجموعة ' + esc(e.cluster) + '</span></td></tr>';
     });
     html += '</tbody></table>';
     container.innerHTML = html;
-  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>'; }
+  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + esc(e.message) + '</p>'; }
 }
 
 // ─── CORRELATION ─────────────────────────────────────────
@@ -245,19 +246,19 @@ async function loadCorrelation() {
       var c = f.correlation || 0;
       var barW = Math.abs(c) * 100;
       var color = c > 0 ? '#ef4444' : '#22c55e';
-      html += '<div class="f-stat-row"><span class="f-stat-label">' + f.factor + '</span><div class="f-bar-track" style="flex:1;margin:0 8px"><div class="f-bar-fill" style="width:' + barW + '%;background:' + color + '"></div></div><span class="f-stat-value" style="color:' + color + '">' + c.toFixed(2) + '</span></div>';
+      html += '<div class="f-stat-row"><span class="f-stat-label">' + esc(f.factor) + '</span><div class="f-bar-track" style="flex:1;margin:0 8px"><div class="f-bar-fill" style="width:' + barW + '%;background:' + color + '"></div></div><span class="f-stat-value" style="color:' + color + '">' + c.toFixed(2) + '</span></div>';
     });
     html += '</div><div><h4 style="margin-bottom:8px">🔗 عوامل الدوران الوظيفي</h4>';
     (data.turnover_factors || []).forEach(function (f) {
       var c = f.correlation || 0;
       var barW = Math.abs(c) * 100;
       var color = c > 0 ? '#ef4444' : '#22c55e';
-      html += '<div class="f-stat-row"><span class="f-stat-label">' + f.factor + '</span><div class="f-bar-track" style="flex:1;margin:0 8px"><div class="f-bar-fill" style="width:' + barW + '%;background:' + color + '"></div></div><span class="f-stat-value" style="color:' + color + '">' + c.toFixed(2) + '</span></div>';
+      html += '<div class="f-stat-row"><span class="f-stat-label">' + esc(f.factor) + '</span><div class="f-bar-track" style="flex:1;margin:0 8px"><div class="f-bar-fill" style="width:' + barW + '%;background:' + color + '"></div></div><span class="f-stat-value" style="color:' + color + '">' + c.toFixed(2) + '</span></div>';
     });
     html += '</div></div>';
     if ((!data.leave_factors || !data.leave_factors.length) && (!data.turnover_factors || !data.turnover_factors.length)) html = '<p style="color:var(--muted)">لا توجد بيانات كافية للتحليل</p>';
     container.innerHTML = html;
-  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + e.message + '</p>'; }
+  } catch (e) { container.innerHTML = '<p style="color:var(--red)">❌ ' + esc(e.message) + '</p>'; }
 }
 
 // ─── GENERATE PREDICTIONS ────────────────────────────────

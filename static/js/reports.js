@@ -5,6 +5,7 @@ let currentPage = 1;
 const PAGE_SIZE = 50;
 let charts = {};
 let debounceTimer = null;
+function esc(s) { if(!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function api(url, opts = {}) {
   const csrf = document.querySelector('meta[name="csrf-token"]');
@@ -294,7 +295,7 @@ function showCorrectionModal() {
   document.getElementById('corrDate').value = new Date().toISOString().slice(0,10);
   api('/employees').then(data => {
     const sel = document.getElementById('corrEmployee');
-    sel.innerHTML = '<option value="">اختر موظف</option>' + data.map(e => `<option value="${e.id}">${e.name} (${e.code})</option>`).join('');
+    sel.innerHTML = '<option value="">اختر موظف</option>' + data.map(e => `<option value="${e.id}">${esc(e.name)} (${esc(e.code)})</option>`).join('');
   });
   $('#correctionModal').modal('show');
 }
