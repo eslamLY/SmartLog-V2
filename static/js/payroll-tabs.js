@@ -99,10 +99,11 @@ function openApproval(empId) {
   fetch(API_BASE + '/api/employee/' + empId + '?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) return;
       currentEl.textContent = d.comp.gross + ' د.ل';
       proposedEl.value = d.comp.gross;
       proposedEl.dataset.empId = empId;
-    });
+    }).catch(e => console.error('payroll fetch error', e));
   modal.classList.add('open');
 }
 
@@ -142,6 +143,7 @@ function loadIndividualPayslip() {
   fetch(API_BASE + '/api/employee/' + empId + '?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) return;
       let html = '<div class="individual-payslip">';
       html += '<div class="ip-header"><h3>' + d.emp.full_name + '</h3><span class="ip-sub">' + d.emp.username + ' — ' + d.emp.department + '</span></div>';
       html += '<div class="ip-grid">';
@@ -167,7 +169,7 @@ function loadIndividualPayslip() {
       html += '<div class="ip-actions"><button class="btn btn-sm btn-indigo" onclick="window.open(API_BASE + \'/api/payslip/' + empId + '/print?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR + '\', \'_blank\')"><i class="ti ti-printer"></i> طباعة</button></div>';
       html += '</div>';
       container.innerHTML = html;
-    });
+    }).catch(e => console.error('payroll fetch error', e));
 }
 
 function printCurrentPayslip() {
@@ -187,6 +189,7 @@ function loadAdvances() {
   fetch(API_BASE + '/api/advances?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) return;
       summary.innerHTML = '<div class="mini-cards"><div class="mini-card"><span class="mc-label">إجمالي السلفات</span><span class="mc-value">' + d.total_advanced + ' د.ل</span></div><div class="mini-card"><span class="mc-label">المسدّد</span><span class="mc-value text-green">' + d.total_repaid + ' د.ل</span></div><div class="mini-card"><span class="mc-label">المتبقي</span><span class="mc-value text-red">' + d.total_remaining + ' د.ل</span></div><div class="mini-card"><span class="mc-label">نشط</span><span class="mc-value">' + d.active_count + '/' + d.count + '</span></div></div>';
       if (!d.advances || d.advances.length === 0) {
         body.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="ti ti-wallet"></i><p>لا توجد سلفات</p></div></td></tr>';
@@ -196,7 +199,7 @@ function loadAdvances() {
         const statusMap = {active:'نشط',settled:'مسدّد',cancelled:'ملغي'};
         return '<tr><td><div class="emp-mini"><span class="emp-avatar-mini">' + a.employee_name[0] + '</span><div><div class="emp-name-sm">' + a.employee_name + '</div><div class="emp-id-sm">' + a.employee_username + '</div></div></div></td><td>' + a.department + '</td><td class="num-cell">' + a.amount + '</td><td class="num-cell text-green">' + a.repaid + '</td><td class="num-cell text-red">' + a.remaining + '</td><td><div class="pct-bar"><div class="pct-fill" style="width:' + a.repaid_pct + '%"></div><span>' + a.repaid_pct + '%</span></div></td><td>' + a.installments_count + ' قسط</td><td><span class="status-pill status-' + a.status + '">' + (statusMap[a.status] || a.status) + '</span></td><td><button class="btn-icon" onclick="repayAdvance(' + a.id + ')" title="تسديد"><i class="ti ti-check"></i></button></td></tr>';
       }).join('');
-    });
+    }).catch(e => console.error('payroll fetch error', e));
 }
 
 function openAdvanceModal() {
@@ -208,10 +211,11 @@ function openAdvanceModal() {
   })
   .then(r => r.json())
   .then(d => {
+    if (!d || !d.ok) return;
     select.innerHTML = d.pay_rows.map(function(r) {
       return '<option value="' + r.emp.id + '">' + r.emp.full_name + ' (' + r.emp.username + ')</option>';
     }).join('');
-  });
+  }).catch(e => console.error('payroll fetch error', e));
   modal.classList.add('open');
 }
 
@@ -229,9 +233,10 @@ function submitAdvance() {
   })
   .then(r => r.json())
   .then(d => {
+    if (!d || !d.ok) return;
     toast(d.msg, d.ok ? 'ok' : 'err');
     if (d.ok) { document.getElementById('advanceModal').classList.remove('open'); loadAdvances(); }
-  });
+  }).catch(e => console.error('payroll fetch error', e));
 }
 
 function repayAdvance(aid) {
@@ -243,7 +248,7 @@ function repayAdvance(aid) {
     body: JSON.stringify({amount: parseFloat(amt)}),
   })
   .then(r => r.json())
-  .then(d => { toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadAdvances(); });
+  .then(d => { if (!d || !d.ok) return; toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadAdvances(); }).catch(e => console.error('payroll fetch error', e));
 }
 
 function runComparison() {
@@ -260,6 +265,7 @@ function runComparison() {
   fetch(API_BASE + '/api/compare?' + params.toString())
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) return;
       const s = d.summary;
       summary.innerHTML = '<div class="mini-cards"><div class="mini-card"><span class="mc-label">' + s.previous_label + '</span><span class="mc-value">' + s.previous_total_net + ' د.ل</span></div><div class="mini-card"><span class="mc-label">' + s.current_label + '</span><span class="mc-value">' + s.current_total_net + ' د.ل</span></div><div class="mini-card"><span class="mc-label">التغيير</span><span class="mc-value ' + (s.total_change >= 0 ? 'text-green' : 'text-red') + '">' + (s.total_change >= 0 ? '+' : '') + s.total_change + ' د.ل (' + (s.total_change >= 0 ? '+' : '') + s.total_change_pct + '%)</span></div><div class="mini-card"><span class="mc-label">زيادات / تخفيضات</span><span class="mc-value"><span class="text-green">+' + s.raises_count + '</span> / <span class="text-red">-' + s.cuts_count + '</span></span></div></div>';
       if (!d.rows || d.rows.length === 0) {
@@ -271,7 +277,7 @@ function runComparison() {
         const arrow = r.net_change > 0 ? '↑' : (r.net_change < 0 ? '↓' : '→');
         return '<tr><td><div class="emp-mini"><div>' + r.emp.full_name + '<br><span class="emp-id-sm">' + r.emp.username + '</span></div></div></td><td class="num-cell">' + r.previous.net + '</td><td class="num-cell">' + r.current.net + '</td><td class="num-cell ' + cls + '">' + arrow + ' ' + r.net_change + '</td><td class="num-cell ' + cls + '">' + (r.net_change >= 0 ? '+' : '') + r.net_change_pct + '%</td></tr>';
       }).join('');
-    });
+    }).catch(e => console.error('payroll fetch error', e));
 }
 
 function loadApprovals() {
@@ -282,6 +288,7 @@ function loadApprovals() {
   fetch(API_BASE + '/api/approvals?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) return;
       summary.innerHTML = '<div class="mini-cards"><div class="mini-card"><span class="mc-label">قيد الانتظار</span><span class="mc-value text-amber">' + d.pending + '</span></div><div class="mini-card"><span class="mc-label">تمت الموافقة</span><span class="mc-value text-green">' + d.approved + '</span></div><div class="mini-card"><span class="mc-label">مرفوض</span><span class="mc-value text-red">' + d.rejected + '</span></div><div class="mini-card"><span class="mc-label">الإجمالي</span><span class="mc-value">' + d.count + '</span></div></div>';
       if (!d.approvals || d.approvals.length === 0) {
         body.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="ti ti-check-circle"></i><p>لا توجد طلبات موافقة</p></div></td></tr>';
@@ -292,7 +299,7 @@ function loadApprovals() {
         const changeCls = w.change_pct > 0 ? 'text-green' : (w.change_pct < 0 ? 'text-red' : '');
         return '<tr><td><div class="emp-mini"><div>' + w.employee_name + '<br><span class="emp-id-sm">' + w.employee_username + '</span></div></div></td><td>' + w.department + '</td><td class="num-cell">' + w.current_gross + '</td><td class="num-cell">' + w.proposed_gross + '</td><td class="num-cell ' + changeCls + '">' + (w.change_pct >= 0 ? '+' : '') + w.change_pct + '%</td><td><span class="status-pill status-' + w.status + '">' + (statusMap[w.status] || w.status) + '</span></td><td>' + w.current_step + '/' + w.total_steps + '</td><td>' + (w.status === 'pending' ? '<button class="btn-icon" onclick="actOnApproval(' + w.id + ',\'approve\')" title="موافقة"><i class="ti ti-check"></i></button><button class="btn-icon" onclick="actOnApproval(' + w.id + ',\'reject\')" title="رفض"><i class="ti ti-x"></i></button>' : '<span class="text-muted">—</span>') + '</td></tr>';
       }).join('');
-    });
+    }).catch(e => console.error('payroll fetch error', e));
 }
 
 function actOnApproval(wid, action) {
@@ -304,7 +311,7 @@ function actOnApproval(wid, action) {
     body: JSON.stringify({action: action, comment: comment || ''}),
   })
   .then(r => r.json())
-  .then(d => { toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadApprovals(); });
+  .then(d => { if (!d || !d.ok) return; toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadApprovals(); }).catch(e => console.error('payroll fetch error', e));
 }
 
 function loadBankPayments() {
@@ -315,6 +322,7 @@ function loadBankPayments() {
   fetch(API_BASE + '/api/bank?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) return;
       const sc = d.status_counts || {};
       summary.innerHTML = '<div class="mini-cards"><div class="mini-card"><span class="mc-label">الإجمالي</span><span class="mc-value">' + d.total_amount + ' د.ل</span></div><div class="mini-card"><span class="mc-label">قيد الانتظار</span><span class="mc-value text-amber">' + (sc.pending || 0) + '</span></div><div class="mini-card"><span class="mc-label">مكتمل</span><span class="mc-value text-green">' + (sc.completed || 0) + '</span></div><div class="mini-card"><span class="mc-label">IBAN ناقص</span><span class="mc-value text-red">' + d.missing_iban_count + '</span></div></div>';
       if (!d.payments || d.payments.length === 0) {
@@ -325,13 +333,13 @@ function loadBankPayments() {
       body.innerHTML = d.payments.map(function(p) {
         return '<tr><td><div class="emp-mini"><span class="emp-avatar-mini">' + p.employee_name[0] + '</span><div><div class="emp-name-sm">' + p.employee_name + '</div><div class="emp-id-sm">' + p.employee_username + '</div></div></div></td><td>' + p.department + '</td><td style="direction:ltr;font-family:monospace;font-size:12px">' + (p.iban || '<span class="text-red">—</span>') + '</td><td>' + (p.bank_name || '—') + '</td><td class="num-cell bold">' + p.net_amount + '</td><td><span class="status-pill status-' + p.status + '">' + (statusMap[p.status] || p.status) + '</span></td><td>' + (p.payment_date || '—') + '</td><td><select onchange="updateBankStatus(' + p.id + ',this.value)" class="btn-sm" style="padding:4px 6px;font-size:11px"><option value="">تغيير</option><option value="pending">قيد الانتظار</option><option value="processing">قيد المعالجة</option><option value="completed">مكتمل</option><option value="failed">فاشل</option></select></td></tr>';
       }).join('');
-    });
+    }).catch(e => console.error('payroll fetch error', e));
 }
 
 function generateBankPayments() {
   fetch(API_BASE + '/api/bank/generate?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR, {method: 'POST', headers: {'X-CSRFToken': csrfToken()}})
     .then(r => r.json())
-    .then(d => { toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadBankPayments(); });
+    .then(d => { if (!d || !d.ok) return; toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadBankPayments(); }).catch(e => console.error('payroll fetch error', e));
 }
 
 function updateBankStatus(id, status) {
@@ -342,7 +350,7 @@ function updateBankStatus(id, status) {
     body: JSON.stringify({ids: [id], status: status}),
   })
   .then(r => r.json())
-  .then(d => { toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadBankPayments(); });
+  .then(d => { if (!d || !d.ok) return; toast(d.msg, d.ok ? 'ok' : 'err'); if (d.ok) loadBankPayments(); }).catch(e => console.error('payroll fetch error', e));
 }
 
 function exportBankFile(fmt) {
@@ -354,18 +362,19 @@ function validateBankIBAN() {
   fetch(API_BASE + '/api/bank?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) return;
       if (d.missing_iban_count > 0) {
         toast('يوجد ' + d.missing_iban_count + ' موظف بدون IBAN', 'err');
       } else {
         toast('جميع حسابات IBAN موجودة', 'ok');
       }
-    });
+    }).catch(e => console.error('payroll fetch error', e));
 }
 
 function bulkSaveAll() {
   fetch(API_BASE + '/api/bulk-save?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR, {method: 'POST', headers: {'X-CSRFToken': csrfToken()}})
     .then(r => r.json())
-    .then(d => toast(d.msg, d.ok ? 'ok' : 'err'));
+    .then(d => { if (!d || !d.ok) return; toast(d.msg, d.ok ? 'ok' : 'err'); }).catch(e => console.error('payroll fetch error', e));
 }
 
 function changePerPage(sel) {

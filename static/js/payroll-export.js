@@ -26,6 +26,7 @@ function emailPayslip(empId) {
   fetch(API_BASE + '/api/employee/' + empId + '?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok || !d.emp) { toast('فشل تحميل بيانات الراتب', 'err'); return; }
       const subject = encodeURIComponent('كشف الراتب الشهري - ' + d.emp.full_name);
       const body = encodeURIComponent(
         'السلام عليكم\n\n' +

@@ -9,13 +9,14 @@ function loadAnalytics() {
   fetch(API_BASE + '/api/analytics?month=' + CURRENT_MONTH + '&year=' + CURRENT_YEAR)
     .then(r => r.json())
     .then(d => {
+      if (!d || !d.ok) { console.warn('Analytics API returned error', d); return; }
       renderAnalyticsStats(d);
       renderRangeChart(d);
       renderDeptCompareChart(d);
       renderComponentPie(d);
       renderTrendChart(d);
       renderAnalyticsInsights(d);
-    });
+    }).catch(e => console.error('Analytics fetch failed', e));
 }
 
 function renderAnalyticsStats(d) {
