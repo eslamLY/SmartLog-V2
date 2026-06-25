@@ -9,6 +9,23 @@ from utils.constants import MAX_LOGIN_ATTEMPTS
 from utils.rate_limit import check_rate_limit, rate_limit_headers
 
 auth_bp = Blueprint('auth', __name__)
+import logging
+from functools import wraps
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
+
 
 
 @auth_bp.route('/manifest.json')
@@ -140,6 +157,7 @@ def force_password_change():
 
 
 @auth_bp.route('/api/health')
+@safe_api
 def api_health():
     import psutil
     mem = psutil.virtual_memory()
@@ -154,6 +172,7 @@ def api_health():
 
 
 @auth_bp.route('/api/init-db')
+@safe_api
 def init_database():
     if session.get('role') != 'admin':
         return jsonify({'ok': False, 'msg': 'غير مصرح به. يجب تسجيل الدخول كمسؤول.'}), 403
@@ -176,6 +195,4 @@ def init_database():
     except Exception as exc:
         import traceback
         return jsonify({'ok': False, 'msg': str(exc), 'traceback': traceback.format_exc()})
-
-
 

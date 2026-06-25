@@ -12,6 +12,22 @@ from models import db, Employee, Department, AttendanceLog, AuditLog, \
 from utils.decorators import admin_required
 from utils.helpers import validate_password_strength
 from utils.constants import DEPARTMENTS
+import logging
+from functools import wraps
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 admin_employees_bp = Blueprint('admin_employees', __name__)
 
@@ -528,6 +544,7 @@ def admin_permissions():
 
 @admin_employees_bp.route('/api/admin/permissions')
 @admin_required
+@safe_api
 def api_list_permissions():
     perms = Permission.query.all()
     return jsonify([{'id': p.id, 'name': p.name, 'code': p.code} for p in perms])
@@ -535,6 +552,7 @@ def api_list_permissions():
 
 @admin_employees_bp.route('/api/admin/roles')
 @admin_required
+@safe_api
 def api_list_roles():
     roles = Role.query.all()
     return jsonify([{'id': r.id, 'name': r.name,
@@ -543,6 +561,7 @@ def api_list_roles():
 
 @admin_employees_bp.route('/api/admin/roles', methods=['POST'])
 @admin_required
+@safe_api
 def api_create_role():
     d = request.get_json() or {}
     if not d.get('name'): return jsonify({'ok': False, 'msg': 'اسم الدور مطلوب.'})
@@ -555,6 +574,7 @@ def api_create_role():
 
 @admin_employees_bp.route('/api/admin/roles/<int:rid>/delete', methods=['POST'])
 @admin_required
+@safe_api
 def api_delete_role(rid):
     r = Role.query.get_or_404(rid)
     db.session.delete(r); db.session.commit()
@@ -563,6 +583,7 @@ def api_delete_role(rid):
 
 @admin_employees_bp.route('/api/admin/employees/permissions')
 @admin_required
+@safe_api
 def api_employee_permissions_list():
     emps = Employee.query.filter_by(is_active=True, deleted_at=None).all()
     result = []
@@ -577,6 +598,7 @@ def api_employee_permissions_list():
 
 @admin_employees_bp.route('/api/admin/employees/<int:eid>/permissions')
 @admin_required
+@safe_api
 def api_get_employee_permissions(eid):
     emp = Employee.query.get_or_404(eid)
     all_perms = Permission.query.all()
@@ -588,6 +610,7 @@ def api_get_employee_permissions(eid):
 
 @admin_employees_bp.route('/api/admin/employees/<int:eid>/permissions', methods=['POST'])
 @admin_required
+@safe_api
 def api_save_employee_permissions(eid):
     d = request.get_json() or {}
     EmployeePermission.query.filter_by(employee_id=eid).delete()

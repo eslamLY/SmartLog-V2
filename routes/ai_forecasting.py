@@ -4,8 +4,22 @@ from models import db, Employee
 from models.employee_enhanced import EmployeeLeaveRequest, EmployeePerformance, EmployeePromotion
 from services.ai_forecasting import AIForecastingEngine
 from utils.decorators import admin_required
+import logging
+from functools import wraps
 
+LOGGER = logging.getLogger(__name__)
 ai_forecast_bp = Blueprint('ai_forecast', __name__)
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 
 @ai_forecast_bp.route('/admin/ai-forecast')
@@ -21,6 +35,7 @@ def ai_forecast_page():
 # ─── MASTER ──────────────────────────────────────────────────
 
 @ai_forecast_bp.route('/api/ai/master-forecast')
+@safe_api
 @admin_required
 def master_forecast():
     forecast = AIForecastingEngine.get_master_forecast()
@@ -31,6 +46,7 @@ def master_forecast():
 # ─── CORE FORECASTS ──────────────────────────────────────────
 
 @ai_forecast_bp.route('/api/ai/leave-forecast')
+@safe_api
 @admin_required
 def leave_forecast():
     days = request.args.get('days', 30, type=int)
@@ -41,6 +57,7 @@ def leave_forecast():
 
 
 @ai_forecast_bp.route('/api/ai/absence-forecast')
+@safe_api
 @admin_required
 def absence_forecast():
     days = request.args.get('days', 14, type=int)
@@ -51,6 +68,7 @@ def absence_forecast():
 
 
 @ai_forecast_bp.route('/api/ai/shortage-forecast')
+@safe_api
 @admin_required
 def shortage_forecast():
     days = request.args.get('days', 30, type=int)
@@ -60,12 +78,14 @@ def shortage_forecast():
 
 
 @ai_forecast_bp.route('/api/ai/turnover-forecast')
+@safe_api
 @admin_required
 def turnover_forecast():
     return jsonify(AIForecastingEngine.get_turnover_summary())
 
 
 @ai_forecast_bp.route('/api/ai/hiring-forecast')
+@safe_api
 @admin_required
 def hiring_forecast():
     months = request.args.get('months', 6, type=int)
@@ -73,6 +93,7 @@ def hiring_forecast():
 
 
 @ai_forecast_bp.route('/api/ai/daily-forecast')
+@safe_api
 @admin_required
 def daily_forecast():
     target = request.args.get('date')
@@ -87,6 +108,7 @@ def daily_forecast():
 
 
 @ai_forecast_bp.route('/api/ai/calendar')
+@safe_api
 @admin_required
 def calendar_forecast():
     year = request.args.get('year', type=int) or date.today().year
@@ -95,6 +117,7 @@ def calendar_forecast():
 
 
 @ai_forecast_bp.route('/api/ai/recommendations')
+@safe_api
 @admin_required
 def recommendations():
     return jsonify({'recommendations': AIForecastingEngine.get_recommendations()})
@@ -103,18 +126,21 @@ def recommendations():
 # ─── PHASE 4: ADVANCED PREDICTION DETAILS ────────────────────
 
 @ai_forecast_bp.route('/api/ai/employee/<int:emp_id>/leave-detail')
+@safe_api
 @admin_required
 def employee_leave_detail(emp_id):
     return jsonify(AIForecastingEngine.get_employee_leave_detail(emp_id))
 
 
 @ai_forecast_bp.route('/api/ai/employee/<int:emp_id>/absence-detail')
+@safe_api
 @admin_required
 def employee_absence_detail(emp_id):
     return jsonify(AIForecastingEngine.get_employee_absence_detail(emp_id))
 
 
 @ai_forecast_bp.route('/api/ai/employee/<int:emp_id>/turnover-detail')
+@safe_api
 @admin_required
 def employee_turnover_detail(emp_id):
     return jsonify(AIForecastingEngine.get_employee_turnover_detail(emp_id))
@@ -123,6 +149,7 @@ def employee_turnover_detail(emp_id):
 # ─── PHASE 5: WHAT-IF SCENARIO ANALYSIS ────────────────────
 
 @ai_forecast_bp.route('/api/ai/simulate', methods=['POST'])
+@safe_api
 @admin_required
 def simulate_scenario():
     data = request.get_json(force=True) or {}
@@ -134,6 +161,7 @@ def simulate_scenario():
 # ─── PHASE 6: SMART RECOMMENDATIONS ───────────────────────
 
 @ai_forecast_bp.route('/api/ai/smart-recommendations')
+@safe_api
 @admin_required
 def smart_recommendations():
     return jsonify({'recommendations': AIForecastingEngine.get_smart_recommendations()})
@@ -142,6 +170,7 @@ def smart_recommendations():
 # ─── PHASE 7: HISTORICAL TRENDS ───────────────────────────
 
 @ai_forecast_bp.route('/api/ai/trends/leave')
+@safe_api
 @admin_required
 def leave_trends():
     months = request.args.get('months', 12, type=int)
@@ -149,6 +178,7 @@ def leave_trends():
 
 
 @ai_forecast_bp.route('/api/ai/trends/absence')
+@safe_api
 @admin_required
 def absence_trends():
     months = request.args.get('months', 6, type=int)
@@ -156,6 +186,7 @@ def absence_trends():
 
 
 @ai_forecast_bp.route('/api/ai/trends/turnover')
+@safe_api
 @admin_required
 def turnover_trends():
     months = request.args.get('months', 12, type=int)
@@ -163,6 +194,7 @@ def turnover_trends():
 
 
 @ai_forecast_bp.route('/api/ai/trends/staffing')
+@safe_api
 @admin_required
 def staffing_trends():
     months = request.args.get('months', 6, type=int)
@@ -172,6 +204,7 @@ def staffing_trends():
 # ─── PHASE 8: REAL-TIME MONITORING ─────────────────────────
 
 @ai_forecast_bp.route('/api/ai/live-status')
+@safe_api
 @admin_required
 def live_status():
     return jsonify(AIForecastingEngine.get_live_status())
@@ -180,6 +213,7 @@ def live_status():
 # ─── PHASE 9: EXPORT & REPORTING ─────────────────────────
 
 @ai_forecast_bp.route('/api/ai/report/csv')
+@safe_api
 @admin_required
 def report_csv():
     report_type = request.args.get('type', 'executive_summary')
@@ -193,6 +227,7 @@ def report_csv():
 
 
 @ai_forecast_bp.route('/api/ai/report/data')
+@safe_api
 @admin_required
 def report_data():
     report_type = request.args.get('type', 'executive_summary')
@@ -203,6 +238,7 @@ def report_data():
 # ─── PHASE 10: ML ACCURACY ─────────────────────────────────
 
 @ai_forecast_bp.route('/api/ai/model-performance')
+@safe_api
 @admin_required
 def model_performance():
     return jsonify(AIForecastingEngine.get_model_performance())

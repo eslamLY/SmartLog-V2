@@ -13,6 +13,22 @@ from models.employee_enhanced import (
 )
 from utils.decorators import admin_required
 from utils.helpers import validate_password_strength
+import logging
+from functools import wraps
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 employees_bp = Blueprint('employees_unified', __name__)
 
@@ -83,6 +99,7 @@ def employees_page():
 
 @employees_bp.route('/api/employees')
 @admin_required
+@safe_api
 def list_employees():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -140,6 +157,7 @@ def list_employees():
 
 @employees_bp.route('/api/employees/<int:emp_id>')
 @admin_required
+@safe_api
 def get_employee(emp_id):
     emp = EmployeeGovernment.query.get_or_404(emp_id)
     include_sensitive = request.args.get('sensitive', '0') == '1'
@@ -150,6 +168,7 @@ def get_employee(emp_id):
 
 @employees_bp.route('/api/employees', methods=['POST'])
 @admin_required
+@safe_api
 def create_employee():
     d = request.get_json(force=True) or {}
     errors = {}
@@ -336,6 +355,7 @@ def create_employee():
 
 @employees_bp.route('/api/employees/<int:emp_id>', methods=['PUT'])
 @admin_required
+@safe_api
 def update_employee(emp_id):
     emp = EmployeeGovernment.query.get_or_404(emp_id)
     d = request.get_json(force=True) or {}
@@ -505,6 +525,7 @@ def update_employee(emp_id):
 
 @employees_bp.route('/api/employees/<int:emp_id>', methods=['DELETE'])
 @admin_required
+@safe_api
 def delete_employee(emp_id):
     emp = EmployeeGovernment.query.get_or_404(emp_id)
     reason = (request.get_json(force=True) or {}).get('reason', '')
@@ -520,6 +541,7 @@ def delete_employee(emp_id):
 
 @employees_bp.route('/api/employees/search')
 @admin_required
+@safe_api
 def search_employees():
     q = request.args.get('q', '').strip()
     limit = request.args.get('limit', 20, type=int)
@@ -556,6 +578,7 @@ def search_employees():
 
 @employees_bp.route('/api/employees/import', methods=['POST'])
 @admin_required
+@safe_api
 def import_employees():
     if 'file' not in request.files:
         return jsonify({'ok': False, 'error': 'الملف مطلوب'}), 400
@@ -627,6 +650,7 @@ def import_employees():
 
 @employees_bp.route('/api/employees/stats')
 @admin_required
+@safe_api
 def employee_stats():
     total = EmployeeGovernment.query.filter(
         EmployeeGovernment.deleted_at.is_(None)
@@ -656,6 +680,7 @@ def employee_stats():
 
 @employees_bp.route('/api/employees/next-id')
 @admin_required
+@safe_api
 def next_employee_id():
     return jsonify({'ok': True, 'id': _auto_username()})
 
@@ -664,6 +689,7 @@ def next_employee_id():
 
 @employees_bp.route('/api/employees/check-duplicate', methods=['POST'])
 @admin_required
+@safe_api
 def check_duplicate():
     d = request.get_json() or {}
     nid = (d.get('national_id') or '').strip()
@@ -682,6 +708,7 @@ def check_duplicate():
 
 @employees_bp.route('/api/employees/<int:emp_id>/toggle', methods=['POST'])
 @admin_required
+@safe_api
 def toggle_employee(emp_id):
     emp = EmployeeGovernment.query.get_or_404(emp_id)
     emp.is_active = not emp.is_active
@@ -694,6 +721,7 @@ def toggle_employee(emp_id):
 
 @employees_bp.route('/api/employees/<int:emp_id>/restore', methods=['POST'])
 @admin_required
+@safe_api
 def restore_employee(emp_id):
     emp = EmployeeGovernment.query.get_or_404(emp_id)
     emp.deleted_at = None
@@ -708,6 +736,7 @@ def restore_employee(emp_id):
 
 @employees_bp.route('/api/employees/<int:emp_id>/reset-password', methods=['POST'])
 @admin_required
+@safe_api
 def reset_password(emp_id):
     emp = EmployeeGovernment.query.get_or_404(emp_id)
     d = request.get_json() or {}
@@ -730,6 +759,7 @@ MAX_PHOTO_SIZE = 2 * 1024 * 1024
 
 @employees_bp.route('/api/employees/<int:emp_id>/photo', methods=['POST'])
 @admin_required
+@safe_api
 def upload_photo(emp_id):
     emp = EmployeeGovernment.query.get_or_404(emp_id)
     if 'photo' not in request.files:

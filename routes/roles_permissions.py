@@ -19,7 +19,23 @@ from services.audit_service import (
     log_delegation, log_delegation_revoke,
     get_audit_logs, get_entity_history
 )
+from functools import wraps
+import logging
 from utils.decorators import login_required, admin_required
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 rbac_bp = Blueprint('rbac', __name__, url_prefix='/admin/rbac')
 
@@ -50,12 +66,14 @@ def analytics_page():
 
 @rbac_bp.route('/api/roles', methods=['GET'])
 @login_required
+@safe_api
 def api_list_roles():
     roles = RbacRole.query.order_by(RbacRole.name).all()
     return jsonify({'ok': True, 'roles': [r.to_dict() for r in roles]})
 
 @rbac_bp.route('/api/roles', methods=['POST'])
 @login_required
+@safe_api
 def api_create_role():
     data = request.get_json()
     role = create_role(data, request.user_id)
@@ -65,6 +83,7 @@ def api_create_role():
 
 @rbac_bp.route('/api/roles/<int:role_id>', methods=['PUT'])
 @login_required
+@safe_api
 def api_update_role(role_id):
     data = request.get_json()
     role = update_role(role_id, data, request.user_id)
@@ -72,6 +91,7 @@ def api_update_role(role_id):
 
 @rbac_bp.route('/api/roles/<int:role_id>', methods=['DELETE'])
 @login_required
+@safe_api
 def api_delete_role(role_id):
     try:
         role = RbacRole.query.get_or_404(role_id)
@@ -85,18 +105,21 @@ def api_delete_role(role_id):
 
 @rbac_bp.route('/api/roles/<int:role_id>', methods=['GET'])
 @login_required
+@safe_api
 def api_get_role(role_id):
     role = RbacRole.query.get_or_404(role_id)
     return jsonify({'ok': True, 'role': role.to_dict()})
 
 @rbac_bp.route('/api/permissions', methods=['GET'])
 @login_required
+@safe_api
 def api_list_permissions():
     perms = list_permissions()
     return jsonify({'ok': True, 'permissions': [p.to_dict() for p in perms]})
 
 @rbac_bp.route('/api/permissions', methods=['POST'])
 @login_required
+@safe_api
 def api_create_permission():
     data = request.get_json()
     perm = RbacPermission(
@@ -115,6 +138,7 @@ def api_create_permission():
 
 @rbac_bp.route('/api/permissions/<int:perm_id>', methods=['PUT'])
 @login_required
+@safe_api
 def api_update_permission(perm_id):
     perm = RbacPermission.query.get_or_404(perm_id)
     data = request.get_json()
@@ -126,6 +150,7 @@ def api_update_permission(perm_id):
 
 @rbac_bp.route('/api/assignments', methods=['GET'])
 @login_required
+@safe_api
 def api_list_assignments():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -136,6 +161,7 @@ def api_list_assignments():
 
 @rbac_bp.route('/api/assignments', methods=['POST'])
 @login_required
+@safe_api
 def api_assign_role():
     data = request.get_json()
     er = assign_role(data, request.user_id)
@@ -145,6 +171,7 @@ def api_assign_role():
 
 @rbac_bp.route('/api/assignments/<int:assignment_id>/revoke', methods=['POST'])
 @login_required
+@safe_api
 def api_revoke_role(assignment_id):
     er = RbacEmployeeRole.query.get_or_404(assignment_id)
     revoke_role(assignment_id, request.user_id)
@@ -154,6 +181,7 @@ def api_revoke_role(assignment_id):
 
 @rbac_bp.route('/api/assignments/bulk', methods=['POST'])
 @login_required
+@safe_api
 def api_bulk_assign():
     data = request.get_json()
     results = bulk_assign_roles(data, request.user_id)
@@ -163,6 +191,7 @@ def api_bulk_assign():
 
 @rbac_bp.route('/api/employee-permissions/<int:employee_id>', methods=['GET'])
 @login_required
+@safe_api
 def api_employee_permissions(employee_id):
     perms = get_employee_permissions(employee_id)
     roles = get_employee_roles(employee_id)
@@ -170,6 +199,7 @@ def api_employee_permissions(employee_id):
 
 @rbac_bp.route('/api/permission-check', methods=['POST'])
 @login_required
+@safe_api
 def api_check_permission():
     data = request.get_json()
     result = check_permission(data['employee_id'], data['permission_code'])
@@ -177,6 +207,7 @@ def api_check_permission():
 
 @rbac_bp.route('/api/permission-matrix', methods=['POST'])
 @login_required
+@safe_api
 def api_permission_matrix():
     data = request.get_json()
     result = get_permission_matrix(data['role_ids'])
@@ -184,6 +215,7 @@ def api_permission_matrix():
 
 @rbac_bp.route('/api/audit-logs', methods=['GET'])
 @login_required
+@safe_api
 def api_audit_logs():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -194,6 +226,7 @@ def api_audit_logs():
 
 @rbac_bp.route('/api/permission-requests', methods=['GET'])
 @login_required
+@safe_api
 def api_list_requests():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -204,6 +237,7 @@ def api_list_requests():
 
 @rbac_bp.route('/api/permission-requests', methods=['POST'])
 @login_required
+@safe_api
 def api_create_request():
     data = request.get_json()
     pr = create_permission_request(data, request.user_id)
@@ -213,6 +247,7 @@ def api_create_request():
 
 @rbac_bp.route('/api/permission-requests/<int:req_id>/review', methods=['POST'])
 @login_required
+@safe_api
 def api_review_request(req_id):
     data = request.get_json()
     pr = review_permission_request(req_id, data, request.user_id)
@@ -222,12 +257,14 @@ def api_review_request(req_id):
 
 @rbac_bp.route('/api/delegations', methods=['GET'])
 @login_required
+@safe_api
 def api_list_delegations():
     delegations = RbacDelegation.query.order_by(RbacDelegation.created_at.desc()).all()
     return jsonify({'ok': True, 'delegations': [d.to_dict() for d in delegations]})
 
 @rbac_bp.route('/api/delegations', methods=['POST'])
 @login_required
+@safe_api
 def api_create_delegation():
     data = request.get_json()
     dlg = create_delegation(data, request.user_id)
@@ -237,6 +274,7 @@ def api_create_delegation():
 
 @rbac_bp.route('/api/delegations/<int:dlg_id>/revoke', methods=['POST'])
 @login_required
+@safe_api
 def api_revoke_delegation(dlg_id):
     dlg = RbacDelegation.query.get_or_404(dlg_id)
     revoke_delegation(dlg_id)
@@ -246,6 +284,7 @@ def api_revoke_delegation(dlg_id):
 
 @rbac_bp.route('/api/analytics', methods=['GET'])
 @login_required
+@safe_api
 def api_analytics():
     total_roles = RbacRole.query.count()
     total_perms = RbacPermission.query.count()
@@ -273,12 +312,14 @@ def api_analytics():
 
 @rbac_bp.route('/api/templates', methods=['GET'])
 @login_required
+@safe_api
 def api_list_templates():
     tmpls = RbacRoleTemplate.query.all()
     return jsonify({'ok': True, 'templates': [t.to_dict() for t in tmpls]})
 
 @rbac_bp.route('/api/templates', methods=['POST'])
 @login_required
+@safe_api
 def api_create_template():
     data = request.get_json()
     tmpl = RbacRoleTemplate(
@@ -294,6 +335,7 @@ def api_create_template():
 
 @rbac_bp.route('/api/templates/<int:tmpl_id>/apply', methods=['POST'])
 @login_required
+@safe_api
 def api_apply_template(tmpl_id):
     tmpl = RbacRoleTemplate.query.get_or_404(tmpl_id)
     data = request.get_json()
@@ -311,6 +353,7 @@ def api_apply_template(tmpl_id):
 
 @rbac_bp.route('/api/employees', methods=['GET'])
 @login_required
+@safe_api
 def api_employees_list():
     employees = Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
     return jsonify({
@@ -323,6 +366,7 @@ def api_employees_list():
 
 @rbac_bp.route('/api/departments', methods=['GET'])
 @login_required
+@safe_api
 def api_departments_list():
     from models.department import Department
     depts = Department.query.order_by(Department.name_ar).all()

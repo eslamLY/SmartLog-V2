@@ -9,15 +9,27 @@ from werkzeug.utils import secure_filename
 from models import db, ArchivedDocument, DocumentAuditLog, Notification
 from utils.decorators import admin_required, login_required
 from services.document_service import generate_unique_reference, generate_document_pdf
-
+from functools import wraps
 logger = logging.getLogger(__name__)
 api_documents_bp = Blueprint('api_documents_bp', __name__)
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
 @api_documents_bp.route('/api/documents/upload', methods=['POST'])
+@safe_api
 @admin_required
 def upload_document():
     d = request.get_json(silent=True)
@@ -140,6 +152,7 @@ def upload_document():
 
 
 @api_documents_bp.route('/api/documents/search')
+@safe_api
 @login_required
 def search_documents():
     user_role = session.get('role', '')
@@ -222,6 +235,7 @@ def search_documents():
 
 
 @api_documents_bp.route('/api/documents/download-pdf/<int:doc_id>')
+@safe_api
 @login_required
 def download_document_pdf(doc_id):
     doc = ArchivedDocument.query.get(doc_id)
@@ -253,6 +267,7 @@ def download_document_pdf(doc_id):
 
 
 @api_documents_bp.route('/api/documents/<int:doc_id>/edit', methods=['PUT'])
+@safe_api
 @admin_required
 def edit_document(doc_id):
     doc = ArchivedDocument.query.get_or_404(doc_id)
@@ -311,6 +326,7 @@ def edit_document(doc_id):
 
 
 @api_documents_bp.route('/api/documents/<int:doc_id>/delete', methods=['POST'])
+@safe_api
 @admin_required
 def delete_document(doc_id):
     doc = ArchivedDocument.query.get_or_404(doc_id)
@@ -324,6 +340,7 @@ def delete_document(doc_id):
 
 
 @api_documents_bp.route('/api/documents/<int:doc_id>/download')
+@safe_api
 @login_required
 def download_original_document(doc_id):
     doc = ArchivedDocument.query.get_or_404(doc_id)
@@ -349,6 +366,7 @@ def download_original_document(doc_id):
 
 
 @api_documents_bp.route('/api/documents/<int:doc_id>/audit')
+@safe_api
 @admin_required
 def document_audit_log(doc_id):
     doc = ArchivedDocument.query.get_or_404(doc_id)
@@ -368,6 +386,7 @@ def document_audit_log(doc_id):
 
 
 @api_documents_bp.route('/api/documents/<int:doc_id>/versions')
+@safe_api
 @admin_required
 def document_versions(doc_id):
     doc = ArchivedDocument.query.get_or_404(doc_id)
@@ -390,6 +409,7 @@ def document_versions(doc_id):
 
 
 @api_documents_bp.route('/api/documents/check-expiry', methods=['POST'])
+@safe_api
 @admin_required
 def check_document_expiry():
     today = date.today()

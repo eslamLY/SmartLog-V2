@@ -15,6 +15,22 @@ from utils.constants import MONTH_NAMES, DAY_NAMES
 from services.geofence_service import GeofenceService
 from services.location_alerts import LocationAlertService
 from services.movement_analytics import MovementAnalyticsService
+import logging
+from functools import wraps
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 gps_bp = Blueprint('gps_bp', __name__)
 
@@ -102,6 +118,7 @@ def location_analytics():
 
 @gps_bp.route('/api/admin/gps/live')
 @admin_required
+@safe_api
 def api_gps_live():
     since = request.args.get('since', type=int, default=0)
     employee_id = request.args.get('employee_id', type=int)
@@ -129,6 +146,7 @@ def api_gps_live():
 
 @gps_bp.route('/api/admin/gps/history')
 @admin_required
+@safe_api
 def api_gps_history():
     employee_id = request.args.get('employee_id', type=int)
     date_str = request.args.get('date')
@@ -159,6 +177,7 @@ def api_gps_history():
 
 @gps_bp.route('/api/admin/geofence/zones')
 @admin_required
+@safe_api
 def api_geofence_zones():
     zones = GeofenceZone.query.order_by(GeofenceZone.created_at.desc()).all()
     data = []
@@ -198,6 +217,7 @@ def api_geofence_zones():
 
 @gps_bp.route('/api/admin/geofence/zones', methods=['POST'])
 @admin_required
+@safe_api
 def api_create_geofence_zone():
     body = request.get_json(silent=True) or {}
     errors = []
@@ -251,6 +271,7 @@ def api_create_geofence_zone():
 
 @gps_bp.route('/api/admin/geofence/zones/<int:zone_id>', methods=['PUT'])
 @admin_required
+@safe_api
 def api_update_geofence_zone(zone_id):
     zone = GeofenceZone.query.get_or_404(zone_id)
     body = request.get_json(silent=True) or {}
@@ -307,6 +328,7 @@ def api_update_geofence_zone(zone_id):
 
 @gps_bp.route('/api/admin/geofence/zones/<int:zone_id>', methods=['DELETE'])
 @admin_required
+@safe_api
 def api_delete_geofence_zone(zone_id):
     zone = GeofenceZone.query.get_or_404(zone_id)
     name = zone.name
@@ -325,6 +347,7 @@ def api_delete_geofence_zone(zone_id):
 
 @gps_bp.route('/api/admin/geofence/events')
 @admin_required
+@safe_api
 def api_geofence_events():
     zone_id = request.args.get('zone_id', type=int)
     employee_id = request.args.get('employee_id', type=int)
@@ -354,6 +377,7 @@ def api_geofence_events():
 
 @gps_bp.route('/api/admin/alerts')
 @admin_required
+@safe_api
 def api_alerts():
     alert_type = request.args.get('alert_type')
     severity = request.args.get('severity')
@@ -394,6 +418,7 @@ def api_alerts():
 
 @gps_bp.route('/api/admin/alerts/<int:alert_id>/acknowledge', methods=['POST'])
 @admin_required
+@safe_api
 def api_acknowledge_alert(alert_id):
     alert = AlertLog.query.get_or_404(alert_id)
     body = request.get_json(silent=True) or {}
@@ -407,6 +432,7 @@ def api_acknowledge_alert(alert_id):
 
 @gps_bp.route('/api/admin/alerts/<int:alert_id>/snooze', methods=['POST'])
 @admin_required
+@safe_api
 def api_snooze_alert(alert_id):
     alert = AlertLog.query.get_or_404(alert_id)
     body = request.get_json(silent=True) or {}
@@ -418,6 +444,7 @@ def api_snooze_alert(alert_id):
 
 @gps_bp.route('/api/admin/analytics/movement')
 @admin_required
+@safe_api
 def api_movement_analytics():
     employee_id = request.args.get('employee_id', type=int)
     period = request.args.get('period', 'week')
@@ -428,6 +455,7 @@ def api_movement_analytics():
 
 @gps_bp.route('/api/admin/analytics/heatmap')
 @admin_required
+@safe_api
 def api_heatmap_data():
     date_str = request.args.get('date')
     employee_id = request.args.get('employee_id', type=int)
@@ -459,6 +487,7 @@ def api_heatmap_data():
 
 @gps_bp.route('/api/admin/analytics/stats')
 @admin_required
+@safe_api
 def api_analytics_stats():
     period = request.args.get('period', 'week')
     service = MovementAnalyticsService()
@@ -468,6 +497,7 @@ def api_analytics_stats():
 
 @gps_bp.route('/api/admin/gps/audit-log')
 @admin_required
+@safe_api
 def api_gps_audit_log():
     limit = request.args.get('limit', type=int, default=100)
     logs = (LocationAuditLog.query
@@ -492,6 +522,7 @@ def api_gps_audit_log():
 
 @gps_bp.route('/api/admin/gps/trusted-locations')
 @admin_required
+@safe_api
 def api_trusted_locations():
     employee_id = request.args.get('employee_id', type=int)
     query = TrustedLocation.query.filter_by(is_active=True)
@@ -516,6 +547,7 @@ def api_trusted_locations():
 
 @gps_bp.route('/api/admin/gps/trusted-locations', methods=['POST'])
 @admin_required
+@safe_api
 def api_create_trusted_location():
     body = request.get_json(silent=True) or {}
     if not body.get('name') or not body.get('lat') or not body.get('lng'):
@@ -535,6 +567,7 @@ def api_create_trusted_location():
 
 @gps_bp.route('/api/admin/gps/trusted-locations/<int:loc_id>', methods=['DELETE'])
 @admin_required
+@safe_api
 def api_delete_trusted_location(loc_id):
     loc = TrustedLocation.query.get_or_404(loc_id)
     db.session.delete(loc)
@@ -544,6 +577,7 @@ def api_delete_trusted_location(loc_id):
 
 @gps_bp.route('/api/admin/gps/policies')
 @admin_required
+@safe_api
 def api_tracking_policies():
     policies = TrackingPolicy.query.order_by(TrackingPolicy.created_at.desc()).all()
     data = []
@@ -566,6 +600,7 @@ def api_tracking_policies():
 
 @gps_bp.route('/api/admin/gps/policies', methods=['POST'])
 @admin_required
+@safe_api
 def api_create_tracking_policy():
     body = request.get_json(silent=True) or {}
     policy = TrackingPolicy(
@@ -586,6 +621,7 @@ def api_create_tracking_policy():
 
 @gps_bp.route('/api/admin/gps/policies/<int:policy_id>', methods=['PUT'])
 @admin_required
+@safe_api
 def api_update_tracking_policy(policy_id):
     policy = TrackingPolicy.query.get_or_404(policy_id)
     body = request.get_json(silent=True) or {}
@@ -603,6 +639,7 @@ def api_update_tracking_policy(policy_id):
 
 @gps_bp.route('/api/admin/gps/check-geofence', methods=['POST'])
 @admin_required
+@safe_api
 def api_check_geofence():
     body = request.get_json(silent=True) or {}
     lat = body.get('lat')
@@ -616,6 +653,7 @@ def api_check_geofence():
 
 @gps_bp.route('/api/admin/gps/photo-verifications')
 @admin_required
+@safe_api
 def api_photo_verifications():
     limit = request.args.get('limit', type=int, default=50)
     pending_only = request.args.get('pending', type=bool, default=False)
@@ -643,6 +681,7 @@ def api_photo_verifications():
 
 @gps_bp.route('/api/admin/gps/photo-verifications/<int:photo_id>/verify', methods=['POST'])
 @admin_required
+@safe_api
 def api_verify_photo(photo_id):
     photo = PhotoVerification.query.get_or_404(photo_id)
     body = request.get_json(silent=True) or {}
@@ -655,6 +694,7 @@ def api_verify_photo(photo_id):
 
 @gps_bp.route('/api/admin/gps/batch-delete', methods=['POST'])
 @admin_required
+@safe_api
 def api_batch_delete_logs():
     body = request.get_json(silent=True) or {}
     ids = body.get('ids', [])

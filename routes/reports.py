@@ -13,7 +13,23 @@ from models.misc import LeaveRequest
 from models.shifts import ShiftType
 from models.department import Department
 from services.payroll_service import PayrollService
+from functools import wraps
+import logging
 from utils.decorators import admin_required
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 admin_reports_bp = Blueprint('admin_reports', __name__, url_prefix='/admin/reports')
 
@@ -41,6 +57,7 @@ def reports_page():
 
 @admin_reports_bp.route('/api/data')
 @admin_required
+@safe_api
 def api_report_data():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -116,6 +133,7 @@ def api_report_data():
 
 @admin_reports_bp.route('/api/filters')
 @admin_required
+@safe_api
 def api_report_filters():
     departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     shifts = ShiftType.query.filter_by(is_active=True).all()
@@ -135,6 +153,7 @@ def api_report_filters():
 
 @admin_reports_bp.route('/api/employees')
 @admin_required
+@safe_api
 def api_report_employees():
     q = request.args.get('q', '').strip()
     query = Employee.query.filter_by(is_active=True, deleted_at=None)
@@ -146,6 +165,7 @@ def api_report_employees():
 
 @admin_reports_bp.route('/api/comparison')
 @admin_required
+@safe_api
 def api_report_comparison():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -163,6 +183,7 @@ def api_report_comparison():
 
 @admin_reports_bp.route('/api/charts')
 @admin_required
+@safe_api
 def api_report_charts():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -258,6 +279,7 @@ def api_report_charts():
 
 @admin_reports_bp.route('/api/corrections', methods=['GET'])
 @admin_required
+@safe_api
 def api_list_corrections():
     corrections = ReportCorrection.query.order_by(ReportCorrection.created_at.desc()).limit(50).all()
     return jsonify({'corrections': [c.to_dict() for c in corrections]})
@@ -265,6 +287,7 @@ def api_list_corrections():
 
 @admin_reports_bp.route('/api/corrections/create', methods=['POST'])
 @admin_required
+@safe_api
 def api_create_correction():
     data = request.get_json() or {}
     employee_id = data.get('employee_id')
@@ -300,6 +323,7 @@ def api_create_correction():
 
 @admin_reports_bp.route('/api/corrections/<int:c_id>/review', methods=['POST'])
 @admin_required
+@safe_api
 def api_review_correction(c_id):
     c = ReportCorrection.query.get_or_404(c_id)
     data = request.get_json() or {}
@@ -329,6 +353,7 @@ def api_review_correction(c_id):
 
 @admin_reports_bp.route('/api/bonus/<int:employee_id>', methods=['POST'])
 @admin_required
+@safe_api
 def api_set_bonus(employee_id):
     data = request.get_json() or {}
     amount = float(data.get('amount', 0))
@@ -337,6 +362,7 @@ def api_set_bonus(employee_id):
 
 @admin_reports_bp.route('/api/scheduled', methods=['GET'])
 @admin_required
+@safe_api
 def api_list_scheduled():
     reports = ScheduledReport.query.order_by(ScheduledReport.created_at.desc()).all()
     return jsonify({'reports': [r.to_dict() for r in reports]})
@@ -344,6 +370,7 @@ def api_list_scheduled():
 
 @admin_reports_bp.route('/api/scheduled/create', methods=['POST'])
 @admin_required
+@safe_api
 def api_create_scheduled():
     data = request.get_json() or {}
     name = data.get('name', '').strip()
@@ -368,6 +395,7 @@ def api_create_scheduled():
 
 @admin_reports_bp.route('/api/scheduled/<int:sr_id>/toggle', methods=['POST'])
 @admin_required
+@safe_api
 def api_toggle_scheduled(sr_id):
     sr = ScheduledReport.query.get_or_404(sr_id)
     sr.is_active = not sr.is_active
@@ -377,6 +405,7 @@ def api_toggle_scheduled(sr_id):
 
 @admin_reports_bp.route('/api/scheduled/<int:sr_id>/delete', methods=['POST'])
 @admin_required
+@safe_api
 def api_delete_scheduled(sr_id):
     sr = ScheduledReport.query.get_or_404(sr_id)
     db.session.delete(sr)
@@ -386,6 +415,7 @@ def api_delete_scheduled(sr_id):
 
 @admin_reports_bp.route('/api/scheduled/<int:sr_id>/run-now', methods=['POST'])
 @admin_required
+@safe_api
 def api_run_scheduled(sr_id):
     sr = ScheduledReport.query.get_or_404(sr_id)
     sr.last_run_at = datetime.now(UTC)
@@ -410,6 +440,7 @@ def api_run_scheduled(sr_id):
 
 @admin_reports_bp.route('/api/export/pdf')
 @admin_required
+@safe_api
 def api_export_pdf():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -428,6 +459,7 @@ def api_export_pdf():
 
 @admin_reports_bp.route('/api/export/excel')
 @admin_required
+@safe_api
 def api_export_excel():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -474,6 +506,7 @@ def api_export_excel():
 
 @admin_reports_bp.route('/api/mark-anomaly', methods=['POST'])
 @admin_required
+@safe_api
 def api_mark_anomaly():
     data = request.get_json() or {}
     employee_id = data.get('employee_id')
@@ -499,6 +532,7 @@ def api_mark_anomaly():
 
 @admin_reports_bp.route('/api/export-whatsapp')
 @admin_required
+@safe_api
 def api_export_whatsapp():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month

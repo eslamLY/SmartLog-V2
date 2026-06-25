@@ -12,7 +12,23 @@ from models.attendance import AttendanceLog
 from models.misc import LeaveRequest
 from models.shifts import ShiftType, ShiftSchedule
 from models.department import Department
+from functools import wraps
+import logging
 from utils.decorators import admin_required
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 reports_attendance_bp = Blueprint('reports_attendance', __name__, url_prefix='/admin/reports/attendance')
 
@@ -230,6 +246,7 @@ def reports_page():
 
 @reports_attendance_bp.route('/api/filters')
 @admin_required
+@safe_api
 def api_filters():
     departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     employees = Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
@@ -245,6 +262,7 @@ def api_filters():
 
 @reports_attendance_bp.route('/api/summary')
 @admin_required
+@safe_api
 def api_summary():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -351,6 +369,7 @@ def api_summary():
 
 @reports_attendance_bp.route('/api/charts')
 @admin_required
+@safe_api
 def api_charts():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -489,6 +508,7 @@ def api_charts():
 
 @reports_attendance_bp.route('/api/table')
 @admin_required
+@safe_api
 def api_table():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -550,6 +570,7 @@ def api_table():
 
 @reports_attendance_bp.route('/api/employee/<int:eid>/detail')
 @admin_required
+@safe_api
 def api_employee_detail(eid):
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -583,6 +604,7 @@ def api_employee_detail(eid):
 
 @reports_attendance_bp.route('/api/stats')
 @admin_required
+@safe_api
 def api_statistics():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -668,6 +690,7 @@ def api_statistics():
 
 @reports_attendance_bp.route('/api/anomalies')
 @admin_required
+@safe_api
 def api_anomalies():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -763,6 +786,7 @@ def api_anomalies():
 
 @reports_attendance_bp.route('/api/insights')
 @admin_required
+@safe_api
 def api_insights():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month
@@ -913,6 +937,7 @@ def api_insights():
 
 @reports_attendance_bp.route('/api/compare')
 @admin_required
+@safe_api
 def api_compare():
     compare_type = request.args.get('type', 'periods')
     dept_id = request.args.get('department_id', type=int)
@@ -997,6 +1022,7 @@ def api_compare():
 
 @reports_attendance_bp.route('/api/export')
 @admin_required
+@safe_api
 def api_export():
     export_type = request.args.get('type', 'json')
     year = request.args.get('year', type=int) or date.today().year
@@ -1051,6 +1077,7 @@ def api_export():
 
 @reports_attendance_bp.route('/api/recommendations')
 @admin_required
+@safe_api
 def api_recommendations():
     year = request.args.get('year', type=int) or date.today().year
     month = request.args.get('month', type=int) or date.today().month

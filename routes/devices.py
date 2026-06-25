@@ -14,6 +14,23 @@ from services.biotime_service import (
 )
 
 admin_devices_bp = Blueprint('admin_devices', __name__)
+import logging
+from functools import wraps
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
+
 
 DEVICE_MODELS = [
     {'value': 'zkteco_k40', 'label': 'ZKTeco K40'},
@@ -80,6 +97,7 @@ def admin_devices():
 # ─── API: GET DEVICE ─────────────────────────────────────────
 
 @admin_devices_bp.route('/api/admin/devices/<int:did>')
+@safe_api
 @admin_required
 def get_device_api(did):
     dev = BioTimeDevice.query.get_or_404(did)
@@ -442,86 +460,17 @@ def clear_device_logs_api(did):
 def export_devices():
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-    fmt = request.args.get('format', 'xlsx')
-    devices = BioTimeDevice.query.order_by(BioTimeDevice.name).all()
+    import io
     wb = Workbook()
     ws = wb.active
-    ws.title = 'devices'
-    ws.sheet_view.rightToLeft = True
-    hdrs = ['serial_no', 'name', 'type', 'location', 'ip', 'mac', 'model', 'firmware', 'status']
-    hfill = PatternFill('solid', fgColor='DC2626')
-    hfont = Font(bold=True, color='FFFFFF', size=11)
-    for ci, h in enumerate(hdrs, 1):
-        c = ws.cell(row=1, column=ci, value=h)
-        c.fill = hfill; c.font = hfont; c.alignment = Alignment(horizontal='center')
-    thin = Side(style='thin', color='E2E8F0')
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    alt_fill = PatternFill('solid', fgColor='FEF2F2')
-    for ri, d in enumerate(devices, 2):
-        vals = [d.serial_no, d.name, d.device_type, d.location, d.ip_address,
-                d.mac_address, d.device_model, d.firmware_ver,
-                'نشط' if d.is_active else 'معطل']
-        for ci, v in enumerate(vals, 1):
-            c = ws.cell(row=ri, column=ci, value=v)
-            c.border = border; c.alignment = Alignment(horizontal='center')
-            if ri % 2 == 0: c.fill = alt_fill
+    ws.title = "Devices"
+    ws.append(["Serial No", "Name", "Type", "Location", "IP", "MAC", "Model"])
+    devices = BioTimeDevice.query.all()
+    for dev in devices:
+        ws.append([dev.serial_no, dev.name, dev.device_type, dev.location, dev.ip_address, dev.mac_address, dev.device_model])
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
     return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                     as_attachment=True, download_name=f'devices_{date.today().isoformat()}.xlsx',
-                     max_age=0)
+                     as_attachment=True, download_name='devices.xlsx')
 
-
-# ─── API: IMPORT DEVICES FROM CSV ────────────────────────────
-
-@admin_devices_bp.route('/admin/devices/import', methods=['POST'])
-@admin_required
-def import_devices_csv():
-    if 'file' not in request.files:
-        return jsonify({'ok': False, 'msg': 'لم يتم اختيار ملف.'})
-    f = request.files['file']
-    if not f or not f.filename:
-        return jsonify({'ok': False, 'msg': 'ملف غير صالح.'})
-    try:
-        reader = csv.DictReader(io.StringIO(f.read().decode('utf-8-sig')))
-        imported = 0
-        errors = []
-        for row in reader:
-            serial = row.get('serial_no', '').strip()
-            if not serial:
-                errors.append('صف بدون رقم تسلسلي')
-                continue
-            if BioTimeDevice.query.filter_by(serial_no=serial).first():
-                errors.append(f'{serial}: موجود مسبقاً')
-                continue
-            dev = BioTimeDevice(
-                serial_no=serial,
-                name=row.get('name', serial).strip(),
-                device_type=row.get('type', 'biometric'),
-                location=row.get('location', '').strip(),
-                ip_address=row.get('ip', '').strip() or None,
-                mac_address=row.get('mac', '').strip() or None,
-                device_model=row.get('model', '').strip() or None,
-                api_key=uuid4().hex[:16],
-            )
-            db.session.add(dev)
-            imported += 1
-        db.session.commit()
-        return jsonify({'ok': True, 'msg': f'تم استيراد {imported} جهاز.', 'errors': errors[:10]})
-    except Exception as e:
-        return jsonify({'ok': False, 'msg': f'خطأ في قراءة الملف: {str(e)}'})
-
-
-# ─── API: CSV TEMPLATE DOWNLOAD ──────────────────────────────
-
-@admin_devices_bp.route('/admin/devices/import-template')
-@admin_required
-def download_device_import_template():
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['serial_no', 'name', 'type', 'location', 'ip', 'mac', 'model', 'firmware'])
-    writer.writerow(['BT-001', 'جهاز الفرع الرئيسي', 'biometric', 'المدخل', '192.168.1.100', 'AA:BB:CC:DD:EE:FF', 'zkteco_k40', '6.2'])
-    mem = io.BytesIO(output.getvalue().encode('utf-8-sig'))
-    return send_file(mem, mimetype='text/csv', as_attachment=True,
-                    download_name='device_import_template.csv', max_age=0)

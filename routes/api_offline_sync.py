@@ -9,6 +9,23 @@ from models.notifications import Notification
 from models.attendance_review import AttendanceReviewQueue
 
 api_offline_sync_bp = Blueprint('api_offline_sync', __name__)
+import logging
+from functools import wraps
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
+
 
 API_TOKENS = {}
 
@@ -107,6 +124,7 @@ def check_duplicate(employee_id, client_timestamp, record_type):
     return None
 
 @api_offline_sync_bp.route('/api/attendance/offline-sync', methods=['POST'])
+@safe_api
 def offline_sync():
     now = datetime.now(UTC)
     emp = validate_token()
@@ -397,6 +415,7 @@ def offline_sync():
 
 
 @api_offline_sync_bp.route('/api/auth/token', methods=['POST'])
+@safe_api
 def issue_token():
     data = request.get_json(silent=True) or {}
     username = data.get('username', '').strip().upper()
@@ -404,6 +423,7 @@ def issue_token():
     device_id = data.get('device_id', '')
 
     from werkzeug.security import check_password_hash
+
     emp = Employee.query.filter_by(username=username, is_active=True).first()
     if not emp or not check_password_hash(emp.password_hash, password):
         return jsonify({'ok': False, 'msg': 'بيانات خاطئة'}), 401
@@ -424,6 +444,7 @@ def issue_token():
 
 
 @api_offline_sync_bp.route('/api/auth/validate-token', methods=['GET'])
+@safe_api
 def check_token():
     emp = validate_token()
     if not emp:
@@ -435,3 +456,4 @@ def check_token():
         'department': emp.department,
         'token_expires_in_days': 30,
     })
+
