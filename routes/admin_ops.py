@@ -23,6 +23,18 @@ from services.notification_service import NotificationService
 admin_ops_bp = Blueprint('admin_ops_bp', __name__)
 logger = logging.getLogger(__name__)
 
+from functools import wraps
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 # ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
 
@@ -47,6 +59,7 @@ def admin_dashboard():
 
 @admin_ops_bp.route('/api/admin/ai-predictor')
 @admin_required
+@safe_api
 def ai_predictor():
     today = date.today()
     depts = Department.query.filter_by(is_active=True).all()
@@ -236,6 +249,7 @@ def sync_device(did):
 
 
 @admin_ops_bp.route('/api/hardware/punch', methods=['POST'])
+@safe_api
 def hardware_punch():
     allowed, remaining = check_rate_limit('hardware_punch', 30, 60)
     if not allowed:
@@ -614,6 +628,7 @@ def admin_analytics():
 
 @admin_ops_bp.route('/api/analytics/behavioral-insights', methods=['GET'])
 @admin_required
+@safe_api
 def api_behavioral_insights():
     days = request.args.get('days', default=30, type=int)
     employee_data, dept_early_mins = get_analytics_data(days)
@@ -658,6 +673,7 @@ def api_behavioral_insights():
 
 @admin_ops_bp.route('/api/analytics/capacity-loss-index', methods=['GET'])
 @admin_required
+@safe_api
 def api_capacity_loss_index():
     return jsonify({"aggregate": {"raw_lost_hours": 48.4, "cli_hours": 67.5,
         "cli_vs_raw_ratio": 1.39, "capacity_utilization_pct": 61.3}})
@@ -665,6 +681,7 @@ def api_capacity_loss_index():
 
 @admin_ops_bp.route('/api/reports/daily-department', methods=['GET'])
 @admin_required
+@safe_api
 def api_daily_department_report():
     dept = request.args.get('department')
     target_date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
@@ -684,6 +701,7 @@ def api_daily_department_report():
 
 @admin_ops_bp.route('/api/reports/employee-statement', methods=['GET'])
 @admin_required
+@safe_api
 def api_employee_statement():
     emp_id = request.args.get('employee_id', type=int)
     emp_name = request.args.get('employee_name')
@@ -719,6 +737,7 @@ def api_employee_statement():
 
 @admin_ops_bp.route('/api/reports/monthly-comparison', methods=['GET'])
 @admin_required
+@safe_api
 def api_monthly_comparison():
     emp_id = request.args.get('employee_id', type=int)
     emp_name = request.args.get('employee_name')
@@ -749,6 +768,7 @@ def api_monthly_comparison():
 
 @admin_ops_bp.route('/api/reports/daily-summary', methods=['GET'])
 @admin_required
+@safe_api
 def api_daily_summary():
     target_date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
@@ -791,6 +811,7 @@ def api_daily_summary():
 
 @admin_ops_bp.route('/api/reports/deficit', methods=['GET'])
 @admin_required
+@safe_api
 def api_deficit_report():
     dept_filter = request.args.get('department')
     emp_filter = request.args.get('employee')
@@ -834,6 +855,7 @@ def api_deficit_report():
 
 @admin_ops_bp.route('/api/reports/leave-logs', methods=['GET'])
 @admin_required
+@safe_api
 def api_leave_logs():
     dept_filter = request.args.get('department')
     emp_filter = request.args.get('employee')
@@ -858,6 +880,7 @@ def api_leave_logs():
 
 @admin_ops_bp.route('/api/employees/list')
 @admin_required
+@safe_api
 def api_employees_list():
     dept_filter = request.args.get('department')
     query = Employee.query.filter_by(is_active=True, role='employee').order_by(Employee.full_name)
@@ -886,6 +909,7 @@ def admin_sms_notifications():
 
 @admin_ops_bp.route('/api/admin/email/templates')
 @admin_required
+@safe_api
 def api_email_templates():
     templates = EmailTemplate.query.all()
     return jsonify([{'id': t.id, 'name': t.name, 'subject': t.subject, 'body': t.body} for t in templates])
@@ -893,6 +917,7 @@ def api_email_templates():
 
 @admin_ops_bp.route('/api/admin/email/templates/<int:tid>/delete', methods=['POST'])
 @admin_required
+@safe_api
 def api_delete_email_template(tid):
     t = EmailTemplate.query.get_or_404(tid)
     db.session.delete(t); db.session.commit()
@@ -901,6 +926,7 @@ def api_delete_email_template(tid):
 
 @admin_ops_bp.route('/api/admin/email/history')
 @admin_required
+@safe_api
 def api_email_history():
     logs = EmailLog.query.order_by(EmailLog.sent_at.desc()).limit(200).all()
     return jsonify([{'id': l.id, 'to': l.to_email, 'subject': l.subject,
@@ -909,6 +935,7 @@ def api_email_history():
 
 @admin_ops_bp.route('/api/admin/email/send', methods=['POST'])
 @admin_required
+@safe_api
 def api_send_email():
     allowed, remaining = check_rate_limit('send_email', 5, 60)
     if not allowed:
@@ -924,6 +951,7 @@ def api_send_email():
 
 @admin_ops_bp.route('/api/admin/sms/history')
 @admin_required
+@safe_api
 def api_sms_history():
     logs = SmsLog.query.order_by(SmsLog.sent_at.desc()).limit(200).all()
     return jsonify([{'id': l.id, 'to': l.to_phone, 'message': l.message,
@@ -932,6 +960,7 @@ def api_sms_history():
 
 @admin_ops_bp.route('/api/admin/sms/send', methods=['POST'])
 @admin_required
+@safe_api
 def api_send_sms():
     allowed, remaining = check_rate_limit('send_sms', 5, 60)
     if not allowed:
@@ -956,6 +985,7 @@ def admin_blocked_ips():
 
 @admin_ops_bp.route('/api/admin/blocked-ips')
 @admin_required
+@safe_api
 def api_blocked_ips():
     from models.security import BlockedIP
     banned = BlockedIP.query.order_by(BlockedIP.updated_at.desc()).all()
@@ -964,6 +994,7 @@ def api_blocked_ips():
 
 @admin_ops_bp.route('/api/admin/blocked-ips/<int:bid>/unban', methods=['POST'])
 @admin_required
+@safe_api
 def api_unban_ip(bid):
     from models.security import BlockedIP
     rec = BlockedIP.query.get_or_404(bid)
@@ -992,6 +1023,7 @@ def admin_attendance_review_queue():
 
 @admin_ops_bp.route('/api/admin/attendance-reviews')
 @admin_required
+@safe_api
 def api_attendance_reviews():
     from models.attendance_review import AttendanceReviewQueue
     status_filter = request.args.get('status')
@@ -1016,6 +1048,7 @@ def api_attendance_reviews():
 
 @admin_ops_bp.route('/api/admin/attendance-reviews/stats')
 @admin_required
+@safe_api
 def api_attendance_review_stats():
     from models.attendance_review import AttendanceReviewQueue
     pending = AttendanceReviewQueue.query.filter_by(status='pending_review').count()
@@ -1033,6 +1066,7 @@ def api_attendance_review_stats():
 
 @admin_ops_bp.route('/api/admin/attendance-reviews/<int:rid>/review', methods=['POST'])
 @admin_required
+@safe_api
 def api_review_attendance(rid):
     from datetime import datetime, UTC
     from models.attendance_review import AttendanceReviewQueue

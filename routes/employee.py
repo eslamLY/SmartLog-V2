@@ -15,11 +15,24 @@ from utils.constants import (MONTH_NAMES, WORK_START_HOUR, WORK_START_MINUTE,
                               LATE_GRACE_MINUTES)
 from services.clock_service import ClockService
 from sqlalchemy import extract
+from functools import wraps
 
 employee_bp = Blueprint('employee', __name__)
 
 QR_TOKEN_MAX_AGE = 5
 LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ■ AREA 1 — DASHBOARD, CLOCK-IN, CLOCK-OUT
@@ -196,6 +209,7 @@ def geofence_check():
 
 @employee_bp.route('/api/qr-token')
 @login_required
+@safe_api
 def qr_token():
     raw = secrets.token_urlsafe(32)
     h   = QRToken.hash_raw(raw)
@@ -480,6 +494,7 @@ def respond_swap(swap_id):
 
 @employee_bp.route('/api/shifts/employee/<int:emp_id>/<int:month>/<int:year>')
 @login_required
+@safe_api
 def api_employee_shifts(emp_id, month, year):
     schedules = ShiftSchedule.query.filter(
         ShiftSchedule.employee_id == emp_id,
@@ -508,6 +523,7 @@ def api_employee_shifts(emp_id, month, year):
 
 @employee_bp.route('/api/notifications')
 @login_required
+@safe_api
 def get_notifications():
     today   = date.today()
     emp_id  = session['user_id']
@@ -609,6 +625,7 @@ def get_notifications():
 
 @employee_bp.route('/api/notifications/history')
 @login_required
+@safe_api
 def notification_history():
     emp_id = session['user_id']
     notes = Notification.query.filter(
@@ -625,6 +642,7 @@ def notification_history():
 
 @employee_bp.route('/api/notifications/read/<int:nid>', methods=['POST'])
 @login_required
+@safe_api
 def mark_notification_read(nid):
     n = Notification.query.get_or_404(nid)
     if n.employee_id and n.employee_id != session['user_id']:
@@ -636,6 +654,7 @@ def mark_notification_read(nid):
 
 @employee_bp.route('/api/notifications/unread-count')
 @login_required
+@safe_api
 def unread_notification_count():
     emp_id = session['user_id']
     count = Notification.query.filter(

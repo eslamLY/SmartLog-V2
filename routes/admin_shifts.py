@@ -12,6 +12,21 @@ from services.shift_service import (check_employee_availability, validate_covera
                                      auto_find_substitute, resolve_conflicts_for_date,
                                      apply_leave_conflicts)
 from sqlalchemy import extract
+from functools import wraps
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 
 admin_shifts_bp = Blueprint('admin_shifts_bp', __name__)
 
@@ -254,6 +269,7 @@ def cancel_shift(sid):
 
 @admin_shifts_bp.route('/api/shifts/day/<date_str>')
 @admin_required
+@safe_api
 def api_day_shifts(date_str):
     d = datetime.strptime(date_str, '%Y-%m-%d').date()
     shift_types = ShiftType.query.filter_by(is_active=True).order_by(ShiftType.start_hour).all()
@@ -342,6 +358,7 @@ def admin_swap_action(swap_id):
 
 @admin_shifts_bp.route('/api/shifts/availability/<int:emp_id>/<date_str>')
 @admin_required
+@safe_api
 def api_employee_availability(emp_id, date_str):
     sched_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     conflicts = check_employee_availability(emp_id, sched_date)
@@ -398,6 +415,7 @@ def assign_substitute():
 
 @admin_shifts_bp.route('/api/shifts/substitute-candidates/<int:sched_id>')
 @admin_required
+@safe_api
 def api_substitute_candidates(sched_id):
     dept = request.args.get('dept')
     candidates = auto_find_substitute(sched_id, department=dept)
@@ -406,6 +424,7 @@ def api_substitute_candidates(sched_id):
 
 @admin_shifts_bp.route('/api/shifts/resolve-conflicts/<date_str>', methods=['POST'])
 @admin_required
+@safe_api
 def api_resolve_conflicts(date_str):
     sched_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     updated = resolve_conflicts_for_date(sched_date)
