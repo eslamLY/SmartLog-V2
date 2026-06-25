@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime, timedelta, UTC
 from flask import (Blueprint, render_template, request, redirect, url_for,
@@ -50,13 +51,14 @@ def manifest():
 
 @auth_bp.route('/sw.js')
 def service_worker():
-    sw_path = current_app.static_folder + '/sw.js'
+    sw_path = os.path.join(current_app.static_folder, 'sw.js')
     try:
         with open(sw_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception:
         content = r"""const C='smartlog-v2.0';const O=['/login','/manifest.json'];self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(O)).then(()=>self.skipWaiting()))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET'||e.request.url.includes('/api/'))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(r=>{if(r&&r.status===200){var c=r.clone();caches.open(C).then(ca=>ca.put(e.request,c))}return r}).catch(()=>caches.match(e.request).then(r=>r||new Response('',{status:503})))))});"""
-    resp = make_response(content, 200)
+    resp = make_response(content)
+    resp.status_code = 200
     resp.headers['Content-Type'] = 'application/javascript; charset=utf-8'
     resp.headers['Service-Worker-Allowed'] = '/'
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
