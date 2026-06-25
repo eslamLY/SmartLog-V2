@@ -1,8 +1,10 @@
 import os
+import logging
 
 from flask import (Blueprint, render_template, request, session,
                    jsonify, send_file, current_app, redirect, url_for)
 
+from functools import wraps
 from utils.decorators import admin_required, login_required
 from services.branding import BrandingService
 from services.backup import BackupService
@@ -10,6 +12,19 @@ from services.audit import AuditService
 from services.health import HealthService
 
 admin_system_bp = Blueprint('admin_system_bp', __name__)
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
 
 
 # ─── BRANDING ────────────────────────────────────────────────────────────────
@@ -48,6 +63,7 @@ def uploaded_file(filename):
 
 
 @admin_system_bp.route('/api/branding')
+@safe_api
 def api_branding():
     return jsonify(BrandingService.to_dict(BrandingService.get_or_create()))
 
@@ -63,6 +79,7 @@ def admin_system_health():
 
 @admin_system_bp.route('/api/admin/metrics')
 @admin_required
+@safe_api
 def api_admin_metrics():
     return jsonify(HealthService.get_metrics())
 
@@ -78,12 +95,14 @@ def admin_backups():
 
 @admin_system_bp.route('/api/admin/backups')
 @admin_required
+@safe_api
 def api_list_backups():
     return jsonify(BackupService.list())
 
 
 @admin_system_bp.route('/api/admin/backup', methods=['POST'])
 @admin_required
+@safe_api
 def api_create_backup():
     bid, err = BackupService.create(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
@@ -97,6 +116,7 @@ def api_create_backup():
 
 @admin_system_bp.route('/api/admin/restore/<bid>', methods=['POST'])
 @admin_required
+@safe_api
 def api_restore_backup(bid):
     err = BackupService.restore(bid, current_app.config['SQLALCHEMY_DATABASE_URI'])
     if err:
@@ -106,6 +126,7 @@ def api_restore_backup(bid):
 
 @admin_system_bp.route('/api/admin/backups/<bid>/verify', methods=['POST'])
 @admin_required
+@safe_api
 def api_verify_backup(bid):
     ok, msg, *_ = BackupService.verify(
         bid,
@@ -117,6 +138,7 @@ def api_verify_backup(bid):
 
 @admin_system_bp.route('/api/admin/backups/<bid>/delete', methods=['POST'])
 @admin_required
+@safe_api
 def api_delete_backup(bid):
     BackupService.delete(bid)
     return jsonify({'ok': True, 'msg': '✓ تم حذف النسخة.'})
@@ -124,6 +146,7 @@ def api_delete_backup(bid):
 
 @admin_system_bp.route('/api/admin/backups/<bid>/download')
 @admin_required
+@safe_api
 def api_download_backup(bid):
     fp = BackupService.download_path(bid)
     if not fp:
@@ -142,6 +165,7 @@ def admin_audit_logs():
 
 @admin_system_bp.route('/api/admin/audit-logs')
 @admin_required
+@safe_api
 def api_audit_logs():
     return jsonify(AuditService.query(
         request.args.get('date'),

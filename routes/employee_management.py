@@ -1,9 +1,11 @@
 import json
+import logging
 from datetime import date, datetime, UTC
 from io import StringIO
 
 from flask import Blueprint, render_template, request, session, jsonify, send_file
 
+from functools import wraps
 from models import db, Employee
 from models.employee_enhanced import (
     EmployeeExtended, EmployeeChild, EmployeeGrade,
@@ -19,6 +21,19 @@ from services.government_export import GovernmentExport
 from utils.decorators import admin_required, login_required, own_data_only
 
 employee_mgmt_bp = Blueprint('employee_mgmt', __name__)
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
 
 
 # ─── EMPLOYEE PROFILE & MANAGEMENT PAGES ──────────────────────────────────
@@ -636,6 +651,7 @@ def employee_analytics():
 
 @employee_mgmt_bp.route('/api/employee-stats')
 @admin_required
+@safe_api
 def employee_stats():
     total = Employee.query.filter_by(is_active=True).count()
     extended_count = EmployeeExtended.query.count()

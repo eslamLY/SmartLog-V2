@@ -3,9 +3,11 @@ routes/scenarios.py — What-if scenario builder API endpoints.
 Allows managers to simulate the impact of various workforce changes.
 """
 
+import logging
 from datetime import date, timedelta
 from collections import defaultdict
 from flask import Blueprint, render_template, request, jsonify
+from functools import wraps
 from models import db
 from models.employee import Employee
 from models.employee_enhanced import EmployeeLeaveRequest, EmployeeExtended
@@ -14,6 +16,19 @@ from utils.decorators import admin_required
 from sqlalchemy import func
 
 scenarios_bp = Blueprint('scenarios', __name__)
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
 
 
 @scenarios_bp.route('/admin/scenarios')
@@ -24,6 +39,7 @@ def scenarios_page():
 
 @scenarios_bp.route('/api/scenarios/simulate', methods=['POST'])
 @admin_required
+@safe_api
 def simulate():
     data = request.get_json(force=True) or {}
     scenario_type = data.get('type', 'departure')
@@ -35,6 +51,7 @@ def simulate():
 
 @scenarios_bp.route('/api/scenarios/presets')
 @admin_required
+@safe_api
 def list_presets():
     return jsonify({
         'presets': [

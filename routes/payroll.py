@@ -1,6 +1,8 @@
 import json, io, csv, math, calendar
+import logging
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict, OrderedDict
+from functools import wraps
 
 from flask import Blueprint, request, jsonify, render_template, session, send_file
 from sqlalchemy import func, extract, case, and_, desc
@@ -235,7 +237,20 @@ def payroll_main():
         today=today,
     )
 
+LOGGER = logging.getLogger(__name__)
+
+def safe_api(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
+
 @payroll_bp.route('/api/employee/<int:eid>')
+@safe_api
 @admin_required
 def employee_payslip(eid):
     month = request.args.get('month', date.today().month, type=int)
@@ -254,6 +269,7 @@ def employee_payslip(eid):
     })
 
 @payroll_bp.route('/api/payslip/<int:eid>/print')
+@safe_api
 @admin_required
 def payslip_print(eid):
     month = request.args.get('month', date.today().month, type=int)
@@ -273,6 +289,7 @@ def payslip_print(eid):
     )
 
 @payroll_bp.route('/api/analytics')
+@safe_api
 @admin_required
 def salary_analytics():
     month = request.args.get('month', date.today().month, type=int)
@@ -411,6 +428,7 @@ def salary_analytics():
     })
 
 @payroll_bp.route('/api/advances')
+@safe_api
 @admin_required
 def salary_advances():
     month = request.args.get('month', date.today().month, type=int)
@@ -461,6 +479,7 @@ def salary_advances():
     })
 
 @payroll_bp.route('/api/advances/create', methods=['POST'])
+@safe_api
 @admin_required
 def create_advance():
     data = request.get_json()
@@ -497,6 +516,7 @@ def create_advance():
     return jsonify({'ok': True, 'msg': 'تم إنشاء السلفة بنجاح', 'id': advance.id})
 
 @payroll_bp.route('/api/advances/<int:aid>/repay', methods=['POST'])
+@safe_api
 @admin_required
 def repay_advance(aid):
     advance = SalaryAdvance.query.get_or_404(aid)
@@ -522,6 +542,7 @@ def repay_advance(aid):
     return jsonify({'ok': True, 'msg': 'تم تسجيل السداد'})
 
 @payroll_bp.route('/api/approvals')
+@safe_api
 @admin_required
 def approval_list():
     month = request.args.get('month', date.today().month, type=int)
@@ -572,6 +593,7 @@ def approval_list():
     })
 
 @payroll_bp.route('/api/approvals/initiate', methods=['POST'])
+@safe_api
 @admin_required
 def initiate_approval():
     data = request.get_json()
@@ -627,6 +649,7 @@ def initiate_approval():
     return jsonify({'ok': True, 'msg': 'تم بدء طلب الموافقة', 'id': wf.id})
 
 @payroll_bp.route('/api/approvals/<int:wid>/act', methods=['POST'])
+@safe_api
 @admin_required
 def act_on_approval(wid):
     wf = ApprovalWorkflow.query.get_or_404(wid)
@@ -672,6 +695,7 @@ def act_on_approval(wid):
     return jsonify({'ok': True, 'msg': 'تم تحديث الموافقة'})
 
 @payroll_bp.route('/api/bank')
+@safe_api
 @admin_required
 def bank_payments():
     month = request.args.get('month', date.today().month, type=int)
@@ -717,6 +741,7 @@ def bank_payments():
     })
 
 @payroll_bp.route('/api/bank/generate', methods=['POST'])
+@safe_api
 @admin_required
 def generate_bank_payments():
     month = request.args.get('month', date.today().month, type=int)
@@ -759,6 +784,7 @@ def generate_bank_payments():
     return jsonify({'ok': True, 'msg': f'تم إنشاء {count} قيد دفع بنكي', 'count': count})
 
 @payroll_bp.route('/api/bank/update-status', methods=['POST'])
+@safe_api
 @admin_required
 def update_bank_status():
     data = request.get_json() or {}
@@ -775,6 +801,7 @@ def update_bank_status():
     return jsonify({'ok': True, 'msg': f'تم تحديث {len(payments)} معاملة'})
 
 @payroll_bp.route('/api/bank/export/<fmt>')
+@safe_api
 @admin_required
 def export_bank_file(fmt):
     month = request.args.get('month', date.today().month, type=int)
@@ -810,6 +837,7 @@ def export_bank_file(fmt):
     return jsonify({'ok': False, 'msg': 'الصيغة غير مدعومة'}), 400
 
 @payroll_bp.route('/api/compare')
+@safe_api
 @admin_required
 def payroll_comparison():
     month = request.args.get('month', date.today().month, type=int)
@@ -863,6 +891,7 @@ def payroll_comparison():
     })
 
 @payroll_bp.route('/api/employee-history/<int:eid>')
+@safe_api
 @admin_required
 def employee_salary_history(eid):
     emp = Employee.query.get_or_404(eid)
@@ -895,6 +924,7 @@ def employee_salary_history(eid):
     })
 
 @payroll_bp.route('/api/audit')
+@safe_api
 @admin_required
 def payroll_audit():
     page = request.args.get('page', 1, type=int)
@@ -926,6 +956,7 @@ def payroll_audit():
     })
 
 @payroll_bp.route('/api/save-record', methods=['POST'])
+@safe_api
 @admin_required
 def save_payroll_record():
     data = request.get_json() or {}
@@ -971,6 +1002,7 @@ def save_payroll_record():
     return jsonify({'ok': True, 'msg': 'تم حفظ سجل الراتب', 'id': existing.id})
 
 @payroll_bp.route('/api/bulk-save', methods=['POST'])
+@safe_api
 @admin_required
 def bulk_save_payroll():
     month = request.args.get('month', date.today().month, type=int)
@@ -1004,6 +1036,7 @@ def bulk_save_payroll():
     return jsonify({'ok': True, 'msg': f'تم حفظ رواتب {saved} موظف'})
 
 @payroll_bp.route('/api/export/csv')
+@safe_api
 @admin_required
 def export_payroll_csv():
     month = request.args.get('month', date.today().month, type=int)
