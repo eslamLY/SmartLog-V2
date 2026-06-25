@@ -105,13 +105,13 @@ function cacheFirstThenNetwork(request) {
     }
     return fetchAndCache(request, CACHE_NAME + '-assets');
   }).catch(function () {
-    return caches.match(request);
+    return caches.match(request).then(function (r) { return r || offlineResponse(); });
   });
 }
 
 function networkFirstThenCache(request) {
   return fetchAndCache(request, CACHE_NAME + '-pages').catch(function () {
-    return caches.match(request);
+    return caches.match(request).then(function (r) { return r || offlineResponse(); });
   });
 }
 
@@ -121,8 +121,15 @@ function networkFirstWithFallback(request) {
       if (cached) {
         return cached;
       }
-      return caches.match('/login');
+      return caches.match('/login').then(function (r) { return r || offlineResponse(); });
     });
+  });
+}
+
+function offlineResponse() {
+  return new Response(JSON.stringify({ ok: false, msg: 'غير متصل بالإنترنت' }), {
+    status: 503,
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
