@@ -282,9 +282,12 @@ function saveZone(e) {
   });
 }
 function api(url, data, method) {
+  var headers = { 'Content-Type': 'application/json' };
+  var csrf = document.querySelector('meta[name="csrf-token"]');
+  if (data && csrf) { headers['X-CSRFToken'] = csrf.content; }
   return fetch(url, {
     method: method || (data ? 'POST' : 'GET'),
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers,
     body: data ? JSON.stringify(data) : undefined
   }).then(function(r) { return r.json(); });
 }

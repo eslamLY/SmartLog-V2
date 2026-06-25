@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timedelta, UTC
 from flask import (Blueprint, render_template, request, redirect, url_for,
-                   session, jsonify, make_response)
+                   session, jsonify, make_response, current_app)
 from werkzeug.security import check_password_hash, generate_password_hash
 from models import db, Employee, LoginAttempt, BrandingConfig
 from utils.helpers import validate_password_strength
@@ -33,14 +33,16 @@ def manifest():
 
 @auth_bp.route('/sw.js')
 def service_worker():
-    content = r"""
-const CACHE='smartlog-v1';
-const OFFLINE=['/login','/manifest.json'];
-self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(OFFLINE)));});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));});
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));});
-"""
-    return make_response(content, 200, {'Content-Type': 'application/javascript'})
+    sw_path = current_app.static_folder + '/sw.js'
+    try:
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception:
+        content = r"""const CACHE='smartlog-v1';const OFFLINE=['/login','/manifest.json'];self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(OFFLINE)))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});"""
+    return make_response(content, 200, {
+        'Content-Type': 'application/javascript',
+        'Service-Worker-Allowed': '/',
+    })
 
 
 @auth_bp.route('/')

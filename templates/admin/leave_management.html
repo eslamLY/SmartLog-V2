@@ -105,9 +105,12 @@ const NOW = new Date();
 document.getElementById('balYear').value = NOW.getFullYear();
 
 function api(url, data) {
+  var headers = { 'Content-Type': 'application/json' };
+  var csrf = document.querySelector('meta[name="csrf-token"]');
+  if (data && csrf) { headers['X-CSRFToken'] = csrf.content; }
   return fetch(url, {
     method: data ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers,
     body: data ? JSON.stringify(data) : undefined
   }).then(r => r.json());
 }

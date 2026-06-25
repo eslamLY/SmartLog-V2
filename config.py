@@ -59,22 +59,34 @@ class BaseConfig:
         'cdnjs.cloudflare.com',
         'fonts.googleapis.com',
         'fonts.gstatic.com',
+        'unpkg.com',
+        'cdn.datatables.net',
+        'd3js.org',
+    }
+
+    CSP_IMG_EXTRA = {
+        '*.tile.openstreetmap.org',
     }
 
     @classmethod
     def csp_string(cls) -> str:
-        cdn_script = ' '.join(f'https://{d}' for d in cls.CDN_WHITELIST)
-        cdn_style = ' '.join(f'https://{d}' for d in cls.CDN_WHITELIST)
-        cdn_font = ' '.join(f'https://{d}' for d in cls.CDN_WHITELIST)
-        cdn_img = ' '.join(f'https://{d}' for d in cls.CDN_WHITELIST)
+        join_cdn = lambda doms: ' '.join(f'https://{d}' for d in doms)
+        cdn_script = join_cdn(cls.CDN_WHITELIST)
+        cdn_style = join_cdn(cls.CDN_WHITELIST)
+        cdn_font = join_cdn(cls.CDN_WHITELIST)
+        cdn_img = join_cdn(cls.CDN_WHITELIST | cls.CSP_IMG_EXTRA)
         return (
             f"default-src 'self'; "
             f"script-src 'self' 'unsafe-inline' {cdn_script}; "
             f"style-src 'self' 'unsafe-inline' {cdn_style}; "
-            f"img-src 'self' data: blob: {cdn_img}; "
-            f"font-src 'self' {cdn_font}; "
-            f"connect-src 'self'; "
-            f"frame-ancestors 'none';"
+            f"img-src 'self' data: blob: https: {cdn_img}; "
+            f"font-src 'self' data: {cdn_font}; "
+            f"connect-src 'self' https:; "
+            f"frame-ancestors 'none'; "
+            f"base-uri 'self'; "
+            f"form-action 'self'; "
+            f"object-src 'none'; "
+            f"upgrade-insecure-requests;"
         )
 
     @classmethod

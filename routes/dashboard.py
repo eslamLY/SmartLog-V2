@@ -1,6 +1,7 @@
-import html, json, math
+import html, json, math, logging
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
+from functools import wraps
 
 from flask import Blueprint, request, jsonify, render_template, session
 from sqlalchemy import func, extract
@@ -17,6 +18,19 @@ from models.employee_enhanced import EmployeeExtended, EmployeeLeaveRequest as N
 from utils.decorators import admin_required
 
 admin_dashboard_bp = Blueprint('admin_dashboard', __name__)
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_json_response(f):
+    """Wrap API endpoints with try/except that always returns JSON."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e), 'data': []}), 500
+    return wrapper
 
 DAY_NAMES = ['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد']
 MONTH_NAMES = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
@@ -32,6 +46,7 @@ def admin_dashboard():
 
 
 @admin_dashboard_bp.route('/api/dashboard/stats')
+@safe_json_response
 @admin_required
 def api_dashboard_stats():
     today = date.today()
@@ -85,6 +100,7 @@ def api_dashboard_stats():
 
 
 @admin_dashboard_bp.route('/api/dashboard/charts/weekly')
+@safe_json_response
 @admin_required
 def api_charts_weekly():
     today = date.today()
@@ -120,6 +136,7 @@ def api_charts_weekly():
 
 
 @admin_dashboard_bp.route('/api/dashboard/charts/donut')
+@safe_json_response
 @admin_required
 def api_charts_donut():
     today = date.today()
@@ -144,6 +161,7 @@ def api_charts_donut():
 
 
 @admin_dashboard_bp.route('/api/dashboard/charts/heatmap')
+@safe_json_response
 @admin_required
 def api_charts_heatmap():
     today = date.today()
@@ -176,6 +194,7 @@ def api_charts_heatmap():
 
 
 @admin_dashboard_bp.route('/api/dashboard/charts/punctuality')
+@safe_json_response
 @admin_required
 def api_charts_punctuality():
     today = date.today()
@@ -210,6 +229,7 @@ def api_charts_punctuality():
 
 
 @admin_dashboard_bp.route('/api/dashboard/charts/hourly')
+@safe_json_response
 @admin_required
 def api_charts_hourly():
     today = date.today()
@@ -231,6 +251,7 @@ def api_charts_hourly():
 
 
 @admin_dashboard_bp.route('/api/dashboard/records')
+@safe_json_response
 @admin_required
 def api_dashboard_records():
     today_str = request.args.get('date', '')
@@ -286,6 +307,7 @@ def api_dashboard_records():
 
 
 @admin_dashboard_bp.route('/api/dashboard/filters')
+@safe_json_response
 @admin_required
 def api_dashboard_filters():
     depts = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
@@ -300,6 +322,7 @@ def api_dashboard_filters():
 
 
 @admin_dashboard_bp.route('/api/dashboard/alerts')
+@safe_json_response
 @admin_required
 def api_dashboard_alerts():
     today = date.today()
@@ -370,6 +393,7 @@ def api_dashboard_alerts():
 
 
 @admin_dashboard_bp.route('/api/dashboard/schedule')
+@safe_json_response
 @admin_required
 def api_dashboard_schedule():
     today = date.today()
@@ -450,6 +474,7 @@ def api_dashboard_schedule():
 
 
 @admin_dashboard_bp.route('/api/dashboard/search')
+@safe_json_response
 @admin_required
 def api_dashboard_search():
     q = request.args.get('q', '').strip()
@@ -469,6 +494,7 @@ def api_dashboard_search():
 
 
 @admin_dashboard_bp.route('/api/dashboard/notifications')
+@safe_json_response
 @admin_required
 def api_dashboard_notifications():
     user_id = session.get('user_id')
@@ -488,6 +514,7 @@ def api_dashboard_notifications():
 
 
 @admin_dashboard_bp.route('/api/dashboard/stats/live')
+@safe_json_response
 @admin_required
 def api_dashboard_live():
     today = date.today()
@@ -513,6 +540,7 @@ def api_dashboard_live():
 
 
 @admin_dashboard_bp.route('/api/dashboard/map')
+@safe_json_response
 @admin_required
 def api_dashboard_map():
     today = date.today()
@@ -546,6 +574,7 @@ def api_dashboard_map():
 
 
 @admin_dashboard_bp.route('/api/dashboard/export-records')
+@safe_json_response
 @admin_required
 def api_dashboard_export():
     from openpyxl import Workbook

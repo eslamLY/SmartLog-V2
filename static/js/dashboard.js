@@ -1,3 +1,18 @@
+function safeApiCall(url, opts) {
+  opts = opts || {};
+  return fetch(url, opts).then(function(r) {
+    if (!r.ok) { console.warn('API %s returned %d', url, r.status); return null; }
+    return r.json().catch(function() { return null; });
+  }).then(function(d) {
+    if (!d) return null;
+    if (d.ok === false) { console.warn('API %s error: %s', url, d.msg || 'unknown'); return null; }
+    return d;
+  }).catch(function(err) {
+    console.error('API %s exception: %s', url, err.message || err);
+    return null;
+  });
+}
+
 let charts = {};
 let refreshInterval = null;
 let lastUpdateTime = Date.now();
@@ -114,7 +129,8 @@ function animateNumber(el, target) {
 }
 
 function loadStats() {
-  fetch('/api/dashboard/stats').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/stats').then(function(d) {
+    if (!d) { document.getElementById('lastUpdateLabel').textContent = 'فشل التحديث'; return; }
     animateNumber(document.getElementById('statTotal'), d.total);
     animateNumber(document.getElementById('statPresent'), d.present);
     animateNumber(document.getElementById('statLate'), d.late);
@@ -123,25 +139,23 @@ function loadStats() {
     animateNumber(document.getElementById('statNoClockout'), d.no_clockout || 0);
     animateNumber(document.getElementById('statExpiring'), d.expiring_docs || 0);
     animateNumber(document.getElementById('statOffline'), d.offline_devices || 0);
-    const pe = document.getElementById('statPendingLeaves');
+    var pe = document.getElementById('statPendingLeaves');
     if (pe) { animateNumber(pe, d.pending_leave_requests || 0); }
-    const ep = document.getElementById('statEligiblePromo');
+    var ep = document.getElementById('statEligiblePromo');
     if (ep) { ep.textContent = d.total || '0'; ep.style.fontSize = '22px'; }
-    const ex = document.getElementById('statExtendedPct');
+    var ex = document.getElementById('statExtendedPct');
     if (ex) { ex.textContent = (d.extended_data_pct || 0) + '%'; ex.style.fontSize = '22px'; }
-    const trends = d.trends || {};
+    var trends = d.trends || {};
     renderTrend('trendPresent', trends.present);
     renderTrend('trendLate', trends.late);
     renderTrend('trendAbsent', trends.absent);
-    const card = document.getElementById('offlineCard');
+    var card = document.getElementById('offlineCard');
     if (d.offline_devices > 0) card.classList.add('pulse-active');
     else card.classList.remove('pulse-active');
-    const now = new Date();
-    const secs = Math.floor((now - lastUpdateTime) / 1000);
+    var now = new Date();
+    var secs = Math.floor((now - lastUpdateTime) / 1000);
     document.getElementById('lastUpdateLabel').textContent = 'آخر تحديث: منذ ' + (secs < 60 ? secs + ' ثانية' : Math.floor(secs/60) + ' دقيقة');
     lastUpdateTime = now;
-  }).catch(() => {
-    document.getElementById('lastUpdateLabel').textContent = 'فشل التحديث';
   });
 }
 
@@ -208,10 +222,11 @@ function switchChartMode(btn, mode) {
 }
 
 function loadWeeklyChart() {
-  fetch('/api/dashboard/charts/weekly?mode=' + chartMode).then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/charts/weekly?mode=' + chartMode).then(function(d) {
+    if (!d || !d.data) return;
     if (charts.weekly) { charts.weekly.destroy(); }
-    const cc = getChartColors();
-    const ctx = document.getElementById('weeklyChart').getContext('2d');
+    var cc = getChartColors();
+    var ctx = document.getElementById('weeklyChart').getContext('2d');
     charts.weekly = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -245,10 +260,11 @@ function loadWeeklyChart() {
 }
 
 function loadDonutChart() {
-  fetch('/api/dashboard/charts/donut').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/charts/donut').then(function(d) {
+    if (!d || !d.labels) return;
     if (charts.donut) { charts.donut.destroy(); }
-    const cc = getChartColors();
-    const ctx = document.getElementById('donutChart').getContext('2d');
+    var cc = getChartColors();
+    var ctx = document.getElementById('donutChart').getContext('2d');
     document.getElementById('donutCenter').textContent = d.total;
     charts.donut = new Chart(ctx, {
       type: 'doughnut',
@@ -273,7 +289,8 @@ function loadDonutChart() {
 }
 
 function loadHeatmap() {
-  fetch('/api/dashboard/charts/heatmap').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/charts/heatmap').then(function(d) {
+    if (!d) return;
     const container = document.getElementById('heatmapContainer');
     if (!d.rows || !d.rows.length) {
       container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">لا توجد بيانات كافية</div>';
@@ -297,7 +314,8 @@ function loadHeatmap() {
 }
 
 function loadPunctuality() {
-  fetch('/api/dashboard/charts/punctuality').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/charts/punctuality').then(function(d) {
+    if (!d || !d.ranking) return;
     if (charts.punctuality) { charts.punctuality.destroy(); }
     const cc = getChartColors();
     const top5 = d.ranking.slice(0, 5).reverse();
@@ -335,7 +353,8 @@ function loadPunctuality() {
 }
 
 function loadHourly() {
-  fetch('/api/dashboard/charts/hourly').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/charts/hourly').then(function(d) {
+    if (!d || !d.data) return;
     if (charts.hourly) { charts.hourly.destroy(); }
     const cc = getChartColors();
     const ctx = document.getElementById('hourlyChart').getContext('2d');
@@ -392,12 +411,10 @@ function loadRecords() {
   if (dept) url += '&department_id=' + dept;
   if (status) url += '&status=' + status;
   if (date) url += '&date=' + date;
-  fetch(url).then(r => r.json()).then(d => {
+  safeApiCall(url).then(function(d) {
     document.getElementById('recordsSkeleton').style.display = 'none';
+    if (!d) { document.getElementById('recordsEmpty').style.display = 'block'; return; }
     renderRecords(d);
-  }).catch(() => {
-    document.getElementById('recordsSkeleton').style.display = 'none';
-    document.getElementById('recordsEmpty').style.display = 'block';
   });
 }
 
@@ -456,7 +473,8 @@ function loadMoreRecords() {
   if (dept) url += '&department_id=' + dept;
   if (status) url += '&status=' + status;
   if (date) url += '&date=' + date;
-  fetch(url).then(r => r.json()).then(d => {
+  safeApiCall(url).then(function(d) {
+    if (!d) return;
     const tbody = document.getElementById('recordsBody');
     d.items.forEach(item => {
       const statusClass = item.status === 'present' ? 'badge-present' : item.status === 'late' ? 'badge-late' : item.status === 'absent' ? 'badge-absent' : 'badge-unknown';
@@ -478,7 +496,8 @@ function loadMoreRecords() {
 }
 
 function loadFilters() {
-  fetch('/api/dashboard/filters').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/filters').then(function(d) {
+    if (!d) return;
     const deptSelect = document.getElementById('recordsDeptFilter');
     d.departments.forEach(dept => {
       deptSelect.innerHTML += `<option value="${dept.id}">${dept.name_ar}</option>`;
@@ -492,7 +511,8 @@ function loadFilters() {
 }
 
 function loadAlerts() {
-  fetch('/api/dashboard/alerts').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/alerts').then(function(d) {
+    if (!d) return;
     const body = document.getElementById('alertsBody');
     const count = document.getElementById('alertsCount');
     const footer = document.getElementById('alertsFooter');
@@ -531,7 +551,8 @@ function dismissAlert(title) {
 }
 
 function dismissAllAlerts() {
-  fetch('/api/dashboard/alerts').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/alerts').then(function(d) {
+    if (!d) return;
     (d.alerts || []).forEach(a => {
       if (!dismissedAlerts.includes(a.title)) dismissedAlerts.push(a.title);
     });
@@ -548,7 +569,8 @@ function toggleAlerts() {
 }
 
 function loadSchedule() {
-  fetch('/api/dashboard/schedule').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/schedule').then(function(d) {
+    if (!d || !d.shifts) return;
     const container = document.getElementById('scheduleTimeline');
     container.innerHTML = '<div class="schedule-bar"></div>';
     const bar = container.querySelector('.schedule-bar');
@@ -573,7 +595,8 @@ function loadSchedule() {
 
 function loadMap() {
   if (document.getElementById('attendanceMap')) {
-    fetch('/api/dashboard/map').then(r => r.json()).then(d => {
+    safeApiCall('/api/dashboard/map').then(function(d) {
+      if (!d) return;
       if (!d.markers || !d.markers.length) {
         document.getElementById('attendanceMap').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">لا توجد أجهزة بصرية مثبتة</div>';
         return;
@@ -620,7 +643,8 @@ function toggleMapFullscreen() {
 }
 
 function loadNotifications() {
-  fetch('/api/dashboard/notifications').then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/notifications').then(function(d) {
+    if (!d) return;
     const badge = document.getElementById('notifBadge');
     badge.textContent = d.unread_count;
     badge.style.display = d.unread_count > 0 ? 'flex' : 'none';
@@ -638,7 +662,8 @@ function loadNotifications() {
 function doGlobalSearch(q) {
   const results = document.getElementById('searchResults');
   if (q.length < 2) { results.style.display = 'none'; return; }
-  fetch('/api/dashboard/search?q=' + encodeURIComponent(q)).then(r => r.json()).then(d => {
+  safeApiCall('/api/dashboard/search?q=' + encodeURIComponent(q)).then(function(d) {
+    if (!d) return;
     let html = '';
     d.employees.forEach(e => {
       html += `<a href="/admin/employees/${e.id}" class="search-result-item"><i class="ti ti-user"></i> ${e.full_name} <span class="search-result-type">${e.department || ''}</span></a>`;
