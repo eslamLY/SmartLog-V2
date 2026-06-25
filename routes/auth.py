@@ -55,7 +55,7 @@ def service_worker():
         with open(sw_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception:
-        content = r"""const CACHE='smartlog-v1';const OFFLINE=['/login','/manifest.json'];self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(OFFLINE)))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});"""
+        content = r"""const C='smartlog-v1';const O=['/login','/manifest.json'];self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(O)))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request).then(r=>r||new Response(JSON.stringify({ok:false,msg:'\u063A\u064A\u0631 \u0645\u062A\u0635\u0644 \u0628\u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A'}),{status:503,headers:{'Content-Type':'application/json'}})).catch(()=>new Response(JSON.stringify({ok:false,msg:'\u063A\u064A\u0631 \u0645\u062A\u0635\u0644 \u0628\u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A'}),{status:503,headers:{'Content-Type':'application/json'}})))})"""
     return make_response(content, 200, {
         'Content-Type': 'application/javascript',
         'Service-Worker-Allowed': '/',

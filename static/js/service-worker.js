@@ -105,13 +105,13 @@ function cacheFirstThenNetwork(request) {
     }
     return fetchAndCache(request, CACHE_NAME + '-assets');
   }).catch(function () {
-    return caches.match(request).then(function (r) { return r || offlineResponse(); });
+    return caches.match(request).then(function (r) { return r || offlineResponse(); }).catch(function () { return offlineResponse(); });
   });
 }
 
 function networkFirstThenCache(request) {
   return fetchAndCache(request, CACHE_NAME + '-pages').catch(function () {
-    return caches.match(request).then(function (r) { return r || offlineResponse(); });
+    return caches.match(request).then(function (r) { return r || offlineResponse(); }).catch(function () { return offlineResponse(); });
   });
 }
 
@@ -121,8 +121,8 @@ function networkFirstWithFallback(request) {
       if (cached) {
         return cached;
       }
-      return caches.match('/login').then(function (r) { return r || offlineResponse(); });
-    });
+      return caches.match('/login').then(function (r) { return r || offlineResponse(); }).catch(function () { return offlineResponse(); });
+    }).catch(function () { return offlineResponse(); });
   });
 }
 
@@ -143,6 +143,8 @@ function fetchAndCache(request, cacheName) {
       cache.put(request, clone);
     });
     return response;
+  }).catch(function () {
+    return caches.match(request).then(function (r) { return r || offlineResponse(); }).catch(function () { return offlineResponse(); });
   });
 }
 
