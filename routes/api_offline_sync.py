@@ -13,6 +13,7 @@ import logging
 from functools import wraps
 
 LOGGER = logging.getLogger(__name__)
+from utils.rate_limit import check_rate_limit, rate_limit_headers
 
 
 def safe_api(f):
@@ -417,6 +418,9 @@ def offline_sync():
 @api_offline_sync_bp.route('/api/auth/token', methods=['POST'])
 @safe_api
 def issue_token():
+    allowed, remaining = check_rate_limit('api_token', 5, 60)
+    if not allowed:
+        return jsonify({'ok': False, 'msg': 'لقد تجاوزت الحد المسموح به. حاول بعد دقيقة.'}), 429
     data = request.get_json(silent=True) or {}
     username = data.get('username', '').strip().upper()
     password = data.get('password', '').strip()
@@ -433,7 +437,7 @@ def issue_token():
         API_TOKENS.pop(t, None)
 
     token = generate_api_token(emp.id)
-    return jsonify({
+    resp = jsonify({
         'ok': True,
         'token': token,
         'employee_id': emp.username,
@@ -441,6 +445,8 @@ def issue_token():
         'department': emp.department,
         'redirect': '/employee',
     })
+    resp.headers.update(rate_limit_headers(5, remaining, 60))
+    return resp
 
 
 @api_offline_sync_bp.route('/api/auth/validate-token', methods=['GET'])
