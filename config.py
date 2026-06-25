@@ -35,11 +35,20 @@ def static_file_hash(filepath):
 
 
 class BaseConfig:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-change-in-prod')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if SECRET_KEY is None:
+        _is_prod = os.environ.get('PRODUCTION', '').lower() in ('true', '1', 'yes') \
+                   or os.environ.get('RENDER', '').lower() == 'true' \
+                   or os.environ.get('FLASK_ENV', 'development').lower() == 'production'
+        if _is_prod:
+            raise RuntimeError("SECRET_KEY environment variable is missing!")
+        SECRET_KEY = 'dev-secret-change-in-prod'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
     WTF_CSRF_CHECK_DEFAULT = False
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
     BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
@@ -107,6 +116,7 @@ class DevelopmentConfig(BaseConfig):
     DEBUG = True
     ENV = 'development'
     SESSION_COOKIE_SECURE = False
+    REMEMBER_COOKIE_SECURE = False
 
 
 class ProductionConfig(BaseConfig):
@@ -114,6 +124,7 @@ class ProductionConfig(BaseConfig):
     ENV = 'production'
     PRODUCTION = True
     SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
     SEND_FILE_MAX_AGE_DEFAULT = timedelta(seconds=86400)
 
 
@@ -121,6 +132,7 @@ TestingConfig = type('TestingConfig', (BaseConfig,), {
     'TESTING': True,
     'ENV': 'testing',
     'SESSION_COOKIE_SECURE': False,
+    'REMEMBER_COOKIE_SECURE': False,
     'PRESERVE_CONTEXT_ON_EXCEPTION': False,
 })
 

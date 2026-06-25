@@ -115,19 +115,19 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 
 # Secret Key
-app.secret_key = os.environ.get('SECRET_KEY', 'smartlog-tobruk-secret-2024')
 if PRODUCTION and not os.environ.get('SECRET_KEY'):
-    log.error('WARNING: SECRET_KEY not set in production!')
-    log.error('  Using built-in default — set SECRET_KEY env var for security.')
-    if _DB_CONFIGURED:
-        log.error('FATAL: SECRET_KEY required when database is configured.')
-        sys.exit(1)
+    log.error('FATAL: SECRET_KEY environment variable is missing!')
+    sys.exit(1)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-change-in-prod')
 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = 14400  # 4 hours
 if PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['REMEMBER_COOKIE_SECURE'] = True
 
 # Static file configuration
 app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
@@ -382,6 +382,12 @@ app.config['WTF_CSRF_TIME_LIMIT'] = None
 limiter = Limiter(get_remote_address, app=app,
     default_limits=["10000 per day", "2000 per hour"])
 
+# Per-route rate limits for high-risk endpoints
+from routes.auth import login as _login_view
+from routes.employee import clock_in_qr as _clock_in_qr_view
+limiter.limit("5 per minute", methods=["POST"])(_login_view)
+limiter.limit("5 per minute")(_clock_in_qr_view)
+
 @app.errorhandler(500)
 def internal_error_handler(e):
     import traceback, sys
@@ -407,6 +413,8 @@ def rate_limit_handler(e):
         db.session.commit()
     except Exception:
         db.session.rollback()
+    if request.path.startswith('/api/') or request.headers.get('Accept') == 'application/json':
+        return jsonify({'ok': False, 'msg': 'Too many requests'}), 429
     return render_template('blocked.html'), 429
 
 from utils.constants import (BLOOD_BANK_LAT, BLOOD_BANK_LNG, GEOFENCE_RADIUS_M,
