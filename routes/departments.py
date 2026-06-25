@@ -1,8 +1,22 @@
-import json, csv, io, re
+import json, csv, io, re, logging
 from datetime import datetime, date, UTC
+from functools import wraps
 
 from flask import Blueprint, request, jsonify, session, send_file
 from sqlalchemy import func
+
+LOGGER = logging.getLogger(__name__)
+
+
+def safe_json(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error('API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': str(e)}), 500
+    return wrapper
 
 from models import db
 from models.employee import Employee
@@ -109,6 +123,7 @@ def list_managers():
     return jsonify({'employees': [{'id': e.id, 'full_name': e.full_name, 'username': e.username, 'profile_photo': e.profile_photo} for e in emps]})
 
 @admin_departments_bp.route('/api/devices')
+@safe_json
 def list_devices():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
@@ -116,6 +131,7 @@ def list_devices():
     return jsonify({'devices': [{'id': d.id, 'name': d.name or d.serial_number, 'serial_number': d.serial_number} for d in devices]})
 
 @admin_departments_bp.route('/api/shifts')
+@safe_json
 def list_shifts():
     if not can_manage_departments():
         return jsonify({'error': 'Unauthorized'}), 403
