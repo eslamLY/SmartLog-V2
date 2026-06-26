@@ -13,6 +13,7 @@ from services.shift_service import (check_employee_availability, validate_covera
                                      apply_leave_conflicts)
 from sqlalchemy import extract
 from functools import wraps
+import logging
 
 LOGGER = logging.getLogger(__name__)
 
