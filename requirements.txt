@@ -47,3 +47,4 @@ Werkzeug==3.1.8
 wrapt==2.2.1
 WTForms==3.2.2
 xlsxwriter==3.2.9
+pyzk==0.9

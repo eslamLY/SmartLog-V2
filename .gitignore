@@ -54,8 +54,8 @@ coverage.xml
 
 # ─── Project-specific ──────────────────────────────────────────────────────
 !.env.example
-scripts/
 _temp/
+scripts/*.json
 
 # ─── Static files — DO NOT ignore these ──────────────────────────────────
 # static/ is TRACKED — contains CSS, JS, icons, manifest, service worker

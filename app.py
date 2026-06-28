@@ -75,17 +75,22 @@ if _DB_URL.startswith('postgres://'):
     _DB_URL = _DB_URL.replace('postgres://', 'postgresql://', 1)
     log.info('Converted postgres:// -> postgresql://')
 
-if not _DB_URL.startswith('postgresql://'):
-    log.error('FATAL: DATABASE_URL must start with postgresql://')
+if not _DB_URL.startswith('postgresql://') and not _DB_URL.startswith('sqlite:///'):
+    log.error('FATAL: DATABASE_URL must start with postgresql:// or sqlite:///')
     log.error('  Got start: %s...', _DB_URL[:30])
     sys.exit(1)
 
-if '@' not in _DB_URL:
+_IS_SQLITE = _DB_URL.startswith('sqlite:///')
+if _IS_SQLITE:
+    log.info('Using SQLite database (development mode)')
+elif '@' not in _DB_URL:
     log.error('FATAL: DATABASE_URL missing @ symbol')
     log.error('  Expected: postgresql://user:pass@host:5432/dbname')
     sys.exit(1)
 
-_masked = _DB_URL.split('@')[0].split('://')[0] + '://****:****@' + _DB_URL.split('@')[1]
+_masked = _DB_URL
+if '@' in _DB_URL:
+    _masked = _DB_URL.split('@')[0].split('://')[0] + '://****:****@' + _DB_URL.split('@')[1]
 log.info('DATABASE_URL (masked): %s', _masked)
 
 # Flask App
@@ -102,14 +107,18 @@ _DB_POOL_OVERFLOW = int(os.environ.get('DB_POOL_OVERFLOW', '20'))
 _DB_POOL_TIMEOUT = int(os.environ.get('DB_POOL_TIMEOUT', '30'))
 _DB_POOL_RECYCLE = int(os.environ.get('DB_POOL_RECYCLE', '3600'))
 
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': _DB_POOL_SIZE,
-    'max_overflow': _DB_POOL_OVERFLOW,
-    'pool_timeout': _DB_POOL_TIMEOUT,
-    'pool_recycle': _DB_POOL_RECYCLE,
-    'pool_pre_ping': True,
-    'connect_args': {'sslmode': 'require'} if PRODUCTION else {},
-}
+if _IS_SQLITE:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': _DB_POOL_SIZE,
+        'max_overflow': _DB_POOL_OVERFLOW,
+        'pool_timeout': _DB_POOL_TIMEOUT,
+        'pool_recycle': _DB_POOL_RECYCLE,
+        'pool_pre_ping': True,
+        'connect_args': {'sslmode': 'require'} if PRODUCTION else {},
+    }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')

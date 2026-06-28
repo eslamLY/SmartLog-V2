@@ -10,7 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render Deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
-          curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
+            echo "::error::RENDER_API_KEY or RENDER_SERVICE_ID not set in GitHub Secrets"
+            echo "To fix: https://github.com/eslamLY/SmartLog-V2/settings/secrets/actions"
+            exit 1
+          fi
+          echo "Triggering deploy for service: $RENDER_SERVICE_ID"
+          RESPONSE=$(curl -s -o /tmp/render-response.json -w "%{http_code}" \
+            -X POST "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
             -H "Accept: application/json" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
+            -H "Authorization: Bearer $RENDER_API_KEY")
+          echo "HTTP Status: $RESPONSE"
+          cat /tmp/render-response.json
+          echo ""
+          if [ "$RESPONSE" != "201" ]; then
+            echo "::error::Render deploy failed with status $RESPONSE"
+            exit 1
+          fi
+          echo "Deploy triggered successfully!"
