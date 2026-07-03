@@ -47,6 +47,7 @@ class Employee(db.Model):
     shift_type_id    = db.Column(db.Integer, db.ForeignKey('shift_types.id'), nullable=True)
     branch_id        = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
 
+    company     = db.relationship('Company', backref='employees')
     manager     = db.relationship('Employee', foreign_keys=[manager_id], remote_side=[id], backref='subordinates')
     shift_type  = db.relationship('ShiftType', backref='employees')
     branch      = db.relationship('Branch', backref='employees')
@@ -78,6 +79,9 @@ class Employee(db.Model):
     emergency_relationship = db.Column(db.String(30), nullable=True)
     emergency_phone        = db.Column(db.String(20), nullable=True)
     emergency_phone2       = db.Column(db.String(20), nullable=True)
+
+    # Multi-tenant
+    company_id     = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True)
 
     # Soft delete
     deleted_at     = db.Column(db.DateTime, nullable=True)

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{{ company.name_ar }} — SMARTLOG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Cairo',sans-serif; background:#080c18; color:#e2e8f0; }
+    .sidebar { position:fixed; right:0; top:0; width:240px; height:100vh; background:#0f172a; border-left:1px solid #1e2a45; padding:20px; overflow-y:auto; z-index:100; }
+    .sidebar .logo { text-align:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #1e2a45; }
+    .sidebar .logo i { font-size:32px; color:{{ company.primary_color or '#dc2626' }}; }
+    .sidebar .logo h2 { font-size:16px; margin-top:4px; }
+    .sidebar .logo .plan { font-size:11px; color:#64748b; }
+    .sidebar a { display:flex; align-items:center; gap:10px; padding:10px 14px; color:#94a3b8; text-decoration:none; border-radius:8px; margin-bottom:4px; transition:all .2s; font-size:14px; }
+    .sidebar a:hover, .sidebar a.active { background:#1e2a45; color:#e2e8f0; }
+    .sidebar a i { font-size:18px; }
+    .main { margin-right:240px; padding:24px; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .header h1 { font-size:20px; }
+    .header .date { color:#64748b; font-size:14px; }
+    .header .logout { padding:8px 16px; background:#1e2a45; border:1px solid #2d3a56; border-radius:8px; color:#e2e8f0; text-decoration:none; font-size:13px; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+    .stat-card { background:#0f172a; border:1px solid #1e2a45; border-radius:12px; padding:20px; text-align:center; }
+    .stat-card .number { font-size:32px; font-weight:800; margin-bottom:4px; }
+    .stat-card .label { font-size:13px; color:#64748b; }
+    .stat-card .hint { font-size:11px; color:#3b82f6; margin-top:4px; }
+    .progress-bar { height:4px; background:#1e2a45; border-radius:2px; margin-top:8px; overflow:hidden; }
+    .progress-bar .fill { height:100%; background:{{ company.primary_color or '#dc2626' }}; border-radius:2px; transition:width .5s; }
+    @media (max-width:768px) { .sidebar { width:60px; padding:12px 8px; } .sidebar .logo h2, .sidebar .logo .plan, .sidebar a span { display:none; } .main { margin-right:60px; padding:16px; } .stats { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo">
+      <i class="ti ti-building"></i>
+      <h2>{{ company.name_ar }}</h2>
+      <div class="plan">{{ company.plan }}</div>
+    </div>
+    <a href="/company/dashboard" class="active"><i class="ti ti-dashboard"></i><span>لوحة التحكم</span></a>
+    <a href="/company/employees"><i class="ti ti-users"></i><span>الموظفين</span></a>
+    <a href="/company/devices"><i class="ti ti-fingerprint"></i><span>الأجهزة</span></a>
+    <a href="#"><i class="ti ti-calendar"></i><span>الحضور</span></a>
+    <a href="#"><i class="ti ti-reports"></i><span>التقارير</span></a>
+    <a href="#"><i class="ti ti-settings"></i><span>الإعدادات</span></a>
+    <a href="/company/logout"><i class="ti ti-logout"></i><span>تسجيل خروج</span></a>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div>
+        <h1>لوحة التحكم</h1>
+        <div class="date">{{ day_name }} — {{ today.strftime('%Y-%m-%d') }}</div>
+      </div>
+      <a href="/company/logout" class="logout"><i class="ti ti-logout"></i> خروج</a>
+    </div>
+
+    <div class="stats" id="statsContainer">
+      <div class="stat-card"><div class="number" id="statTotal">-</div><div class="label">إجمالي الموظفين</div><div class="hint" id="hintEmployees"></div></div>
+      <div class="stat-card"><div class="number" id="statPresent">-</div><div class="label">الحاضرون اليوم</div></div>
+      <div class="stat-card"><div class="number" id="statAbsent">-</div><div class="label">الغائبون</div></div>
+      <div class="stat-card"><div class="number" id="statLate">-</div><div class="label">المتأخرون</div></div>
+      <div class="stat-card"><div class="number" id="statDevices">-</div><div class="label">الأجهزة المتصلة</div></div>
+    </div>
+
+    <div style="background:#0f172a;border:1px solid #1e2a45;border-radius:12px;padding:20px;margin-top:16px">
+      <h3 style="margin-bottom:12px;font-size:15px">سعة الباقة</h3>
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span>الموظفين</span>
+          <span id="usageEmployees">0 / 0</span>
+        </div>
+        <div class="progress-bar"><div class="fill" id="barEmployees" style="width:0%"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span>الأجهزة</span>
+          <span id="usageDevices">0 / 0</span>
+        </div>
+        <div class="progress-bar"><div class="fill" id="barDevices" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getCSRF() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+    async function loadStats() {
+      try {
+        var r = await fetch('/api/company/dashboard/stats', { headers: { 'X-CSRFToken': getCSRF() } });
+        var d = await r.json();
+        if (!d.ok) return;
+        document.getElementById('statTotal').textContent = d.total;
+        document.getElementById('statPresent').textContent = d.present;
+        document.getElementById('statAbsent').textContent = d.absent;
+        document.getElementById('statLate').textContent = d.late;
+        document.getElementById('statDevices').textContent = d.online_devices + '/' + d.devices;
+        document.getElementById('hintEmployees').textContent = 'حد أقصى ' + d.max_employees;
+        var empPct = Math.min(100, Math.round((d.employee_count / d.max_employees) * 100)) || 0;
+        var devPct = Math.min(100, Math.round((d.device_count / d.max_devices) * 100)) || 0;
+        document.getElementById('usageEmployees').textContent = d.employee_count + ' / ' + d.max_employees;
+        document.getElementById('usageDevices').textContent = d.device_count + ' / ' + d.max_devices;
+        document.getElementById('barEmployees').style.width = empPct + '%';
+        document.getElementById('barDevices').style.width = devPct + '%';
+      } catch(e) {}
+    }
+    loadStats();
+    setInterval(loadStats, 30000);
+  </script>
+</body>
+</html>

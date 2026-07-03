@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>SMARTLOG — دخول الشركة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Cairo',sans-serif; background:#080c18; color:#e2e8f0; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+    .login-card { background:#0f172a; border:1px solid #1e2a45; border-radius:16px; padding:40px; width:400px; max-width:90vw; }
+    .logo { text-align:center; margin-bottom:24px; }
+    .logo i { font-size:48px; color:#dc2626; }
+    .logo h1 { font-size:24px; margin-top:8px; }
+    .field { margin-bottom:16px; }
+    .field label { display:block; margin-bottom:6px; font-size:14px; color:#94a3b8; }
+    .field input { width:100%; padding:12px 16px; background:#1e2a45; border:1px solid #2d3a56; border-radius:10px; color:#e2e8f0; font-size:15px; outline:none; transition:border .2s; font-family:'Cairo',sans-serif; }
+    .field input:focus { border-color:#dc2626; }
+    .btn { width:100%; padding:12px; background:#dc2626; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; transition:background .2s; font-family:'Cairo',sans-serif; margin-top:8px; }
+    .btn:hover { background:#b91c1c; }
+    .btn.loading { opacity:.7; pointer-events:none; }
+    .error { background:#450a0a; color:#fca5a5; padding:10px 14px; border-radius:8px; margin-bottom:16px; display:none; font-size:14px; }
+    .footer { text-align:center; margin-top:20px; font-size:13px; color:#64748b; }
+    .footer a { color:#dc2626; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="logo"><i class="ti ti-building"></i><h1>دخول الشركة</h1></div>
+    <div class="error" id="errorMsg"></div>
+    <div class="field">
+      <label>اسم المستخدم</label>
+      <input type="text" id="username" placeholder="اسم المستخدم" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="password" placeholder="······" autocomplete="current-password">
+    </div>
+    <button class="btn" id="loginBtn" onclick="doLogin()">تسجيل الدخول</button>
+    <div class="footer">ليس لديك حساب؟ <a href="/company/register">تسجيل شركة جديدة</a></div>
+  </div>
+  <script>
+    function getCSRF() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+    async function doLogin() {
+      var btn = document.getElementById('loginBtn');
+      var err = document.getElementById('errorMsg');
+      btn.classList.add('loading'); btn.disabled = true; err.style.display = 'none';
+      try {
+        var r = await fetch('/company/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+          body: JSON.stringify({ username: document.getElementById('username').value.trim(), password: document.getElementById('password').value })
+        });
+        var d = await r.json();
+        if (d.ok) { window.location.href = d.redirect; }
+        else { err.textContent = d.msg; err.style.display = 'block'; btn.classList.remove('loading'); btn.disabled = false; }
+      } catch(e) { err.textContent = 'خطأ في الاتصال'; err.style.display = 'block'; btn.classList.remove('loading'); btn.disabled = false; }
+    }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+  </script>
+</body>
+</html>

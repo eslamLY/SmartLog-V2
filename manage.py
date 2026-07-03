@@ -126,6 +126,78 @@ def run_reset_sequences():
     engine.dispose()
     print('Done resetting sequences.')
 
+def run_sanitize_names():
+    """Clean up '.' placeholder in employee full_name that comes from ZKTeco empty surname."""
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url:
+        print('[ERROR] DATABASE_URL not set')
+        sys.exit(1)
+    from sqlalchemy import create_engine, text
+    engine = create_engine(db_url)
+
+    def _sanitize(name):
+        if not name:
+            return name
+        name = name.strip()
+        name = name.rstrip('^ .\t')
+        name = name.strip()
+        parts = name.split(maxsplit=1)
+        if len(parts) == 2:
+            first, last = parts
+            last_clean = last.rstrip('^ .\t').strip()
+            if last_clean == '.' or last_clean == '':
+                return first
+            return f'{first} {last_clean}'
+        return name
+
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("SELECT id, full_name FROM employees WHERE full_name LIKE '%. %' OR full_name LIKE '%.'")
+        )
+        rows = result.fetchall()
+        fixed = 0
+        log = []
+        for row in rows:
+            eid, old_name = row
+            new_name = _sanitize(old_name)
+            if new_name != old_name:
+                conn.execute(
+                    text("UPDATE employees SET full_name = :new WHERE id = :id"),
+                    {'new': new_name, 'id': eid}
+                )
+                log.append({'id': eid, 'old': old_name, 'new': new_name})
+                fixed += 1
+        conn.commit()
+        engine.dispose()
+
+    print(f'=== Sanitize Names Complete ===')
+    print(f'Records updated: {fixed}')
+    if log:
+        print('--- Changes ---')
+        for entry in log:
+            print(f'  ID {entry["id"]}: "{entry["old"]}" -> "{entry["new"]}"')
+    print(f'Records unaffected: skipped clean entries.')
+    if fixed == 0:
+        print('No dirty names found (already clean or no matching records).')
+
+    # Regression check
+    print('--- Regression Check ---')
+    engine2 = create_engine(db_url)
+    with engine2.connect() as conn:
+        dirty = conn.execute(
+            text("SELECT id, full_name FROM employees WHERE "
+                 "full_name LIKE '%. ' OR full_name LIKE '%.' OR "
+                 "full_name LIKE '% .%' OR full_name LIKE '%^. %'")
+        ).fetchall()
+        engine2.dispose()
+    if dirty:
+        print(f'WARNING: {len(dirty)} records still have dirty names:')
+        for r in dirty:
+            print(f'  ID {r[0]}: "{r[1]}"')
+    else:
+        print('PASS: No employee record has "." stored as a name component after cleanup.')
+
+
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else None
     if cmd == 'check-db' or cmd == 'check':
@@ -136,6 +208,8 @@ if __name__ == '__main__':
         run_reset_sequences()
     elif cmd in ('db-check', 'dbcheck'):
         run_check()
+    elif cmd == 'sanitize-names':
+        run_sanitize_names()
     elif cmd == 'stamp':
         print('Stamping Alembic to head (d4f2c8b1a93e)...')
         import subprocess
@@ -147,5 +221,6 @@ if __name__ == '__main__':
         print('  check-db       Check database state')
         print('  seed           Seed initial data')
         print('  reset-sequence Reset auto-increment sequences')
+        print('  sanitize-names Clean up dot placeholders in employee full_name')
         print('  stamp          Stamp Alembic to head revision')
         sys.exit(1)

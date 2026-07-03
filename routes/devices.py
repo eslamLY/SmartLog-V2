@@ -94,6 +94,12 @@ def admin_devices():
         employees=employees, device_models=DEVICE_MODELS)
 
 
+@admin_devices_bp.route('/admin/devices-management')
+@admin_required
+def admin_devices_management():
+    return render_template('admin/devices_management.html')
+
+
 # ─── API: GET DEVICE ─────────────────────────────────────────
 
 @admin_devices_bp.route('/api/admin/devices/<int:did>')
@@ -454,6 +460,22 @@ def clear_device_logs_api(did):
         db.session.commit()
         return jsonify({'ok': True, 'msg': 'تم مسح سجلات الجهاز.'})
     return jsonify({'ok': False, 'msg': 'فشل مسح السجلات.'})
+
+
+# ─── API: LIST ALL BIOMETRIC DEVICES (multi-tenant) ──────────
+
+@admin_devices_bp.route('/api/admin/devices/list')
+@admin_required
+def api_list_biometric_devices():
+    from models.biometric_device import BiometricDevice
+    devices = BiometricDevice.query.filter_by(deleted_at=None).order_by(BiometricDevice.created_at.desc()).all()
+    result = []
+    for dev in devices:
+        d = dev.to_dict()
+        company_name = dev.company.name_ar if dev.company else None
+        d['company_name'] = company_name
+        result.append(d)
+    return jsonify({'ok': True, 'devices': result})
 
 
 # ─── API: EXPORT DEVICES ─────────────────────────────────────

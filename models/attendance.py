@@ -51,6 +51,8 @@ class AttendanceLog(db.Model):
     __tablename__ = 'attendance_logs'
     id                  = db.Column(db.Integer, primary_key=True)
     employee_id         = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    company_id          = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True)
+    device_id           = db.Column(db.Integer, db.ForeignKey('biometric_devices.id'), nullable=True)
     log_date            = db.Column(db.Date, nullable=False, default=date.today)
     clock_in            = db.Column(db.DateTime, nullable=True)
     clock_out           = db.Column(db.DateTime, nullable=True)
@@ -73,6 +75,7 @@ class AttendanceLog(db.Model):
     has_exit_permission = db.Column(db.Boolean, default=False)
     override_reason     = db.Column(db.String(200), nullable=True)
     policy_id           = db.Column(db.Integer, db.ForeignKey('attendance_policies.id'), nullable=True)
+    device_serial       = db.Column(db.String(60), nullable=True)
 
     def set_clock_in_coords(self, lat, lng):
         self.lat_in = lat; self.lng_in = lng

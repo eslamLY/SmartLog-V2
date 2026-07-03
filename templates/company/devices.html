@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{{ company.name_ar }} — الأجهزة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Cairo',sans-serif; background:#080c18; color:#e2e8f0; display:flex; }
+    .sidebar { width:240px; min-height:100vh; background:#0f172a; border-left:1px solid #1e2a45; padding:20px; }
+    .sidebar .logo { text-align:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #1e2a45; }
+    .sidebar .logo i { font-size:32px; color:{{ company.primary_color or '#dc2626' }}; }
+    .sidebar .logo h2 { font-size:16px; margin-top:4px; }
+    .sidebar a { display:flex; align-items:center; gap:10px; padding:10px 14px; color:#94a3b8; text-decoration:none; border-radius:8px; margin-bottom:4px; font-size:14px; }
+    .sidebar a:hover, .sidebar a.active { background:#1e2a45; color:#e2e8f0; }
+    .main { flex:1; padding:24px; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .header h1 { font-size:20px; }
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#1e2a45; border:1px solid #2d3a56; border-radius:8px; color:#e2e8f0; cursor:pointer; font-family:'Cairo',sans-serif; font-size:13px; text-decoration:none; }
+    .btn-primary { background:#dc2626; border-color:#dc2626; }
+    table { width:100%; border-collapse:collapse; background:#0f172a; border-radius:12px; overflow:hidden; }
+    th, td { padding:10px 14px; text-align:right; border-bottom:1px solid #1e2a45; font-size:13px; }
+    th { background:#1e2a45; color:#94a3b8; font-weight:600; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; }
+    .badge.online { background:#064e3b; color:#6ee7b7; }
+    .badge.offline { background:#450a0a; color:#fca5a5; }
+    .badge.active { background:#064e3b; color:#6ee7b7; }
+    .badge.inactive { background:#450a0a; color:#fca5a5; }
+    .key-box { background:#1e2a45; padding:4px 8px; border-radius:4px; font-size:11px; font-family:monospace; direction:ltr; display:inline-block; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:200; }
+    .modal { background:#0f172a; border:1px solid #1e2a45; border-radius:12px; padding:24px; width:460px; max-width:90vw; }
+    .modal h2 { margin-bottom:16px; font-size:16px; }
+    .field { margin-bottom:12px; }
+    .field label { display:block; margin-bottom:4px; font-size:13px; color:#94a3b8; }
+    .field input, .field select { width:100%; padding:10px 12px; background:#1e2a45; border:1px solid #2d3a56; border-radius:8px; color:#e2e8f0; font-size:14px; outline:none; font-family:'Cairo',sans-serif; }
+    .field input:focus, .field select:focus { border-color:#dc2626; }
+    .key-display { background:#064e3b; color:#6ee7b7; padding:12px; border-radius:8px; margin:12px 0; text-align:center; font-family:monospace; font-size:14px; direction:ltr; word-break:break-all; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo"><i class="ti ti-building"></i><h2>{{ company.name_ar }}</h2></div>
+    <a href="/company/dashboard"><i class="ti ti-dashboard"></i> لوحة التحكم</a>
+    <a href="/company/employees"><i class="ti ti-users"></i> الموظفين</a>
+    <a href="/company/devices" class="active"><i class="ti ti-fingerprint"></i> الأجهزة</a>
+    <a href="/company/logout"><i class="ti ti-logout"></i> تسجيل خروج</a>
+  </div>
+  <div class="main">
+    <div class="header">
+      <h1>الأجهزة</h1>
+      <button class="btn btn-primary" onclick="showAddModal()"><i class="ti ti-plus"></i> إضافة جهاز</button>
+    </div>
+    <table>
+      <thead><tr><th>الاسم</th><th>الرقم التسلسلي</th><th>IP</th><th>مفتاح الترخيص</th><th>الحالة</th><th>آخر اتصال</th><th></th></tr></thead>
+      <tbody id="devicesBody"></tbody>
+    </table>
+  </div>
+
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <h2>إضافة جهاز بصمة</h2>
+      <div class="field"><label>اسم الجهاز</label><input type="text" id="fName" placeholder="جهاز البصمة الرئيسي"></div>
+      <div class="field"><label>الرقم التسلسلي</label><input type="text" id="fSerial" placeholder="BIO-001" dir="ltr"></div>
+      <div class="field"><label>IP Address</label><input type="text" id="fIp" placeholder="192.168.1.55" dir="ltr"></div>
+      <div class="field"><label>المنفذ</label><input type="number" id="fPort" value="4370" dir="ltr"></div>
+      <div class="field"><label>الموقع</label><input type="text" id="fLocation" placeholder="المدخل الرئيسي"></div>
+      <button class="btn btn-primary" onclick="doAdd()" style="width:100%;justify-content:center;margin-top:8px">إضافة الجهاز</button>
+      <button class="btn" onclick="closeAddModal()" style="width:100%;justify-content:center;margin-top:4px">إلغاء</button>
+      <div class="key-display" id="keyDisplay" style="display:none"></div>
+    </div>
+  </div>
+
+  <script>
+    function getCSRF() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+
+    function showAddModal() { document.getElementById('addModal').style.display = 'flex'; document.getElementById('keyDisplay').style.display = 'none'; }
+    function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
+
+    function copyKey(el) { navigator.clipboard.writeText(el.textContent); el.style.background = '#064e3b'; setTimeout(function(){ el.style.background = ''; }, 500); }
+
+    async function loadDevices() {
+      try {
+        var r = await fetch('/api/company/devices/list', { headers: { 'X-CSRFToken': getCSRF() } });
+        var d = await r.json();
+        if (!d.ok) return;
+        var tbody = document.getElementById('devicesBody');
+        tbody.innerHTML = '';
+        d.devices.forEach(function(dev) {
+          var badge = dev.online_status === 'online' ? 'online' : 'offline';
+          var label = dev.online_status === 'online' ? 'متصل' : 'غير متصل';
+          var lastSeen = dev.last_online_at ? new Date(dev.last_online_at).toLocaleString('ar') : '-';
+          tbody.innerHTML += '<tr><td>' + dev.name + '</td><td>' + dev.serial_no + '</td><td>' + (dev.ip_address || '-') + '</td><td><span class="key-box" onclick="copyKey(this)" title="انسخ المفتاح">' + (dev.license_key || '-') + '</span></td><td><span class="badge ' + badge + '">' + label + '</span></td><td style="font-size:11px;color:#64748b">' + lastSeen + '</td><td><button class="btn" onclick="toggle(' + dev.id + ')"><i class="ti ti-toggle-left"></i></button> <button class="btn" onclick="regenerateKey(' + dev.id + ')"><i class="ti ti-key"></i></button> <button class="btn" onclick="del(' + dev.id + ')"><i class="ti ti-trash"></i></button></td></tr>';
+        });
+      } catch(e) { console.error(e); }
+    }
+
+    async function doAdd() {
+      var r = await fetch('/api/company/devices/generate-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+        body: JSON.stringify({
+          name: document.getElementById('fName').value.trim(),
+          serial_no: document.getElementById('fSerial').value.trim(),
+          ip_address: document.getElementById('fIp').value.trim(),
+          port: parseInt(document.getElementById('fPort').value) || 4370,
+          location: document.getElementById('fLocation').value.trim(),
+        })
+      });
+      var d = await r.json();
+      if (d.ok) {
+        var kd = document.getElementById('keyDisplay');
+        kd.textContent = '🔑 مفتاح الترخيص: ' + d.license_key + '\n🔐 API Key: ' + d.api_key;
+        kd.style.display = 'block';
+        loadDevices();
+      } else { alert(d.msg); }
+    }
+
+    async function toggle(id) {
+      var r = await fetch('/api/company/devices/' + id + '/toggle', { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+      var d = await r.json();
+      if (d.ok) loadDevices();
+    }
+
+    async function regenerateKey(id) {
+      if (!confirm('تأكيد تجديد مفاتيح الجهاز؟')) return;
+      var r = await fetch('/api/company/devices/' + id + '/regenerate-key', { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+      var d = await r.json();
+      if (d.ok) { alert('المفتاح الجديد: ' + d.license_key); loadDevices(); }
+    }
+
+    async function del(id) {
+      if (!confirm('تأكيد حذف الجهاز؟')) return;
+      var r = await fetch('/api/company/devices/' + id + '/delete', { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+      var d = await r.json();
+      if (d.ok) loadDevices();
+    }
+
+    loadDevices();
+    setInterval(loadDevices, 15000);
+  </script>
+</body>
+</html>

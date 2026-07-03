@@ -30,8 +30,16 @@ def admin_employees():
         query = query.filter_by(department=dept)
     pagination = query.order_by(Employee.department, Employee.full_name).paginate(page=page, per_page=20, error_out=False)
     employees = pagination.items
+    emp_ids = [emp.id for emp in employees]
+    today_logs = {}
+    if emp_ids:
+        logs = AttendanceLog.query.filter(
+            AttendanceLog.employee_id.in_(emp_ids),
+            AttendanceLog.log_date == today
+        ).all()
+        today_logs = {log.employee_id: log for log in logs}
     for emp in employees:
-        log = AttendanceLog.query.filter_by(employee_id=emp.id, log_date=today).first()
+        log = today_logs.get(emp.id)
         emp.today_status = log.status if log else 'absent'
         emp.today_log    = log
         emp.clocked_in   = bool(log and log.clock_in)

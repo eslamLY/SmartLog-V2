@@ -63,18 +63,42 @@ def admin_dashboard():
 def ai_predictor():
     today = date.today()
     depts = Department.query.filter_by(is_active=True).all()
+    dept_ids = [d.id for d in depts]
+    dept_map = {d.id: d for d in depts}
+
+    emp_ids_by_dept = defaultdict(list)
+    if dept_ids:
+        employees = Employee.query.filter(
+            Employee.department_id.in_(dept_ids),
+            Employee.role == 'employee',
+            Employee.is_active == True,
+        ).all()
+        for emp in employees:
+            emp_ids_by_dept[emp.department_id].append(emp.id)
+
+    all_emp_ids = [eid for ids in emp_ids_by_dept.values() for eid in ids]
+    dates = [today + timedelta(days=i) for i in range(7)]
+
+    shifts_by_dept_date = defaultdict(lambda: defaultdict(list))
+    if all_emp_ids:
+        shifts = ShiftSchedule.query.filter(
+            ShiftSchedule.employee_id.in_(all_emp_ids),
+            ShiftSchedule.scheduled_date.in_(dates),
+            ShiftSchedule.status == 'confirmed',
+        ).options(db.joinedload(ShiftSchedule.shift_type)).all()
+        emp_dept_map = {e.id: e.department_id for e in employees}
+        for s in shifts:
+            dept_id = emp_dept_map.get(s.employee_id)
+            if dept_id:
+                shifts_by_dept_date[dept_id][s.scheduled_date].append(s)
+
     results = []
-    for day_offset in range(7):
-        d = today + timedelta(days=day_offset)
-        for dept in depts:
-            emp_ids = [e.id for e in Employee.query.filter_by(
-                department_id=dept.id, role='employee', is_active=True).all()]
-            if not emp_ids: continue
-            shifts = ShiftSchedule.query.filter(
-                ShiftSchedule.employee_id.in_(emp_ids),
-                ShiftSchedule.scheduled_date == d, ShiftSchedule.status == 'confirmed').all()
+    for d in dates:
+        for dept_id in dept_ids:
+            dept = dept_map[dept_id]
+            dept_shifts = shifts_by_dept_date.get(dept_id, {}).get(d, [])
             type_counts = {}
-            for s in shifts:
+            for s in dept_shifts:
                 st_name = s.shift_type.name if s.shift_type else 'غير محدد'
                 type_counts[st_name] = type_counts.get(st_name, 0) + 1
             for st_name, cnt in type_counts.items():

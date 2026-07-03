@@ -53,42 +53,51 @@ def api_dashboard_stats():
     today = date.today()
     yesterday = today - timedelta(days=1)
     total = Employee.query.filter_by(deleted_at=None, is_active=True).count()
-    t_logs = AttendanceLog.query.filter_by(log_date=today).all()
-    y_logs = AttendanceLog.query.filter_by(log_date=yesterday).all()
-    present = sum(1 for l in t_logs if l.status in ('present', 'late'))
-    late = sum(1 for l in t_logs if l.status == 'late')
+
+    today_stats = dict(db.session.query(
+        AttendanceLog.status, func.count(AttendanceLog.id)
+    ).filter(AttendanceLog.log_date == today).group_by(AttendanceLog.status).all())
+    yesterday_stats = dict(db.session.query(
+        AttendanceLog.status, func.count(AttendanceLog.id)
+    ).filter(AttendanceLog.log_date == yesterday).group_by(AttendanceLog.status).all())
+
+    present = today_stats.get('present', 0) + today_stats.get('late', 0)
+    late = today_stats.get('late', 0)
     absent = total - present
+
+    no_clockout = db.session.query(func.count(AttendanceLog.id)).filter(
+        AttendanceLog.log_date == today,
+        AttendanceLog.clock_in.isnot(None),
+        AttendanceLog.clock_out.is_(None),
+        AttendanceLog.status != 'absent',
+    ).scalar() or 0
+
     on_leave = LeaveRequest.query.filter(
         LeaveRequest.status == 'approved',
         LeaveRequest.start_date <= today,
         LeaveRequest.end_date >= today,
     ).count()
-    no_clockout = sum(1 for l in t_logs if l.clock_in and not l.clock_out and l.status != 'absent')
+
     expiring_docs = EmployeeDocument.query.filter(
         EmployeeDocument.expiry_date.isnot(None),
         EmployeeDocument.expiry_date <= today + timedelta(days=30),
         EmployeeDocument.expiry_date >= today,
     ).count()
-    offline_devices = BioTimeDevice.query.filter_by(is_active=True).filter(
-        BioTimeDevice.is_online == False
-    ).count()
+
+    offline_devices = BioTimeDevice.query.filter_by(is_active=True, is_online=False).count()
     pending_leave_requests = NewLeaveRequest.query.filter_by(status='pending').count()
     total_with_extended = EmployeeExtended.query.count()
     total_emps = Employee.query.filter_by(deleted_at=None, is_active=True).count()
     extended_pct = round(total_with_extended / total_emps * 100) if total_emps else 0
-    y_present = sum(1 for l in y_logs if l.status in ('present', 'late'))
+
+    y_present = yesterday_stats.get('present', 0) + yesterday_stats.get('late', 0)
     y_absent = total - y_present
-    y_late = sum(1 for l in y_logs if l.status == 'late')
+    y_late = yesterday_stats.get('late', 0)
     get_trend = lambda curr, prev: (curr - prev) if prev else 0
     return jsonify({
-        'total': total,
-        'present': present,
-        'absent': absent,
-        'late': late,
-        'on_leave': on_leave,
-        'no_clockout': no_clockout,
-        'expiring_docs': expiring_docs,
-        'offline_devices': offline_devices,
+        'total': total, 'present': present, 'absent': absent,
+        'late': late, 'on_leave': on_leave, 'no_clockout': no_clockout,
+        'expiring_docs': expiring_docs, 'offline_devices': offline_devices,
         'pending_leave_requests': pending_leave_requests,
         'extended_data_pct': extended_pct,
         'trends': {
@@ -107,32 +116,34 @@ def api_charts_weekly():
     today = date.today()
     mode = request.args.get('mode', 'weekly')
     total = Employee.query.filter_by(deleted_at=None, is_active=True).count()
-    on_leave_ids = set()
-    leave_reqs = LeaveRequest.query.filter(
-        LeaveRequest.status == 'approved',
-    ).all()
-    data = []
     if mode == 'weekly':
-        days = 7
-        date_range = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
+        date_range = [today - timedelta(days=i) for i in range(6, -1, -1)]
     elif mode == 'monthly':
         days = (today - today.replace(day=1)).days + 1
         date_range = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
     else:
-        days = 30
-        date_range = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
+        date_range = [today - timedelta(days=i) for i in range(29, -1, -1)]
+    start_date = date_range[0]
+    end_date = date_range[-1]
+    rows = db.session.query(
+        AttendanceLog.log_date,
+        AttendanceLog.status,
+        func.count(AttendanceLog.id).label('count'),
+    ).filter(
+        AttendanceLog.log_date >= start_date,
+        AttendanceLog.log_date <= end_date,
+    ).group_by(AttendanceLog.log_date, AttendanceLog.status).all()
+    by_date = defaultdict(dict)
+    for log_date, status, cnt in rows:
+        by_date[log_date][status] = cnt
+    data = []
     for d in date_range:
-        logs = AttendanceLog.query.filter_by(log_date=d).all()
-        day_present = sum(1 for l in logs if l.status in ('present', 'late'))
-        day_late = sum(1 for l in logs if l.status == 'late')
+        day_stats = by_date.get(d, {})
+        day_present = day_stats.get('present', 0) + day_stats.get('late', 0)
+        day_late = day_stats.get('late', 0)
         day_absent = total - day_present
         label = DAY_NAMES[d.weekday()] if mode == 'weekly' else d.strftime('%d/%m')
-        data.append({
-            'day': label,
-            'present': day_present,
-            'absent': day_absent,
-            'late': day_late,
-        })
+        data.append({'day': label, 'present': day_present, 'absent': day_absent, 'late': day_late})
     return jsonify({'data': data, 'mode': mode, 'total': total})
 
 
@@ -142,17 +153,18 @@ def api_charts_weekly():
 def api_charts_donut():
     today = date.today()
     total = Employee.query.filter_by(deleted_at=None, is_active=True).count()
-    t_logs = AttendanceLog.query.filter_by(log_date=today).all()
-    present = sum(1 for l in t_logs if l.status == 'present')
-    late = sum(1 for l in t_logs if l.status == 'late')
-    absent = sum(1 for l in t_logs if l.status == 'absent')
+    stats = dict(db.session.query(
+        AttendanceLog.status, func.count(AttendanceLog.id)
+    ).filter(AttendanceLog.log_date == today).group_by(AttendanceLog.status).all())
+    present = stats.get('present', 0)
+    late = stats.get('late', 0)
+    absent = stats.get('absent', 0)
     on_leave = LeaveRequest.query.filter(
         LeaveRequest.status == 'approved',
         LeaveRequest.start_date <= today,
         LeaveRequest.end_date >= today,
     ).count()
-    no_record = total - present - late - absent - on_leave
-    if no_record < 0: no_record = 0
+    no_record = max(0, total - present - late - absent - on_leave)
     return jsonify({
         'labels': ['حاضر', 'غائب', 'متأخر', 'إجازة', 'لم يسجل'],
         'values': [present, absent, late, on_leave, no_record],
@@ -168,30 +180,52 @@ def api_charts_heatmap():
     today = date.today()
     depts = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    day_labels = [DAY_NAMES[d.weekday()] for d in days]
+    dept_map = {d.id: d for d in depts}
+    dept_ids = list(dept_map.keys())
+
+    emp_count_by_dept = dict(db.session.query(
+        Employee.department_id, func.count(Employee.id)
+    ).filter(
+        Employee.department_id.in_(dept_ids),
+        Employee.deleted_at.is_(None),
+        Employee.is_active == True,
+    ).group_by(Employee.department_id).all())
+
+    date_strs = [d.isoformat() for d in days]
+    raw = db.session.query(
+        Employee.department_id,
+        AttendanceLog.log_date,
+        func.count(AttendanceLog.id)
+    ).join(AttendanceLog, AttendanceLog.employee_id == Employee.id).filter(
+        Employee.department_id.in_(dept_ids),
+        AttendanceLog.log_date.in_(days),
+        AttendanceLog.status.in_(['present', 'late']),
+    ).group_by(Employee.department_id, AttendanceLog.log_date).all()
+
+    by_dept_date = defaultdict(dict)
+    for dept_id, log_date, cnt in raw:
+        by_dept_date[dept_id][log_date] = cnt
+
     rows = []
-    for dept in depts:
-        emp_ids = [e.id for e in Employee.query.filter_by(department_id=dept.id, deleted_at=None, is_active=True).all()]
-        if not emp_ids:
+    for dept_id in dept_ids:
+        dept = dept_map[dept_id]
+        total_emp = emp_count_by_dept.get(dept_id, 0)
+        if not total_emp:
             continue
-        total_emp = len(emp_ids)
         cells = []
         for d in days:
-            log_count = AttendanceLog.query.filter(
-                AttendanceLog.employee_id.in_(emp_ids),
-                AttendanceLog.log_date == d,
-                AttendanceLog.status.in_(['present', 'late']),
-            ).count()
-            pct = round((log_count / total_emp) * 100) if total_emp > 0 else 0
-            cells.append({'date': d.strftime('%Y-%m-%d'), 'pct': pct, 'count': log_count, 'total': total_emp})
-        today_pct = cells[-1]['pct'] if cells else 0
+            log_count = by_dept_date.get(dept_id, {}).get(d, 0)
+            pct = round((log_count / total_emp) * 100)
+            cells.append({'date': d.isoformat(), 'pct': pct, 'count': log_count, 'total': total_emp})
         rows.append({
             'dept_id': dept.id,
             'dept_name': dept.name_ar,
             'dept_color': dept.color or '#e53935',
-            'today_pct': today_pct,
+            'today_pct': cells[-1]['pct'] if cells else 0,
             'cells': cells,
         })
-    return jsonify({'rows': rows, 'day_labels': [DAY_NAMES[d.weekday()] for d in days]})
+    return jsonify({'rows': rows, 'day_labels': day_labels})
 
 
 @admin_dashboard_bp.route('/api/dashboard/charts/punctuality')
@@ -200,29 +234,42 @@ def api_charts_heatmap():
 def api_charts_punctuality():
     today = date.today()
     month_start = today.replace(day=1)
-    employees = Employee.query.filter_by(deleted_at=None, is_active=True).all()
+    total_days = (today - month_start).days + 1
+
+    attended_counts = dict(db.session.query(
+        AttendanceLog.employee_id, func.count(AttendanceLog.id)
+    ).filter(
+        AttendanceLog.log_date >= month_start,
+        AttendanceLog.log_date <= today,
+        AttendanceLog.status.in_(['present', 'late']),
+    ).group_by(AttendanceLog.employee_id).all())
+
+    late_counts = dict(db.session.query(
+        AttendanceLog.employee_id, func.count(AttendanceLog.id)
+    ).filter(
+        AttendanceLog.log_date >= month_start,
+        AttendanceLog.log_date <= today,
+        AttendanceLog.status == 'late',
+    ).group_by(AttendanceLog.employee_id).all())
+
+    emp_ids = set(list(attended_counts.keys()) + list(late_counts.keys()))
+    employees = Employee.query.filter(
+        Employee.id.in_(emp_ids) if emp_ids else False,
+        Employee.deleted_at.is_(None),
+        Employee.is_active == True,
+    ).all() if emp_ids else []
+
     ranking = []
     for emp in employees:
-        total_days = (today - month_start).days + 1
-        attended = AttendanceLog.query.filter(
-            AttendanceLog.employee_id == emp.id,
-            AttendanceLog.log_date >= month_start,
-            AttendanceLog.log_date <= today,
-            AttendanceLog.status.in_(['present', 'late']),
-        ).count()
-        late_days = AttendanceLog.query.filter(
-            AttendanceLog.employee_id == emp.id,
-            AttendanceLog.log_date >= month_start,
-            AttendanceLog.log_date <= today,
-            AttendanceLog.status == 'late',
-        ).count()
-        punctuality = round(((attended - late_days) / total_days) * 100) if total_days > 0 else 0
+        attended = attended_counts.get(emp.id, 0)
+        late = late_counts.get(emp.id, 0)
+        punctuality = round(((attended - late) / total_days) * 100) if total_days > 0 else 0
         ranking.append({
             'employee_id': emp.id,
             'employee_name': emp.full_name,
             'profile_photo': emp.profile_photo,
             'attended': attended,
-            'late_days': late_days,
+            'late_days': late,
             'punctuality': punctuality,
         })
     ranking.sort(key=lambda x: x['punctuality'], reverse=True)
@@ -234,21 +281,18 @@ def api_charts_punctuality():
 @admin_required
 def api_charts_hourly():
     today = date.today()
-    logs = AttendanceLog.query.filter(
+    rows = db.session.query(
+        func.extract('hour', AttendanceLog.clock_in).label('hour'),
+        func.count(AttendanceLog.id).label('count'),
+    ).filter(
         AttendanceLog.log_date == today,
         AttendanceLog.clock_in.isnot(None),
-    ).all()
-    hourly = {}
-    for h in range(6, 23):
-        hourly[h] = 0
-    for log in logs:
-        h = log.clock_in.hour
-        if h in hourly:
-            hourly[h] += 1
-    data = [{'hour': f'{h:02d}:00', 'count': hourly[h]} for h in range(6, 23)]
-    peak = max(hourly.values()) if hourly else 0
-    peak_hour = max(hourly, key=hourly.get) if peak > 0 else 8
-    return jsonify({'data': data, 'peak_hour': f'{peak_hour:02d}:00', 'peak_count': peak})
+    ).group_by(text('hour')).order_by(text('hour')).all()
+    hourly_counts = {int(r[0]): r[1] for r in rows}
+    data = [{'hour': f'{h:02d}:00', 'count': hourly_counts.get(h, 0)} for h in range(6, 23)]
+    peak_hour = max(hourly_counts, key=hourly_counts.get) if hourly_counts else 8
+    peak_count = hourly_counts.get(peak_hour, 0) if hourly_counts else 0
+    return jsonify({'data': data, 'peak_hour': f'{peak_hour:02d}:00', 'peak_count': peak_count})
 
 
 @admin_dashboard_bp.route('/api/dashboard/records')
@@ -277,13 +321,14 @@ def api_dashboard_records():
     total = query.count()
     query = query.order_by(AttendanceLog.clock_in.desc().nullslast())
     logs = query.offset((page - 1) * per_page).limit(per_page).all()
+    serials = list(set(log.device_serial for log, _ in logs if log.device_serial))
+    devices_by_serial = {}
+    if serials:
+        for dev in BioTimeDevice.query.filter(BioTimeDevice.serial_number.in_(serials)).all():
+            devices_by_serial[dev.serial_number] = dev.name or dev.serial_number
     items = []
     for log, emp in logs:
-        device_name = ''
-        if log.device_serial:
-            dev = BioTimeDevice.query.filter_by(serial_number=log.device_serial).first()
-            if dev:
-                device_name = dev.name or dev.serial_number
+        device_name = devices_by_serial.get(log.device_serial, '') if log.device_serial else ''
         duration = ''
         if log.clock_in and log.clock_out:
             mins = int((log.clock_out - log.clock_in).total_seconds() / 60)

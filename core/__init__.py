@@ -1,0 +1,121 @@
+"""
+core/__init__.py — SmartLog application factory.
+Usage:
+    from core import create_app
+    app = create_app()
+"""
+import os
+import sys
+import logging
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s [%(levelname)s] %(name)s %(message)s')
+log = logging.getLogger('app')
+log.info('=' * 60)
+log.info('SmartLog starting up')
+log.info('=' * 60)
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import generate_csrf
+from itsdangerous import URLSafeTimedSerializer
+
+from models import db
+
+
+def create_app():
+    # ── 1. Environment ──────────────────────────────────────
+    from core.env import detect_environment, resolve_database_url, resolve_secret_key
+    FLASK_ENV, ON_RENDER, PRODUCTION = detect_environment()
+    _DB_URL, _masked, _IS_SQLITE, _DB_CONFIGURED = resolve_database_url()
+
+    # ── 2. Flask app instance ────────────────────────────────
+    app = Flask(__name__)
+    app.config['ENV'] = FLASK_ENV
+    app.config['PRODUCTION'] = PRODUCTION
+    app.config['ON_RENDER'] = ON_RENDER
+
+    # ── 3. Database config ──────────────────────────────────
+    from core.database import configure_sqlalchemy, build_fernet, init_db
+    configure_sqlalchemy(app, _DB_URL, _IS_SQLITE, PRODUCTION)
+
+    # ── 4. Secret key & session ─────────────────────────────
+    app.secret_key = resolve_secret_key(PRODUCTION)
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 14400
+    if PRODUCTION:
+        app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['REMEMBER_COOKIE_SECURE'] = True
+
+    # ── 5. Upload & static folders ──────────────────────────
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+    app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads')
+    app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static')
+    app.static_url_path = '/static'
+    if PRODUCTION:
+        app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 86400
+        app.config['TEMPLATES_AUTO_RELOAD'] = False
+
+    # ── 6. Encryption ────────────────────────────────────────
+    fernet = build_fernet(app)
+
+    # ── 7. DB init (SQLAlchemy + Migrate) ────────────────────
+    migrate = init_db(app, db, fernet)  # noqa — kept in scope
+
+    # ── 8. Pre-flight DB connection + tables ─────────────────
+    from core.database import test_db_connection, auto_create_tables
+    if _DB_CONFIGURED:
+        if not test_db_connection(app, db):
+            log.error('FATAL: Could not connect to database after retries.')
+            sys.exit(1)
+        auto_create_tables(app, db, _masked, PRODUCTION)
+    else:
+        log.warning('DATABASE_URL not configured — skipping DB initialization')
+
+    # ── 9. Jinja2, PWA, context processor ────────────────────
+    from core.routes import register_jinja
+    register_jinja(app, PRODUCTION)
+
+    # ── 10. Rate limiter ──────────────────────────────────────
+    from core.routes import register_limiter
+    register_limiter(app)
+
+    # ── 11. Blueprints ────────────────────────────────────────
+    from core.routes import register_blueprints
+    register_blueprints(app)
+
+    # ── 12. Middleware (before/after request) ─────────────────
+    from core.middleware import register_middleware
+    register_middleware(app, PRODUCTION)
+
+    # ── 13. Error handlers ────────────────────────────────────
+    from core.routes import register_error_handlers
+    register_error_handlers(app)
+
+    # ── 14. Health endpoints ──────────────────────────────────
+    from core.routes import register_health_endpoints
+    register_health_endpoints(app, _DB_CONFIGURED, FLASK_ENV, ON_RENDER)
+
+    # ── 15. Init route + CLI ─────────────────────────────────
+    from core.routes import register_init_route, register_cli
+    register_init_route(app)
+    register_cli(app)
+
+    # ── 16. QR serializer ─────────────────────────────────────
+    app.qr_serializer = URLSafeTimedSerializer(app.secret_key)
+
+    # ── 17. Startup (migrations + seeds) ─────────────────────
+    from core.database import run_startup
+    if _DB_CONFIGURED:
+        run_startup(app, db)
+    else:
+        log.warning('Startup: skipping migrations and seeding (DATABASE_URL not configured)')
+
+    log.info('=' * 60)
+    log.info('SmartLog startup complete — ready to serve')
+    log.info('=' * 60)
+
+    return app

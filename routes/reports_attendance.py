@@ -15,6 +15,7 @@ from models.department import Department
 from functools import wraps
 import logging
 from utils.decorators import admin_required
+from services.performance import batch_attendance_stats, batch_work_days
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,13 +57,17 @@ def get_date_range(year, month, preset=None, start_date=None, end_date=None):
     return first, date(year, month, last_day)
 
 def get_work_days(start, end):
-    count = 0
-    d = start
-    while d <= end:
-        if d.weekday() < 5:
-            count += 1
-        d += timedelta(days=1)
-    return count
+    if start > end:
+        return 0
+    total_days = (end - start).days + 1
+    full_weeks = total_days // 7
+    remainder = total_days % 7
+    start_wd = start.weekday()
+    weekdays = full_weeks * 5
+    for i in range(remainder):
+        if (start_wd + i) % 7 < 5:
+            weekdays += 1
+    return weekdays
 
 def get_expected_hours(start, end):
     return get_work_days(start, end) * 8
@@ -298,8 +303,9 @@ def api_summary():
     dept_stats = defaultdict(lambda: {'present': 0, 'absent': 0, 'late': 0, 'count': 0})
 
     employee_results = []
+    batch = batch_attendance_stats(employees, start, end)
     for emp in employees:
-        stats = calc_attendance_stats(emp, start, end)
+        stats = batch.get(emp.id) or calc_attendance_stats(emp, start, end)
         employee_results.append(stats)
         total_present += stats['present_days']
         total_absent += stats['absent_days']

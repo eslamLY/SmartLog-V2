@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>إدارة الشركات — SMARTLOG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Cairo',sans-serif; background:#080c18; color:#e2e8f0; padding:24px; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .header h1 { font-size:20px; }
+    .stats-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:24px; }
+    .stat-card { background:#0f172a; border:1px solid #1e2a45; border-radius:10px; padding:14px; text-align:center; }
+    .stat-card .num { font-size:24px; font-weight:800; }
+    .stat-card .lbl { font-size:12px; color:#64748b; }
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#1e2a45; border:1px solid #2d3a56; border-radius:8px; color:#e2e8f0; cursor:pointer; font-family:'Cairo',sans-serif; font-size:13px; text-decoration:none; }
+    .btn-primary { background:#dc2626; border-color:#dc2626; }
+    .btn-sm { padding:4px 10px; font-size:11px; }
+    table { width:100%; border-collapse:collapse; background:#0f172a; border-radius:12px; overflow:hidden; }
+    th, td { padding:10px 14px; text-align:right; border-bottom:1px solid #1e2a45; font-size:13px; }
+    th { background:#1e2a45; color:#94a3b8; font-weight:600; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; }
+    .badge.active { background:#064e3b; color:#6ee7b7; }
+    .badge.inactive { background:#450a0a; color:#fca5a5; }
+    .badge.verified { background:#1e3a5f; color:#93c5fd; }
+    .badge.plan { background:#1e2a45; color:#e2e8f0; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:200; }
+    .modal { background:#0f172a; border:1px solid #1e2a45; border-radius:12px; padding:24px; width:400px; max-width:90vw; }
+    .modal h2 { margin-bottom:16px; font-size:16px; }
+    .field { margin-bottom:12px; }
+    .field label { display:block; margin-bottom:4px; font-size:13px; color:#94a3b8; }
+    .field select { width:100%; padding:10px 12px; background:#1e2a45; border:1px solid #2d3a56; border-radius:8px; color:#e2e8f0; font-size:14px; outline:none; font-family:'Cairo',sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="ti ti-building"></i> إدارة الشركات المستأجرة</h1>
+    <a href="/admin" class="btn"><i class="ti ti-arrow-right"></i> العودة</a>
+  </div>
+
+  <div class="stats-bar" id="statsBar"></div>
+
+  <table>
+    <thead><tr><th>الشركة</th><th>الباقة</th><th>الموظفون</th><th>الأجهزة</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+    <tbody id="companiesBody"></tbody>
+  </table>
+
+  <div class="modal-overlay" id="planModal">
+    <div class="modal">
+      <h2>تغيير الباقة</h2>
+      <input type="hidden" id="planCompanyId">
+      <div class="field">
+        <label>الباقة الجديدة</label>
+        <select id="planSelect">
+          <option value="starter">Starter — 50 موظف / جهازان</option>
+          <option value="pro">Pro — 500 موظف / 10 أجهزة</option>
+          <option value="enterprise">Enterprise — غير محدود</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="changePlan()" style="width:100%;justify-content:center">حفظ</button>
+      <button class="btn" onclick="closeModal()" style="width:100%;justify-content:center;margin-top:4px">إلغاء</button>
+    </div>
+  </div>
+
+  <script>
+    function getCSRF() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+
+    function showPlanModal(id, currentPlan) {
+      document.getElementById('planCompanyId').value = id;
+      document.getElementById('planSelect').value = currentPlan;
+      document.getElementById('planModal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('planModal').style.display = 'none'; }
+
+    async function loadStats() {
+      try {
+        var r = await fetch('/api/admin/companies/stats', { headers: { 'X-CSRFToken': getCSRF() } });
+        var d = await r.json();
+        if (!d.ok) return;
+        document.getElementById('statsBar').innerHTML =
+          '<div class="stat-card"><div class="num">' + d.total_companies + '</div><div class="lbl">إجمالي الشركات</div></div>' +
+          '<div class="stat-card"><div class="num">' + d.active_companies + '</div><div class="lbl">نشطة</div></div>' +
+          '<div class="stat-card"><div class="num">' + d.verified_companies + '</div><div class="lbl">موثقة</div></div>' +
+          '<div class="stat-card"><div class="num">' + d.total_employees + '</div><div class="lbl">الموظفون</div></div>' +
+          '<div class="stat-card"><div class="num">' + d.total_devices + '</div><div class="lbl">الأجهزة</div></div>';
+      } catch(e) {}
+    }
+
+    async function loadCompanies() {
+      try {
+        var r = await fetch('/api/admin/companies/list', { headers: { 'X-CSRFToken': getCSRF() } });
+        var d = await r.json();
+        if (!d.ok) return;
+        var tbody = document.getElementById('companiesBody');
+        tbody.innerHTML = '';
+        d.companies.forEach(function(c) {
+          var activeBadge = c.is_active ? 'active' : 'inactive';
+          var activeLabel = c.is_active ? 'نشطة' : 'موقوفة';
+          var verifiedBadge = c.is_verified ? 'verified' : '';
+          var verifiedLabel = c.is_verified ? 'موثقة' : '';
+          var created = c.created_at ? new Date(c.created_at).toLocaleDateString('ar') : '-';
+          tbody.innerHTML += '<tr><td><strong>' + c.name_ar + '</strong></td><td><span class="badge plan">' + c.plan + '</span></td><td>' + c.employee_count + '/' + c.max_employees + '</td><td>' + c.device_count + '/' + c.max_devices + '</td><td><span class="badge ' + activeBadge + '">' + activeLabel + '</span> ' + (verifiedLabel ? '<span class="badge ' + verifiedBadge + '">' + verifiedLabel + '</span>' : '') + '</td><td style="color:#64748b;font-size:12px">' + created + '</td><td><button class="btn btn-sm" onclick="showPlanModal(' + c.id + ',\'' + c.plan + '\')"><i class="ti ti-coin"></i></button> <button class="btn btn-sm" onclick="toggle(' + c.id + ')"><i class="ti ti-toggle-left"></i></button></td></tr>';
+        });
+      } catch(e) { console.error(e); }
+    }
+
+    async function toggle(id) {
+      var r = await fetch('/api/admin/companies/' + id + '/toggle', { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+      var d = await r.json();
+      if (d.ok) { loadCompanies(); }
+    }
+
+    async function changePlan() {
+      var id = document.getElementById('planCompanyId').value;
+      var plan = document.getElementById('planSelect').value;
+      var r = await fetch('/api/admin/companies/' + id + '/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+        body: JSON.stringify({ plan: plan })
+      });
+      var d = await r.json();
+      if (d.ok) { closeModal(); loadCompanies(); loadStats(); }
+      else { alert(d.msg); }
+    }
+
+    loadStats();
+    loadCompanies();
+  </script>
+</body>
+</html>

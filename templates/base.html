@@ -238,6 +238,8 @@
           </div>
           <div style="border-top:1px solid var(--border);margin:10px 0;padding-top:8px">
             <div style="font-size:11px;color:var(--muted2);padding:6px 14px;font-weight:600;letter-spacing:.3px">الإدارة والصيانة</div>
+            <a href="/admin/devices-management" class="nav-link {% if nav_active == 'devices_management' %}active{% endif %}"><i class="ti ti-fingerprint"></i>إدارة الأجهزة (متعدد)</a>
+            <a href="/admin/companies" class="nav-link {% if nav_active == 'companies' %}active{% endif %}"><i class="ti ti-building"></i>الشركات المستأجرة</a>
             <a href="/admin/backups" class="nav-link {% if nav_active == 'backups' %}active{% endif %}"><i class="ti ti-database-export"></i>النسخ الاحتياطي</a>
             <a href="/admin/audit-logs" class="nav-link {% if nav_active == 'audit_logs' %}active{% endif %}"><i class="ti ti-history"></i>سجل التدقيق</a>
             <a href="/admin/permissions" class="nav-link {% if nav_active == 'permissions' %}active{% endif %}"><i class="ti ti-lock"></i>الأذونات</a>

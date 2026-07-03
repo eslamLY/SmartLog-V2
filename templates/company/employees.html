@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{{ company.name_ar }} — الموظفين</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Cairo',sans-serif; background:#080c18; color:#e2e8f0; display:flex; }
+    .sidebar { width:240px; min-height:100vh; background:#0f172a; border-left:1px solid #1e2a45; padding:20px; }
+    .sidebar .logo { text-align:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #1e2a45; }
+    .sidebar .logo i { font-size:32px; color:{{ company.primary_color or '#dc2626' }}; }
+    .sidebar .logo h2 { font-size:16px; margin-top:4px; }
+    .sidebar a { display:flex; align-items:center; gap:10px; padding:10px 14px; color:#94a3b8; text-decoration:none; border-radius:8px; margin-bottom:4px; font-size:14px; }
+    .sidebar a:hover, .sidebar a.active { background:#1e2a45; color:#e2e8f0; }
+    .main { flex:1; padding:24px; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .header h1 { font-size:20px; }
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#1e2a45; border:1px solid #2d3a56; border-radius:8px; color:#e2e8f0; cursor:pointer; font-family:'Cairo',sans-serif; font-size:13px; text-decoration:none; }
+    .btn-primary { background:#dc2626; border-color:#dc2626; }
+    table { width:100%; border-collapse:collapse; background:#0f172a; border-radius:12px; overflow:hidden; }
+    th, td { padding:10px 14px; text-align:right; border-bottom:1px solid #1e2a45; font-size:13px; }
+    th { background:#1e2a45; color:#94a3b8; font-weight:600; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; }
+    .badge.active { background:#064e3b; color:#6ee7b7; }
+    .badge.inactive { background:#450a0a; color:#fca5a5; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:200; }
+    .modal { background:#0f172a; border:1px solid #1e2a45; border-radius:12px; padding:24px; width:420px; max-width:90vw; }
+    .modal h2 { margin-bottom:16px; font-size:16px; }
+    .field { margin-bottom:12px; }
+    .field label { display:block; margin-bottom:4px; font-size:13px; color:#94a3b8; }
+    .field input { width:100%; padding:10px 12px; background:#1e2a45; border:1px solid #2d3a56; border-radius:8px; color:#e2e8f0; font-size:14px; outline:none; font-family:'Cairo',sans-serif; }
+    .field input:focus { border-color:#dc2626; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo"><i class="ti ti-building"></i><h2>{{ company.name_ar }}</h2></div>
+    <a href="/company/dashboard"><i class="ti ti-dashboard"></i> لوحة التحكم</a>
+    <a href="/company/employees" class="active"><i class="ti ti-users"></i> الموظفين</a>
+    <a href="/company/devices"><i class="ti ti-fingerprint"></i> الأجهزة</a>
+    <a href="/company/logout"><i class="ti ti-logout"></i> تسجيل خروج</a>
+  </div>
+  <div class="main">
+    <div class="header">
+      <h1>الموظفين</h1>
+      <button class="btn btn-primary" onclick="showAddModal()"><i class="ti ti-plus"></i> إضافة موظف</button>
+    </div>
+    <table>
+      <thead><tr><th>الاسم</th><th>الوظيفة</th><th>القسم</th><th>الهاتف</th><th>الحالة</th><th></th></tr></thead>
+      <tbody id="employeesBody"></tbody>
+    </table>
+  </div>
+
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <h2>إضافة موظف جديد</h2>
+      <div class="field"><label>اسم المستخدم</label><input type="text" id="fUsername" placeholder="EMP001" dir="ltr"></div>
+      <div class="field"><label>الاسم الكامل</label><input type="text" id="fFullName" placeholder="الاسم"></div>
+      <div class="field"><label>القسم</label><input type="text" id="fDepartment" placeholder="القسم"></div>
+      <div class="field"><label>المسمى الوظيفي</label><input type="text" id="fJobTitle" placeholder="المسمى الوظيفي"></div>
+      <div class="field"><label>رقم الهاتف</label><input type="text" id="fPhone" placeholder="+218..."></div>
+      <div class="field"><label>كلمة المرور</label><input type="text" id="fPassword" value="123456"></div>
+      <button class="btn btn-primary" onclick="doAdd()" style="width:100%;justify-content:center;margin-top:8px">حفظ</button>
+      <button class="btn" onclick="closeAddModal()" style="width:100%;justify-content:center;margin-top:4px">إلغاء</button>
+    </div>
+  </div>
+
+  <script>
+    function getCSRF() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+
+    function showAddModal() { document.getElementById('addModal').style.display = 'flex'; }
+    function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
+
+    async function loadEmployees() {
+      try {
+        var r = await fetch('/api/company/employees/list', { headers: { 'X-CSRFToken': getCSRF() } });
+        var d = await r.json();
+        if (!d.ok) return;
+        var tbody = document.getElementById('employeesBody');
+        tbody.innerHTML = '';
+        d.employees.forEach(function(e) {
+          var badge = e.is_active ? 'active' : 'inactive';
+          var label = e.is_active ? 'نشط' : 'غير نشط';
+          tbody.innerHTML += '<tr><td>' + e.full_name + '</td><td>' + (e.job_title || '-') + '</td><td>' + (e.department || '-') + '</td><td>' + (e.phone || '-') + '</td><td><span class="badge ' + badge + '">' + label + '</span></td><td><button class="btn" onclick="toggle(' + e.id + ')"><i class="ti ti-toggle-left"></i></button> <button class="btn" onclick="del(' + e.id + ')"><i class="ti ti-trash"></i></button></td></tr>';
+        });
+      } catch(e) {}
+    }
+
+    async function doAdd() {
+      var r = await fetch('/api/company/employees/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+        body: JSON.stringify({
+          username: document.getElementById('fUsername').value.trim(),
+          full_name: document.getElementById('fFullName').value.trim(),
+          department: document.getElementById('fDepartment').value.trim(),
+          job_title: document.getElementById('fJobTitle').value.trim(),
+          phone: document.getElementById('fPhone').value.trim(),
+          password: document.getElementById('fPassword').value,
+        })
+      });
+      var d = await r.json();
+      if (d.ok) { closeAddModal(); loadEmployees(); }
+      else { alert(d.msg); }
+    }
+
+    async function toggle(id) {
+      var r = await fetch('/api/company/employees/' + id + '/toggle', { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+      var d = await r.json();
+      if (d.ok) loadEmployees();
+    }
+
+    async function del(id) {
+      if (!confirm('تأكيد حذف الموظف؟')) return;
+      var r = await fetch('/api/company/employees/' + id + '/delete', { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+      var d = await r.json();
+      if (d.ok) loadEmployees();
+    }
+
+    loadEmployees();
+  </script>
+</body>
+</html>

@@ -42,6 +42,7 @@ class BioTimeDevice(db.Model):
     __tablename__ = 'biotime_devices'
 
     id                = db.Column(db.Integer, primary_key=True)
+    company_id        = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True)
     serial_no         = db.Column(db.String(60), unique=True, nullable=False)
     name              = db.Column(db.String(100), nullable=False)
     device_type       = db.Column(db.String(30), default='biometric')
@@ -94,6 +95,8 @@ class BioTimeDevice(db.Model):
     uptime_percent_24h = db.Column(db.Float, default=100.0)
 
     updated_at         = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+    company            = db.relationship('Company', backref='legacy_devices')
 
     @property
     def device_model_label(self):

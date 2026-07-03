@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>SMARTLOG — تسجيل شركة جديدة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Cairo',sans-serif; background:#080c18; color:#e2e8f0; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+    .card { background:#0f172a; border:1px solid #1e2a45; border-radius:16px; padding:40px; width:480px; max-width:90vw; }
+    .logo { text-align:center; margin-bottom:24px; }
+    .logo i { font-size:48px; color:#dc2626; }
+    .logo h1 { font-size:24px; margin-top:8px; }
+    .field { margin-bottom:16px; }
+    .field label { display:block; margin-bottom:6px; font-size:14px; color:#94a3b8; }
+    .field input, .field select { width:100%; padding:12px 16px; background:#1e2a45; border:1px solid #2d3a56; border-radius:10px; color:#e2e8f0; font-size:15px; outline:none; font-family:'Cairo',sans-serif; }
+    .field input:focus, .field select:focus { border-color:#dc2626; }
+    .btn { width:100%; padding:12px; background:#dc2626; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; font-family:'Cairo',sans-serif; margin-top:8px; }
+    .btn:hover { background:#b91c1c; }
+    .error { background:#450a0a; color:#fca5a5; padding:10px 14px; border-radius:8px; margin-bottom:16px; display:none; font-size:14px; }
+    .success { background:#064e3b; color:#6ee7b7; padding:10px 14px; border-radius:8px; margin-bottom:16px; display:none; font-size:14px; }
+    .footer { text-align:center; margin-top:20px; font-size:13px; color:#64748b; }
+    .footer a { color:#dc2626; text-decoration:none; }
+    .plans { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
+    .plan-card { background:#1e2a45; border:2px solid transparent; border-radius:10px; padding:12px; text-align:center; cursor:pointer; transition:border .2s; }
+    .plan-card.selected { border-color:#dc2626; }
+    .plan-card h3 { font-size:14px; }
+    .plan-card .price { font-size:12px; color:#94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><i class="ti ti-building"></i><h1>تسجيل شركة جديدة</h1></div>
+    <div class="error" id="errorMsg"></div>
+    <div class="success" id="successMsg"></div>
+    <div class="field">
+      <label>اسم الشركة</label>
+      <input type="text" id="nameAr" placeholder="الاسم بالعربية">
+    </div>
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="email" placeholder="info@company.com">
+    </div>
+    <div class="field">
+      <label>اسم المستخدم للمدير</label>
+      <input type="text" id="username" placeholder="ADM001" dir="ltr">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="password" placeholder="6 أحرف على الأقل">
+    </div>
+    <div class="field">
+      <label>الباقة</label>
+      <div class="plans">
+        <div class="plan-card selected" data-plan="starter" onclick="selectPlan(this)">
+          <h3> Starter</h3>
+          <div class="price">50 موظف - جهازان</div>
+        </div>
+        <div class="plan-card" data-plan="pro" onclick="selectPlan(this)">
+          <h3> Pro</h3>
+          <div class="price">500 موظف - 10 أجهزة</div>
+        </div>
+        <div class="plan-card" data-plan="enterprise" onclick="selectPlan(this)">
+          <h3> Enterprise</h3>
+          <div class="price">غير محدود</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn" id="registerBtn" onclick="doRegister()">تسجيل</button>
+    <div class="footer">لديك حساب بالفعل؟ <a href="/company/login">تسجيل الدخول</a></div>
+  </div>
+  <script>
+    var selectedPlan = 'starter';
+    function selectPlan(el) { document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected')); el.classList.add('selected'); selectedPlan = el.dataset.plan; }
+    function getCSRF() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+    async function doRegister() {
+      var btn = document.getElementById('registerBtn');
+      var err = document.getElementById('errorMsg');
+      var suc = document.getElementById('successMsg');
+      btn.disabled = true; err.style.display = 'none'; suc.style.display = 'none';
+      try {
+        var r = await fetch('/company/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+          body: JSON.stringify({
+            name_ar: document.getElementById('nameAr').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value,
+            plan: selectedPlan,
+          })
+        });
+        var d = await r.json();
+        if (d.ok) { suc.textContent = d.msg; suc.style.display = 'block'; setTimeout(() => { window.location.href = '/company/login'; }, 1500); }
+        else { err.textContent = d.msg; err.style.display = 'block'; btn.disabled = false; }
+      } catch(e) { err.textContent = 'خطأ في الاتصال'; err.style.display = 'block'; btn.disabled = false; }
+    }
+  </script>
+</body>
+</html>

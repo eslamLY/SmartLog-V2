@@ -163,6 +163,30 @@ def cmd_pull_all():
         return None
 
 
+def _sanitize_device_name(raw_name):
+    """Clean ZKTeco device name: strip trailing '.' (empty surname), '^' padding, and whitespace."""
+    if not raw_name:
+        return ''
+    name = raw_name.strip()
+    name = name.rstrip('^ .\t')
+    name = name.strip()
+    return name
+
+
+def _sanitize_full_name(name):
+    """Sanitize full_name imported from device: remove trailing '.' placeholders and padding."""
+    cleaned = _sanitize_device_name(name)
+    parts = cleaned.split(maxsplit=1)
+    if len(parts) == 2:
+        first, last = parts
+        last_clean = last.rstrip('^ .\t').strip()
+        if last_clean == '.' or last_clean == '':
+            cleaned = first
+        else:
+            cleaned = f'{first} {last_clean}'
+    return cleaned
+
+
 def cmd_sync_smartlog():
     """Pull data from ZKTeco and save into SmartLog database"""
     from models import db, BioTimeDevice, Employee, AttendanceLog
@@ -206,7 +230,7 @@ def cmd_sync_smartlog():
                     from werkzeug.security import generate_password_hash
                     emp = Employee(
                         username=str(u.user_id),
-                        full_name=u.name or f'User-{u.user_id}',
+                        full_name=_sanitize_full_name(u.name) or f'User-{u.user_id}',
                         department='عام',
                         password_hash=generate_password_hash('123456'),
                     )

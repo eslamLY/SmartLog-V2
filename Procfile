@@ -16,4 +16,8 @@ web: gunicorn app:app \
   --access-logfile - \
   --error-logfile - \
   --logger-class gunicorn.glogging.Logger \
-  --log-level ${LOG_LEVEL:-info}
+  --log-level ${LOG_LEVEL:-info} \
+  --max-requests 1000 \
+  --max-requests-jitter 50 \
+  --worker-connections 1000 \
+  --keep-alive 5

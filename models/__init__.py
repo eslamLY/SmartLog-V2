@@ -41,6 +41,9 @@ from models.employee_enhanced import (
     EmployeeDelegation, EmployeeTraining, EmployeePerformance,
     EmployeeDisciplinaryAction,
 )
+from models.company import Company, CompanyAdmin
+from models.biometric_device import BiometricDevice
+from models.device_sync_log import DeviceSyncLog
 
 __all__ = [
     'db', 'get_fernet', 'set_fernet',
@@ -65,4 +68,6 @@ __all__ = [
     'LeaveType', 'EmployeeLeaveBalance', 'EmployeeLeaveRequest',
     'EmployeeDelegation', 'EmployeeTraining', 'EmployeePerformance',
     'EmployeeDisciplinaryAction',
+    # Multi-tenant models
+    'Company', 'CompanyAdmin', 'BiometricDevice', 'DeviceSyncLog',
 ]

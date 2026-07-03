@@ -4,11 +4,36 @@ from werkzeug.security import generate_password_hash
 
 from models import db, Employee, Department, AttendanceLog, \
     AuditLog, Permission, Role, EmailTemplate, BrandingConfig, \
-    BioTimeDevice, ShiftType
+    BioTimeDevice, ShiftType, Company, CompanyAdmin
 from utils.constants import DEPARTMENTS
 
 
 def seed_db():
+    if not Company.query.first():
+        company = Company(
+            name_ar='الشركة الافتراضية',
+            name_en='Default Company',
+            plan='enterprise',
+            is_active=True,
+            is_verified=True,
+            max_employees=99999,
+            max_devices=100,
+        )
+        db.session.add(company)
+        db.session.commit()
+
+        admin = CompanyAdmin(
+            company_id=company.id,
+            username='ADMIN',
+            password_hash=generate_password_hash('admin123'),
+            full_name='مدير النظام',
+            role='super_admin',
+        )
+        db.session.add(admin)
+        db.session.commit()
+    else:
+        company = Company.query.first()
+
     if not Department.query.first():
         dept_codes = {
             'مختبر التحليل': 'LAB', 'بنك الدم': 'BB', 'التمريض': 'NUR',
@@ -23,6 +48,7 @@ def seed_db():
         dept = Department.query.filter_by(name_ar='الإدارة').first()
         db.session.add(Employee(username='ADM001', full_name='مدير النظام',
                                 department='الإدارة', department_id=dept.id if dept else None,
+                                company_id=company.id,
                                 password_hash=generate_password_hash('admin123'),
                                 role='admin', base_salary=6000))
     samples = [
@@ -40,6 +66,7 @@ def seed_db():
             dept = Department.query.filter_by(name_ar=d).first()
             db.session.add(Employee(username=u, full_name=n, department=d,
                                     department_id=dept.id if dept else None,
+                                    company_id=company.id,
                                     password_hash=generate_password_hash('123456'),
                                     role='employee', base_salary=s))
     for emp in Employee.query.filter(Employee.department_id.is_(None)).all():
@@ -137,6 +164,18 @@ def seed_enterprise():
     if not BioTimeDevice.query.first():
         db.session.add(BioTimeDevice(serial_no='BT-001', name='جهاز البصمة الرئيسي',
                         device_type='biometric', location='المدخل الرئيسي', is_active=True))
+    from models.biometric_device import BiometricDevice
+    if not BiometricDevice.query.first():
+        db.session.add(BiometricDevice(
+            company_id=company.id,
+            serial_no='BIO-001',
+            name='جهاز البصمة الرئيسي',
+            device_model='zkteco_mb360',
+            location='المدخل الرئيسي',
+            ip_address='192.168.1.55',
+            port=4370,
+            is_active=True,
+        ))
     db.session.commit()
 
     for alog in AttendanceLog.query.filter(AttendanceLog.lat_in.isnot(None), AttendanceLog.lat_in_enc.is_(None)).all():
