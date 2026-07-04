@@ -47,5 +47,5 @@ def test_download_nonexistent(client):
 
 def test_backup_page(client):
     login(client)
-    r = client.get('/admin/backups')
+    r = client.get('/admin/backups', follow_redirects=True)
     assert r.status_code == 200

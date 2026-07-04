@@ -224,15 +224,34 @@ def export_pdf():
 def admin_section_report():
     today = date.today()
     departments = Department.query.filter_by(is_active=True).all()
+    dept_emp_ids = defaultdict(list)
+    emp_dept_map = {}
+    for e in Employee.query.with_entities(Employee.id, Employee.department).filter_by(is_active=True).all():
+        dept_emp_ids[e.department].append(e.id)
+        emp_dept_map[e.id] = e.department
+    today_logs = AttendanceLog.query.filter(
+        AttendanceLog.log_date == today,
+        AttendanceLog.employee_id.in_(list(emp_dept_map.keys()))
+    ).with_entities(AttendanceLog.employee_id, AttendanceLog.status).all()
+    dept_present = defaultdict(int)
+    dept_late = defaultdict(int)
+    for log_emp_id, log_status in ((l.employee_id, l.status) for l in today_logs):
+        dept = emp_dept_map.get(log_emp_id)
+        if not dept:
+            continue
+        if log_status in ('present', 'حاضر'):
+            dept_present[dept] += 1
+        elif log_status in ('late', 'متأخر'):
+            dept_late[dept] += 1
     sections = []
     for dept in departments:
-        emp_ids = [r[0] for r in Employee.query.with_entities(Employee.id).filter_by(department=dept.name_ar, is_active=True).all()]
+        emp_ids = dept_emp_ids.get(dept.name_ar, [])
         total = len(emp_ids)
         if total == 0:
             sections.append({'dept': dept, 'total_employees': 0, 'present_count': 0, 'late_count': 0, 'absent_count': 0, 'deficit_rate': 0.0})
             continue
-        present = AttendanceLog.query.filter(AttendanceLog.employee_id.in_(emp_ids), AttendanceLog.log_date == today, AttendanceLog.status.in_(['present', 'حاضر'])).count()
-        late = AttendanceLog.query.filter(AttendanceLog.employee_id.in_(emp_ids), AttendanceLog.log_date == today, AttendanceLog.status.in_(['late', 'متأخر'])).count()
+        present = dept_present.get(dept.name_ar, 0)
+        late = dept_late.get(dept.name_ar, 0)
         absent = total - (present + late)
         deficit_rate = round((absent / total) * 100, 2)
         sections.append({'dept': dept, 'total_employees': total, 'present_count': present, 'late_count': late, 'absent_count': absent, 'deficit_rate': deficit_rate})

@@ -1,6 +1,6 @@
 """End-to-end integration tests covering complete user workflows."""
 import json
-from app import db, Employee
+from models import db, Employee
 
 
 def _login(client, username, password):

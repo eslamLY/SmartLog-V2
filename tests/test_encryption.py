@@ -2,7 +2,7 @@
 import json, base64, hashlib
 from datetime import datetime, UTC
 from sqlalchemy import text
-from app import app, db, GPSLog, AttendanceLog, Employee
+from app import app; from models import db, GPSLog, AttendanceLog, Employee
 
 
 def test_gpslog_encrypted_in_database(client):

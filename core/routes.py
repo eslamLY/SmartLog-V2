@@ -158,6 +158,7 @@ def register_limiter(app: Flask):
     """Set up Flask-Limiter with per-route overrides."""
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['WTF_CSRF_TIME_LIMIT'] = None
+    app.config['WTF_CSRF_CHECK_DEFAULT'] = False
     limiter = Limiter(get_remote_address, app=app, default_limits=["10000 per day", "2000 per hour"])
     from routes.auth import login as _login_view
     from routes.employee import clock_in_qr as _clock_in_qr_view

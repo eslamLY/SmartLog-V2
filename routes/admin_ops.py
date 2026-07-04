@@ -582,24 +582,34 @@ def admin_analytics():
         exp = total * work_days
         trends.append({'month': MONTH_NAMES[mo - 1][:3], 'rate': round(p / exp * 100, 1) if exp else 0,
                         'present': p, 'total_expected': exp})
+    _, days_m = calendar.monthrange(year, month)
+    work_days = sum(1 for d in range(1, days_m + 1) if date(year, month, d).weekday() not in (4, 5))
+    emp_dept_map = {}
+    for e in Employee.query.filter_by(role='employee', is_active=True).with_entities(Employee.id, Employee.department).all():
+        emp_dept_map.setdefault(e.department, []).append(e.id)
+    status_counts = db.session.query(
+        Employee.department,
+        AttendanceLog.status,
+        db.func.count(AttendanceLog.id)
+    ).join(Employee, AttendanceLog.employee_id == Employee.id
+    ).filter(
+        AttendanceLog.employee_id.in_(emp_ids),
+        extract('month', AttendanceLog.log_date) == month,
+        extract('year', AttendanceLog.log_date) == year,
+    ).group_by(Employee.department, AttendanceLog.status).all()
+    dept_agg = {}
+    for dept, status, cnt in status_counts:
+        dept_agg.setdefault(dept, {'present': 0, 'late': 0})
+        if status in ('present', 'late'):
+            dept_agg[dept]['present'] += cnt
+        if status == 'late':
+            dept_agg[dept]['late'] += cnt
     dept_stats = []
-    for emp_dept in db.session.query(Employee.department).distinct().all():
-        dept = emp_dept[0]
-        dept_emps = Employee.query.filter_by(department=dept, role='employee', is_active=True).all()
-        ids = [e.id for e in dept_emps]
-        _, days_m = calendar.monthrange(year, month)
-        work_days = sum(1 for d in range(1, days_m + 1) if date(year, month, d).weekday() not in (4, 5))
-        p   = AttendanceLog.query.filter(AttendanceLog.employee_id.in_(ids),
-            extract('month', AttendanceLog.log_date) == month,
-            extract('year',  AttendanceLog.log_date) == year,
-            AttendanceLog.status.in_(['present', 'late'])).count()
-        lt  = AttendanceLog.query.filter(AttendanceLog.employee_id.in_(ids),
-            extract('month', AttendanceLog.log_date) == month,
-            extract('year',  AttendanceLog.log_date) == year,
-            AttendanceLog.status == 'late').count()
+    for dept, ids in emp_dept_map.items():
+        agg = dept_agg.get(dept, {'present': 0, 'late': 0})
         exp = len(ids) * work_days
-        dept_stats.append({'dept': dept, 'present': p, 'late': lt,
-                            'rate': round(p / exp * 100, 1) if exp else 0, 'total': len(ids)})
+        dept_stats.append({'dept': dept, 'present': agg['present'], 'late': agg['late'],
+                           'rate': round(agg['present'] / exp * 100, 1) if exp else 0, 'total': len(ids)})
     dept_stats.sort(key=lambda x: x['rate'], reverse=True)
     all_logs = AttendanceLog.query.filter(
         AttendanceLog.employee_id.in_(emp_ids),
@@ -617,12 +627,17 @@ def admin_analytics():
                       'score': p * 10 - lm * 0.1 - ab * 5})
     perf.sort(key=lambda x: x['score'], reverse=True)
     weekday_late = [0] * 7
-    for log in AttendanceLog.query.filter(
+    wd_counts = db.session.query(
+        db.func.extract('dow', AttendanceLog.log_date),
+        db.func.count(AttendanceLog.id)
+    ).filter(
         AttendanceLog.employee_id.in_(emp_ids),
         extract('month', AttendanceLog.log_date) == month,
-        extract('year',  AttendanceLog.log_date) == year,
-        AttendanceLog.status == 'late').all():
-        weekday_late[log.log_date.weekday()] += 1
+        extract('year', AttendanceLog.log_date) == year,
+        AttendanceLog.status == 'late'
+    ).group_by(db.func.extract('dow', AttendanceLog.log_date)).all()
+    for dow, cnt in wd_counts:
+        weekday_late[int(dow) % 7] += cnt
     total_deductions = 0.0
     deduct_by_dept = {}
     for emp in employees:

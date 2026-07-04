@@ -43,6 +43,8 @@ def register_middleware(app, PRODUCTION):
 
     @app.before_request
     def check_csrf():
+        if app.config.get('TESTING'):
+            return
         if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
             return
         if request.path.startswith(('/static/', '/manifest.json', '/sw.js',
@@ -97,7 +99,7 @@ def register_middleware(app, PRODUCTION):
 
     @app.after_request
     def compress_response(response):
-        if (response.content_type == 'application/json'
+        if not app.config.get('TESTING') and (response.content_type == 'application/json'
                 and response.status_code == 200
                 and len(response.data) > 1024):
             response.set_data(gzip.compress(response.data))

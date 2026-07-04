@@ -1,7 +1,7 @@
 """Verify duplicate clock-in prevention (same hour)."""
 import json, time, threading
 from datetime import datetime, timedelta
-from app import db, AttendanceLog
+from models import db, AttendanceLog
 
 
 def _login_emp(client):

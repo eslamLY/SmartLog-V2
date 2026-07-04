@@ -103,9 +103,7 @@ def api_admin_companies_stats():
     verified = Company.query.filter_by(is_verified=True).count()
     total_employees = Employee.query.filter_by(deleted_at=None).count()
     total_devices = BiometricDevice.query.filter_by(deleted_at=None).count()
-    plan_dist = {}
-    for c in Company.query.all():
-        plan_dist[c.plan] = plan_dist.get(c.plan, 0) + 1
+    plan_dist = dict(Company.query.with_entities(Company.plan, db.func.count(Company.id)).group_by(Company.plan).all())
 
     return jsonify({
         'ok': True,

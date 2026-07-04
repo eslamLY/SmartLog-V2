@@ -540,28 +540,47 @@ def get_notifications():
         ns = ShiftSwapRequest.query.filter_by(status='target_approved').count()
         if ns: notes.append({'type':'info','msg':f'{ns} طلب تبديل بانتظار موافقة الإدارة','url':'/admin/shifts/swaps'})
 
-        from sqlalchemy import func as sqlfunc
+        shift_counts = dict(
+            ShiftSchedule.query.with_entities(
+                ShiftSchedule.shift_type_id,
+                db.func.count(ShiftSchedule.id)
+            ).filter(
+                ShiftSchedule.scheduled_date == today,
+                ShiftSchedule.status == 'confirmed'
+            ).group_by(ShiftSchedule.shift_type_id).all()
+        )
         for st in ShiftType.query.filter_by(is_active=True).all():
-            cnt = ShiftSchedule.query.filter_by(shift_type_id=st.id,
-                scheduled_date=today, status='confirmed').count()
+            cnt = shift_counts.get(st.id, 0)
             if cnt < st.min_staff:
                 notes.append({'type':'warning','msg':f'مناوبة {st.name} اليوم: {cnt}/{st.min_staff}','url':'/admin/shifts'})
 
         deficit_count = 0
-        for day_offset in range(7):
-            d = today + timedelta(days=day_offset)
-            for dept in Department.query.filter_by(is_active=True).all():
-                emp_ids = [e.id for e in Employee.query.filter_by(department_id=dept.id, role='employee', is_active=True).all()]
-                if not emp_ids: continue
-                for s in ShiftType.query.filter_by(is_active=True).all():
-                    cnt = ShiftSchedule.query.filter(
-                        ShiftSchedule.employee_id.in_(emp_ids),
-                        ShiftSchedule.scheduled_date == d,
-                        ShiftSchedule.shift_type_id == s.id,
-                        ShiftSchedule.status == 'confirmed'
-                    ).count()
-                    if cnt < dept.min_staff_required:
-                        deficit_count += 1
+        dept_emp_map = {}
+        for e in Employee.query.filter_by(role='employee', is_active=True).with_entities(Employee.id, Employee.department_id).all():
+            dept_emp_map.setdefault(e.department_id, []).append(e.id)
+        shift_type_ids = [s.id for s in ShiftType.query.filter_by(is_active=True).with_entities(ShiftType.id).all()]
+        dept_min = {d.id: d.min_staff_required for d in Department.query.filter_by(is_active=True).all() if d.min_staff_required}
+        if dept_emp_map and shift_type_ids:
+            sched_counts = dict(
+                ShiftSchedule.query.with_entities(
+                    ShiftSchedule.scheduled_date,
+                    ShiftSchedule.shift_type_id,
+                    db.func.count(ShiftSchedule.id)
+                ).filter(
+                    ShiftSchedule.scheduled_date.between(today, today + timedelta(days=6)),
+                    ShiftSchedule.status == 'confirmed'
+                ).group_by(ShiftSchedule.scheduled_date, ShiftSchedule.shift_type_id).all()
+            )
+            for day_offset in range(7):
+                d = today + timedelta(days=day_offset)
+                for dept_id, emp_ids in dept_emp_map.items():
+                    min_staff = dept_min.get(dept_id)
+                    if not min_staff or not emp_ids:
+                        continue
+                    for sid in shift_type_ids:
+                        cnt = sched_counts.get((d, sid), 0)
+                        if cnt < min_staff:
+                            deficit_count += 1
         if deficit_count:
             notes.append({'type':'warning','msg':f'🧠 AI: {deficit_count} نقص في المناوبات خلال 7 أيام','url':'/admin/ai-predictor'})
 

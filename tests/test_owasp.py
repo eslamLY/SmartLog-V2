@@ -1,6 +1,6 @@
 """OWASP Top 10 vulnerability verification tests."""
 import json
-from app import db, AuditLog
+from models import db, AuditLog
 
 
 def _login_admin(client):
@@ -89,6 +89,5 @@ def test_owasp_audit_logging(client):
 
 def test_owasp_https_enforcement(client):
     """A5: HTTPS enforcement is configured for production."""
-    from app import app, PRODUCTION
-    if not PRODUCTION:
-        pass
+    from app import app
+    PRODUCTION = app.config.get('PRODUCTION', False)

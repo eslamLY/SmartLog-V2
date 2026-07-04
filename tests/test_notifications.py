@@ -38,7 +38,7 @@ def test_send_email_missing_fields(client):
 
 def test_email_history_after_send(client):
     login(client)
-    from app import EmailLog
+    from models import EmailLog
     before = EmailLog.query.count()
     client.post('/api/admin/email/send', content_type='application/json',
         data=json.dumps({'to': '', 'subject': 'اختبار', 'body': 'مرحباً'}))

@@ -231,7 +231,8 @@ def auto_rotate():
     employees = Employee.query.filter_by(department=dept, role='employee', is_active=True).all()
     if not employees:
         return jsonify({'ok': False, 'msg': 'لا يوجد موظفون في هذا القسم.'})
-    shift_types = [ShiftType.query.get(sid) for sid in st_ids if ShiftType.query.get(sid)]
+    st_map = {st.id: st for st in ShiftType.query.filter(ShiftType.id.in_(st_ids)).all()}
+    shift_types = [st_map[sid] for sid in st_ids if sid in st_map]
     if not shift_types:
         return jsonify({'ok': False, 'msg': 'أنواع المناوبات غير موجودة.'})
     count = 0; skipped = 0
@@ -275,12 +276,23 @@ def api_day_shifts(date_str):
     d = datetime.strptime(date_str, '%Y-%m-%d').date()
     shift_types = ShiftType.query.filter_by(is_active=True).order_by(ShiftType.start_hour).all()
     result = []
+    sched_list = ShiftSchedule.query.filter(
+        ShiftSchedule.scheduled_date == d,
+        ShiftSchedule.status == 'confirmed'
+    ).all()
+    emp_ids_for_day = list(set(s.employee_id for s in sched_list))
+    emp_map = {}
+    if emp_ids_for_day:
+        for e in Employee.query.filter(Employee.id.in_(emp_ids_for_day)).all():
+            emp_map[e.id] = e
+    sched_by_shift = defaultdict(list)
+    for s in sched_list:
+        sched_by_shift[s.shift_type_id].append(s)
     for st in shift_types:
-        schedules = ShiftSchedule.query.filter_by(
-            shift_type_id=st.id, scheduled_date=d, status='confirmed').all()
+        schedules = sched_by_shift.get(st.id, [])
         emps = []
         for ss in schedules:
-            emp = Employee.query.get(ss.employee_id)
+            emp = emp_map.get(ss.employee_id)
             if emp: emps.append({'id': emp.id, 'name': emp.full_name,
                                   'dept': emp.department, 'sched_id': ss.id})
         result.append({

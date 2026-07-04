@@ -36,7 +36,7 @@ def test_delete_role(client):
     login(client)
     r = client.post('/api/admin/roles', content_type='application/json',
         data=json.dumps({'name': 'دور مؤقت', 'permissions': []}))
-    from app import Role
+    from models import Role
     r_id = Role.query.filter_by(name='دور مؤقت').first().id
     r2 = client.post(f'/api/admin/roles/{r_id}/delete')
     assert r2.status_code == 200

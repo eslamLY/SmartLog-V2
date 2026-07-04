@@ -21,7 +21,7 @@ def test_audit_logs_action_filter(client):
 
 def test_audit_log_created_on_backup(client):
     login(client)
-    from app import AuditLog
+    from models import AuditLog
     before = AuditLog.query.count()
     client.post('/api/admin/backup', content_type='application/json', data='{}')
     after = AuditLog.query.count()

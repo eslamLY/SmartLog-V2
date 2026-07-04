@@ -1,6 +1,6 @@
 """Verify all endpoints resist SQL injection attempts."""
 import json
-from app import db
+from models import db
 from sqlalchemy import text
 
 

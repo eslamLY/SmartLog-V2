@@ -1,32 +1,4 @@
-:root {
-  --bg: #1a2035;
-  --card: #1e2a45;
-  --card2: #243050;
-  --text: #e8edf5;
-  --muted: #8a94a6;
-  --muted2: #6b7280;
-  --border: rgba(255,255,255,0.08);
-  --accent: #e53935;
-  --green: #22c55e;
-  --red: #ef4444;
-  --orange: #f59e0b;
-  --blue: #3b82f6;
-  --purple: #8b5cf6;
-  --shadow: 0 2px 12px rgba(0,0,0,0.2);
-  --font: 'Cairo', sans-serif;
-  --transition: 0.3s ease;
-}
-
-body.light-mode {
-  --bg: #f0f2f8;
-  --card: #ffffff;
-  --card2: #f7f8fc;
-  --text: #1a2035;
-  --muted: #6b7280;
-  --muted2: #9ca3af;
-  --border: #e0e4f0;
-  --shadow: 0 2px 12px rgba(0,0,0,0.06);
-}
+/* Variables inherited from base.html — no local :root override */
 
 body {
   background: var(--bg);

@@ -215,40 +215,37 @@ def api_report_charts():
             'absent': absent,
             'late': late,
         })
+    emp_logs_map = defaultdict(list)
+    for l in all_logs:
+        emp_logs_map[l.employee_id].append(l)
     depts = Department.query.filter_by(is_active=True).all()
+    dept_emp_ids = defaultdict(list)
+    for e in employees:
+        dept_emp_ids[e.department_id].append(e.id)
     dept_comparison = []
     for dept in depts:
-        dept_emps = [e.id for e in Employee.query.filter_by(department_id=dept.id, is_active=True, deleted_at=None).all()]
-        if not dept_emps:
+        ids = dept_emp_ids.get(dept.id, [])
+        total_possible = len(ids) * month_days
+        if total_possible == 0:
             continue
-        dept_logs = AttendanceLog.query.filter(
-            AttendanceLog.employee_id.in_(dept_emps),
-            extract('month', AttendanceLog.log_date) == month,
-            extract('year', AttendanceLog.log_date) == year,
-        ).all()
-        total_possible = len(dept_emps) * month_days
-        total_present = sum(1 for l in dept_logs if l.status in ('present', 'late'))
+        total_present = 0
+        for eid in ids:
+            for l in emp_logs_map.get(eid, []):
+                if l.status in ('present', 'late'):
+                    total_present += 1
         pct = round((total_present / total_possible) * 100, 1) if total_possible > 0 else 0
         dept_comparison.append({'name': dept.name_ar, 'pct': pct, 'color': dept.color or '#e53935'})
     dept_comparison.sort(key=lambda x: x['pct'], reverse=True)
     late_dist = []
     for emp in employees:
-        emp_logs = AttendanceLog.query.filter(
-            AttendanceLog.employee_id == emp.id,
-            extract('month', AttendanceLog.log_date) == month,
-            extract('year', AttendanceLog.log_date) == year,
-        ).all()
+        emp_logs = emp_logs_map.get(emp.id, [])
         total_late = sum(l.late_minutes or 0 for l in emp_logs)
         if total_late > 0:
             late_dist.append({'name': emp.full_name, 'late_minutes': total_late})
     late_dist.sort(key=lambda x: x['late_minutes'], reverse=True)
     heatmap = []
     for emp in employees[:30]:
-        emp_logs = AttendanceLog.query.filter(
-            AttendanceLog.employee_id == emp.id,
-            extract('month', AttendanceLog.log_date) == month,
-            extract('year', AttendanceLog.log_date) == year,
-        ).all()
+        emp_logs = emp_logs_map.get(emp.id, [])
         logs_by_day_emp = {l.log_date.day: l for l in emp_logs}
         days = []
         for day_num in range(1, month_days + 1):

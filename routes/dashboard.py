@@ -402,7 +402,7 @@ def api_dashboard_alerts():
             'link': '/admin/documents',
         })
     total = Employee.query.filter_by(deleted_at=None, is_active=True).count()
-    late_count = sum(1 for l in AttendanceLog.query.filter_by(log_date=today).all() if l.status == 'late')
+    late_count = AttendanceLog.query.filter_by(log_date=today, status='late').count()
     if late_count > 0:
         alerts.append({
             'type': 'warning',
@@ -411,7 +411,10 @@ def api_dashboard_alerts():
             'message': 'تجاوزوا وقت الدوام المحدد',
             'link': '/admin/attendance?status=late',
         })
-    no_clock = total - len(set(l.employee_id for l in AttendanceLog.query.filter_by(log_date=today).all() if l.clock_in))
+    clocked_in = db.session.query(db.func.count(db.func.distinct(AttendanceLog.employee_id))).filter(
+        AttendanceLog.log_date == today, AttendanceLog.clock_in.isnot(None)
+    ).scalar()
+    no_clock = total - (clocked_in or 0)
     if no_clock > 3:
         alerts.append({
             'type': 'info',
@@ -421,10 +424,13 @@ def api_dashboard_alerts():
             'link': '/admin/attendance',
         })
     understaffed = []
+    dept_counts = dict(db.session.query(Employee.department_id, db.func.count(Employee.id)).filter(
+        Employee.deleted_at.is_(None), Employee.is_active.is_(True)
+    ).group_by(Employee.department_id).all())
     depts = Department.query.filter_by(is_active=True).all()
     for d in depts:
         if d.min_staff_required and d.min_staff_required > 0:
-            emp_count = Employee.query.filter_by(department_id=d.id, deleted_at=None, is_active=True).count()
+            emp_count = dept_counts.get(d.id, 0)
             if emp_count < d.min_staff_required:
                 understaffed.append(f'{d.name_ar} ({emp_count}/{d.min_staff_required})')
     if understaffed:

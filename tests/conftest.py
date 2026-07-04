@@ -3,16 +3,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FIELD_ENCRYPTION_KEY'] = ''
+os.environ['RATELIMIT_ENABLED'] = 'false'
 
 # Use a temp file so backup/restore works
 _tmp_db = tempfile.mktemp(suffix='.db')
 os.environ['DATABASE_URL'] = f'sqlite:///{_tmp_db}'
 
-from app import app as _app, db as _db, Employee, AttendanceLog, LeaveRequest, Department, reset_rate_limits
-from app import AuditLog, Role, Permission, EmailLog, SmsLog, EmailTemplate
+from app import app as _app
+from models import db as _db
+from models import Employee, AttendanceLog, LeaveRequest, Department
+from models import AuditLog, Role, Permission, EmailLog, SmsLog, EmailTemplate
+from utils.rate_limit import reset_rate_limits
 _app.config['TESTING'] = True
-from app import limiter as _limiter
-_limiter.enabled = False
 from datetime import datetime, date, timedelta
 
 @pytest.fixture(autouse=True)

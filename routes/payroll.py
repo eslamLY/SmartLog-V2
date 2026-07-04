@@ -1007,10 +1007,11 @@ def save_payroll_record():
 def bulk_save_payroll():
     month = request.args.get('month', date.today().month, type=int)
     year = request.args.get('year', date.today().year, type=int)
-    emp_ids = [e.id for e in Employee.query.filter_by(role='employee', is_active=True).all()]
+    employees = Employee.query.filter_by(role='employee', is_active=True).all()
+    emp_ids = [e.id for e in employees]
     logs_by_emp, shifts_by_emp, _, _ = get_attendance_data(emp_ids, month, year)
     saved = 0
-    for emp in Employee.query.filter_by(role='employee', is_active=True).all():
+    for emp in employees:
         logs = logs_by_emp.get(emp.id, [])
         shifts = shifts_by_emp.get(emp.id, [])
         comp = compute_employee_payroll(emp, logs, shifts)
