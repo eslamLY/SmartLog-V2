@@ -53,8 +53,10 @@ def create_app():
     # ── 5. Upload & static folders ──────────────────────────
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads')
-    app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static')
+    _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    app.static_folder = os.path.join(_BASE, 'static')
     app.static_url_path = '/static'
+    app.template_folder = os.path.join(_BASE, 'templates')
     if PRODUCTION:
         app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 86400
         app.config['TEMPLATES_AUTO_RELOAD'] = False

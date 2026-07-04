@@ -15,6 +15,7 @@
       <a href="/admin/devices/export?format=csv" class="btn btn-ghost btn-sm"><i class="ti ti-file-export"></i> تصدير</a>
       <button class="btn btn-accent btn-sm" onclick="bulkSync()"><i class="ti ti-refresh"></i> مزامنة الكل</button>
       <button class="btn btn-red btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> إضافة جهاز</button>
+      <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="openQuickAdd()"><i class="ti ti-bolt"></i> إضافة سريعة</button>
     </div>
   </div>
 </header>
@@ -232,6 +233,60 @@
   </div>
 </div>
 
+<!-- ===== QUICK ADD DEVICE MODAL (simple 3-field) ===== -->
+<div class="modal-overlay" id="quickAddModal" onclick="if(event.target===this)closeQuickAdd()">
+  <div class="modal-sheet" style="max-width:420px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700"><i class="ti ti-bolt" style="color:var(--accent)"></i> إضافة جهاز — سريع</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeQuickAdd()"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="quickAddForm" onsubmit="return doQuickAdd(event)" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">
+          الرقم التسلسلي <span style="color:#ef4444">*</span>
+        </label>
+        <input type="text" id="qaSerial" required
+               placeholder="192001234567"
+               onblur="autoGenName()"
+               style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;direction:ltr;text-align:left;font-family:monospace">
+        <small style="color:var(--muted);font-size:11px">موجود على ظهر الجهاز — ملصق Serial Number</small>
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">
+          اسم الجهاز <small style="font-weight:400;color:var(--muted)">(اختياري — يُولّد تلقائياً)</small>
+        </label>
+        <input type="text" id="qaName"
+               placeholder="يُترك فارغاً للتوليد التلقائي"
+               style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">
+          عنوان IP <small style="font-weight:400;color:var(--muted)">(اختياري)</small>
+        </label>
+        <input type="text" id="qaIp"
+               placeholder="192.168.1.100"
+               style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;direction:ltr;text-align:left;font-family:monospace">
+        <small style="color:var(--muted);font-size:11px">إذا كان الجهاز متصلاً بالشبكة</small>
+      </div>
+      <div id="qaResult" style="font-size:13px;padding:8px 12px;border-radius:8px;display:none"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button type="submit" id="qaSubmitBtn"
+                style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;cursor:pointer">
+          <i class="ti ti-device-floppy"></i> إضافة الجهاز
+        </button>
+        <button type="button" onclick="closeQuickAdd()"
+                style="padding:10px 18px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-size:14px;cursor:pointer">
+          إلغاء
+        </button>
+      </div>
+    </form>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center">
+      تستطيع لاحقاً تعديل الإعدادات المتقدمة (المزامنة، الصلاحيات، العتاد) من صفحة الجهاز
+    </div>
+  </div>
+</div>
+
 <!-- ===== EDIT DEVICE MODAL ===== -->
 <div class="modal-overlay" id="editDeviceModal">
   <div class="modal-sheet" style="max-width:750px">
@@ -358,4 +413,81 @@
 {% endblock %}
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/devices.js') }}"></script>
+<script>
+/* ===== Quick Add Device — 3 fields only ===== */
+function openQuickAdd(){
+  document.getElementById('quickAddModal').style.display = 'flex';
+  document.getElementById('qaSerial').focus();
+  const r = document.getElementById('qaResult');
+  r.style.display = 'none';
+  r.textContent = '';
+}
+function autoGenName(){
+  const serial = document.getElementById('qaSerial').value.trim();
+  const nameEl = document.getElementById('qaName');
+  if(!nameEl.value.trim() && serial){
+    nameEl.value = 'جهاز (' + serial + ')';
+    nameEl.style.fontStyle = 'italic';
+    nameEl.style.opacity = '0.8';
+  }
+}
+function closeQuickAdd(){
+  document.getElementById('quickAddModal').style.display = 'none';
+  document.getElementById('quickAddForm').reset();
+  const r = document.getElementById('qaResult');
+  r.style.display = 'none';
+  r.textContent = '';
+  const nameEl = document.getElementById('qaName');
+  nameEl.style.fontStyle = '';
+  nameEl.style.opacity = '';
+}
+function showQaResult(ok, msg){
+  const r = document.getElementById('qaResult');
+  r.style.display = 'block';
+  r.textContent = msg;
+  r.style.background = ok ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+  r.style.color = ok ? '#22c55e' : '#ef4444';
+  r.style.border = '1px solid ' + (ok ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)');
+}
+async function doQuickAdd(e){
+  e.preventDefault();
+  autoGenName();
+  const serial = document.getElementById('qaSerial').value.trim();
+  const name = document.getElementById('qaName').value.trim();
+  const ip = document.getElementById('qaIp').value.trim() || null;
+  if(!serial){
+    showQaResult(false, '⚠️ الرقم التسلسلي مطلوب');
+    return false;
+  }
+  const btn = document.getElementById('qaSubmitBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> جاري...';
+  try{
+    const res = await fetch('/api/devices/add-simple', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({serial, name, ip})
+    });
+    const data = await res.json();
+    if(res.ok){
+      showQaResult(true, '✅ ' + (data.msg || 'تم إضافة الجهاز بنجاح'));
+      setTimeout(() => { closeQuickAdd(); location.reload(); }, 1200);
+    } else {
+      showQaResult(false, '❌ ' + (data.msg || data.error || 'حدث خطأ'));
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    }
+  } catch(err){
+    showQaResult(false, '❌ خطأ في الاتصال: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+  return false;
+}
+/* Spin animation for loader */
+const styleSheet = document.createElement('style');
+styleSheet.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(styleSheet);
+</script>
 {% endblock %}

@@ -226,6 +226,50 @@ def add_device():
     return jsonify({'ok': True, 'msg': f'تم إضافة الجهاز {dev.name}.', 'id': dev.id})
 
 
+# ─── API: ADD DEVICE (SIMPLIFIED — 3 fields only) ─────────────
+
+@admin_devices_bp.route('/api/devices/add-simple', methods=['POST'])
+@admin_required
+def add_device_simple():
+    data = request.get_json() or {}
+    serial = (data.get('serial') or '').strip()
+    name = (data.get('name') or '').strip()
+    ip = (data.get('ip') or '').strip() or None
+
+    if not serial:
+        return jsonify({'ok': False, 'msg': 'الرقم التسلسلي مطلوب.'}), 400
+    if not name:
+        name = f'جهاز ({serial})'
+
+    exists = BioTimeDevice.query.filter_by(serial_no=serial).first()
+    if exists:
+        return jsonify({'ok': False, 'msg': 'هذا الرقم التسلسلي مسجل مسبقاً.'}), 409
+
+    if ip:
+        if not _validate_ip(ip):
+            return jsonify({'ok': False, 'msg': 'صيغة IP غير صحيحة. استخدم 192.168.1.100'}), 400
+        dup = BioTimeDevice.query.filter_by(ip_address=ip, is_active=True).first()
+        if dup:
+            return jsonify({'ok': False, 'msg': f'IP {ip} مستخدم بالفعل للجهاز {dup.name}.'}), 409
+
+    dev = BioTimeDevice(
+        serial_no=serial,
+        name=name,
+        ip_address=ip,
+        port=4370,
+        device_type='biometric',
+        protocol='tcp_ip',
+        auto_sync_enabled=True,
+        sync_interval=30,
+        api_key=uuid4().hex[:16],
+    )
+    db.session.add(dev)
+    db.session.flush()
+    _add_device_event(dev.id, 'create', f'إضافة سريعة: {dev.name} ({serial})')
+    db.session.commit()
+    return jsonify({'ok': True, 'msg': f'تم إضافة الجهاز {name} بنجاح.', 'id': dev.id}), 201
+
+
 # ─── API: UPDATE DEVICE ──────────────────────────────────────
 
 @admin_devices_bp.route('/admin/devices/<int:did>/edit', methods=['POST'])

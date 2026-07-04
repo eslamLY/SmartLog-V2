@@ -4,7 +4,7 @@
   <script src="{{ url_for('static', filename='js/sw-cleanup.js') }}?v={{ static_version }}"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#000000" id="metaThemeColor">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SMARTLOG">
@@ -20,31 +20,33 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root {
-      --bg: #080c18;
-      --card: #0f172a;
-      --card2: #141d33;
-      --border: #1e2a45;
-      --border2: #17213a;
+      --bg: #000000;
+      --card: #111111;
+      --card2: #1a1a1a;
+      --border: #2a2a2a;
+      --border2: #222222;
       --text: #f0f4f9;
-      --muted: #8899b4;
-      --muted2: #566580;
+      --muted: #9ca3af;
+      --muted2: #6b7280;
       --red: #dc2626;
       --green: #22c55e;
       --amber: #f59e0b;
-      --indigo: #6366f1;
-      --accent: #818cf8;
-      --glow: rgba(99,102,241,.12);
+      --indigo: #e4e4e4;
+      --accent: #e4e4e4;
+      --glow: rgba(255,255,255,.08);
     }
     html.light-mode, .light-mode {
-      --bg: #f0f2f5;
+      --bg: #ffffff;
       --card: #ffffff;
-      --card2: #f8f9fc;
-      --border: #e0e4ec;
-      --border2: #e8ecf2;
+      --card2: #faf5ff;
+      --border: #e4e4e7;
+      --border2: #ececef;
       --text: #1a1a2e;
-      --muted: #5a6a85;
-      --muted2: #8899b4;
-      --glow: rgba(99,102,241,.08);
+      --muted: #6b7280;
+      --muted2: #9ca3af;
+      --indigo: #7c3aed;
+      --accent: #7c3aed;
+      --glow: rgba(124,58,237,.1);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Cairo', 'Arial', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
@@ -61,8 +63,8 @@
     .sidebar .nav { padding: 4px 14px 12px; }
     .sidebar .nav-bottom { margin-top: auto; padding: 10px 14px 14px; border-top: 1px solid var(--border); }
     .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; color: var(--muted); text-decoration: none; transition: all .2s; margin-bottom: 1px; position: relative; }
-    .nav-link:hover { background: rgba(255,255,255,.04); color: var(--text); }
-    .nav-link.active { background: linear-gradient(135deg, var(--glow), transparent); color: var(--accent); font-weight: 600; border-right: 2px solid var(--indigo); }
+    .nav-link:hover { background: var(--glow); color: var(--text); }
+    .nav-link.active { background: linear-gradient(135deg, var(--glow), transparent); color: var(--accent); font-weight: 600; border-right: 2px solid var(--accent); }
     .nav-link i { font-size: 18px; flex-shrink: 0; }
     .nav-link-sub { padding-right: 32px; font-size: 13px; }
 
@@ -424,6 +426,7 @@ function toggleTheme() {
   var label = document.querySelector('#themeToggle span');
   if (icon) icon.className = isLight ? 'ti ti-sun' : 'ti ti-moon';
   if (label) label.textContent = isLight ? 'السمة الداكنة' : 'السمة الفاتحة';
+  document.getElementById('metaThemeColor').content = isLight ? '#ffffff' : '#000000';
   localStorage.setItem('smartlog_theme', isLight ? 'light' : 'dark');
 }
 
@@ -431,11 +434,15 @@ function toggleTheme() {
   var saved = localStorage.getItem('smartlog_theme');
   var icon = document.querySelector('#themeToggle i');
   var label = document.querySelector('#themeToggle span');
+  var meta = document.getElementById('metaThemeColor');
   if (saved === 'light') {
     document.documentElement.classList.add('light-mode');
     document.body.classList.add('light-mode');
     if (icon) icon.className = 'ti ti-sun';
     if (label) label.textContent = 'السمة الداكنة';
+    if (meta) meta.content = '#ffffff';
+  } else {
+    if (meta) meta.content = '#000000';
   }
 })();
 </script>
