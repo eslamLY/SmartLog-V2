@@ -50,46 +50,55 @@ class PredictionService:
             'shortage_warnings': [],
             'anomalies': [],
         }
-        leave_model = LeavePredictionModel()
-        absence_model = AbsencePredictionModel()
-        turnover_model = TurnoverPredictionModel()
+        leave_model = MLModelRegistry.get_model('leave_prediction')
+        absence_model = MLModelRegistry.get_model('absence_prediction')
+        turnover_model = MLModelRegistry.get_model('turnover_prediction')
         for emp in employees:
             try:
-                leave_probs = leave_model._extract_features(emp, target_date)
-                leave_prob = float(np.mean(leave_probs)) if isinstance(leave_probs, np.ndarray) else 0.0
-                adjusted_prob = min(abs(hash(str(emp.id) + str(target_date))) % 100 / 100, 0.95)
-                if adjusted_prob > 0.2:
+                if leave_model is not None:
+                    prob = leave_model.predict_proba(emp, [target_date])[0]
+                else:
+                    prob = 0.0
+                if prob > 0.2:
                     results['leave_predictions'].append({
                         'employee_id': emp.id,
                         'employee_name': emp.full_name,
                         'department': emp.department,
-                        'probability': round(adjusted_prob, 3),
-                        'risk_level': 'high' if adjusted_prob > 0.7 else 'medium' if adjusted_prob > 0.4 else 'low',
+                        'probability': round(prob, 3),
+                        'risk_level': 'high' if prob > 0.7 else 'medium' if prob > 0.4 else 'low',
                     })
-                abs_prob = absence_model._extract_features(emp, target_date)
-                abs_risk = float(np.mean(abs_prob)) if isinstance(abs_prob, np.ndarray) else 0.0
-                abs_adjusted = min(abs(hash(str(emp.id) + 'abs' + str(target_date))) % 100 / 100, 0.9)
-                if abs_adjusted > 0.2:
+            except Exception:
+                pass
+            try:
+                if absence_model is not None:
+                    prob = absence_model.predict_proba(emp, target_date)
+                else:
+                    prob = 0.0
+                if prob > 0.2:
                     results['absence_predictions'].append({
                         'employee_id': emp.id,
                         'employee_name': emp.full_name,
                         'department': emp.department,
-                        'risk_score': round(abs_adjusted, 3),
-                        'risk_level': 'high' if abs_adjusted > 0.6 else 'medium' if abs_adjusted > 0.35 else 'low',
+                        'risk_score': round(prob, 3),
+                        'risk_level': 'high' if prob > 0.6 else 'medium' if prob > 0.35 else 'low',
                     })
-                turn_prob = turnover_model._extract_features(emp)
-                turn_risk = float(np.mean(turn_prob)) if isinstance(turn_prob, np.ndarray) else 0.0
-                turn_adjusted = min(abs(hash(str(emp.id) + 'turn')) % 100 / 100, 0.95)
-                if turn_adjusted > 0.3:
+            except Exception:
+                pass
+            try:
+                if turnover_model is not None:
+                    prob = turnover_model.predict_proba(emp)
+                else:
+                    prob = 0.0
+                if prob > 0.3:
                     results['turnover_predictions'].append({
                         'employee_id': emp.id,
                         'employee_name': emp.full_name,
                         'department': emp.department,
-                        'risk_score': round(turn_adjusted, 3),
-                        'risk_level': 'high' if turn_adjusted > 0.7 else 'medium' if turn_adjusted > 0.4 else 'low',
+                        'risk_score': round(prob, 3),
+                        'risk_level': 'high' if prob > 0.7 else 'medium' if prob > 0.4 else 'low',
                     })
             except Exception:
-                continue
+                pass
         results['leave_predictions'].sort(key=lambda x: x['probability'], reverse=True)
         results['absence_predictions'].sort(key=lambda x: x['risk_score'], reverse=True)
         results['turnover_predictions'].sort(key=lambda x: x['risk_score'], reverse=True)
@@ -137,30 +146,47 @@ class PredictionService:
     @staticmethod
     def _detect_anomalies(target_date: date) -> List[Dict]:
         anomalies = []
-        employees = Employee.query.filter_by(is_active=True).all()
-        for emp in employees:
-            recent_logs = AttendanceLog.query.filter(
-                AttendanceLog.employee_id == emp.id,
-                AttendanceLog.log_date >= (target_date - timedelta(days=30)),
-            ).order_by(AttendanceLog.log_date.desc()).all()
-            if len(recent_logs) < 5:
+        cutoff_30 = target_date - timedelta(days=30)
+        cutoff_90 = target_date - timedelta(days=90)
+        recent_logs_all = AttendanceLog.query.filter(
+            AttendanceLog.log_date >= cutoff_30,
+            AttendanceLog.log_date <= target_date,
+        ).with_entities(
+            AttendanceLog.employee_id, AttendanceLog.status,
+            AttendanceLog.late_minutes, AttendanceLog.log_date,
+        ).all()
+        prev_logs_all = AttendanceLog.query.filter(
+            AttendanceLog.log_date >= cutoff_90,
+            AttendanceLog.log_date < cutoff_30,
+        ).with_entities(
+            AttendanceLog.employee_id, AttendanceLog.status,
+        ).all()
+        recent_by_emp = defaultdict(list)
+        for r in recent_logs_all:
+            recent_by_emp[r.employee_id].append(r)
+        prev_by_emp = defaultdict(list)
+        for p in prev_logs_all:
+            prev_by_emp[p.employee_id].append(p)
+        employees = Employee.query.filter_by(is_active=True).with_entities(
+            Employee.id, Employee.full_name, Employee.department,
+        ).all()
+        emp_map = {e.id: e for e in employees}
+        for emp_id, recent_logs in recent_by_emp.items():
+            emp = emp_map.get(emp_id)
+            if not emp or len(recent_logs) < 5:
                 continue
             late_count = sum(1 for l in recent_logs if (l.late_minutes or 0) > 30)
             absent_count = sum(1 for l in recent_logs if l.status == 'absent')
-            sudden_absence_increase = False
-            prev_logs = AttendanceLog.query.filter(
-                AttendanceLog.employee_id == emp.id,
-                AttendanceLog.log_date >= (target_date - timedelta(days=90)),
-                AttendanceLog.log_date < (target_date - timedelta(days=30)),
-            ).all()
+            prev_logs = prev_by_emp.get(emp_id, [])
             prev_absent_rate = sum(1 for l in prev_logs if l.status == 'absent') / max(len(prev_logs), 1)
             recent_absent_rate = absent_count / max(len(recent_logs), 1)
-            if recent_absent_rate > prev_absent_rate * 2 and recent_absent_rate > 0.3:
-                sudden_absence_increase = True
+            sudden_absence_increase = (
+                recent_absent_rate > prev_absent_rate * 2 and recent_absent_rate > 0.3
+            )
             if sudden_absence_increase or late_count > 10 or absent_count > 5:
                 anomaly_type = 'غياب متكرر' if absent_count > 5 else 'تأخير متكرر'
                 anomalies.append({
-                    'employee_id': emp.id,
+                    'employee_id': emp_id,
                     'employee_name': emp.full_name,
                     'department': emp.department,
                     'type': anomaly_type,
