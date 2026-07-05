@@ -5,7 +5,7 @@ Usage:
     app = create_app()
 """
 import os
-import sys
+import threading
 import logging
 
 logging.basicConfig(level=logging.INFO,
@@ -21,6 +21,22 @@ from flask_wtf.csrf import generate_csrf
 from itsdangerous import URLSafeTimedSerializer
 
 from models import db
+
+
+def _init_db_background(app: Flask):
+    """Initialize DB in a background thread so the container starts fast."""
+    from core.database import test_db_connection, auto_create_tables, run_startup
+    with app.app_context():
+        try:
+            if test_db_connection(app, db):
+                auto_create_tables(app, db, '', app.config.get('PRODUCTION', False))
+                run_startup(app, db)
+                app.config['DB_READY'] = True
+                log.info('Background DB init: complete')
+            else:
+                log.error('Background DB init: could not connect after retries')
+        except Exception as exc:
+            log.error('Background DB init: failed (%s)', exc)
 
 
 def create_app():
@@ -67,15 +83,9 @@ def create_app():
     # ── 7. DB init (SQLAlchemy + Migrate) ────────────────────
     migrate = init_db(app, db, fernet)  # noqa — kept in scope
 
-    # ── 8. Pre-flight DB connection + tables ─────────────────
-    from core.database import test_db_connection, auto_create_tables
-    if _DB_CONFIGURED:
-        if not test_db_connection(app, db):
-            log.error('FATAL: Could not connect to database after retries.')
-            sys.exit(1)
-        auto_create_tables(app, db, _masked, PRODUCTION)
-    else:
-        log.warning('DATABASE_URL not configured — skipping DB initialization')
+    # ── 8. DB init (async background thread — container starts fast) ──
+    app.config['DB_READY'] = False
+    app.config['_DB_CONFIGURED'] = _DB_CONFIGURED
 
     # ── 9. Jinja2, PWA, context processor ────────────────────
     from core.routes import register_jinja
@@ -101,6 +111,12 @@ def create_app():
     from core.routes import register_health_endpoints
     register_health_endpoints(app, _DB_CONFIGURED, FLASK_ENV, ON_RENDER)
 
+    # ── 14b. Background DB init thread ─────────────────────────
+    if _DB_CONFIGURED:
+        log.info('Starting background DB init thread...')
+        threading.Thread(target=_init_db_background, args=(app,),
+                         daemon=True).start()
+
     # ── 15. Init route + CLI ─────────────────────────────────
     from core.routes import register_init_route, register_cli
     register_init_route(app)
@@ -108,13 +124,6 @@ def create_app():
 
     # ── 16. QR serializer ─────────────────────────────────────
     app.qr_serializer = URLSafeTimedSerializer(app.secret_key)
-
-    # ── 17. Startup (migrations + seeds) ─────────────────────
-    from core.database import run_startup
-    if _DB_CONFIGURED:
-        run_startup(app, db)
-    else:
-        log.warning('Startup: skipping migrations and seeding (DATABASE_URL not configured)')
 
     log.info('=' * 60)
     log.info('SmartLog startup complete — ready to serve')

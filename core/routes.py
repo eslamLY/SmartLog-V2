@@ -73,8 +73,9 @@ def register_health_endpoints(app: Flask, _DB_CONFIGURED, FLASK_ENV, ON_RENDER):
 
     @app.route('/api/health')
     def api_health_inline():
+        db_ready = app.config.get('DB_READY', False)
         result = {
-            'status': 'healthy', 'database': 'unknown',
+            'status': 'healthy', 'database': 'ready' if db_ready else 'connecting',
             'database_configured': _DB_CONFIGURED,
             'timestamp': datetime.now(UTC).isoformat(),
             'environment': FLASK_ENV, 'on_render': ON_RENDER,
@@ -83,12 +84,13 @@ def register_health_endpoints(app: Flask, _DB_CONFIGURED, FLASK_ENV, ON_RENDER):
             result['database'] = 'not_configured'
             result['message'] = 'DATABASE_URL not set — app in degraded mode'
             return jsonify(result), 503
-        try:
-            with db.engine.connect() as conn:
-                conn.execute(db.text('SELECT 1'))
-            result['database'] = 'connected'
-        except Exception as exc:
-            result['database'] = 'retrying: ' + str(exc)
+        if db_ready:
+            try:
+                with db.engine.connect() as conn:
+                    conn.execute(db.text('SELECT 1'))
+                result['database'] = 'connected'
+            except Exception as exc:
+                result['database'] = 'retrying: ' + str(exc)
         result['uptime_seconds'] = int(time.time() - _start_time)
         return jsonify(result), 200
 
