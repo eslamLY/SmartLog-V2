@@ -84,29 +84,13 @@ def auto_create_tables(app: Flask, db: SQLAlchemy, masked_url: str, PRODUCTION: 
         try:
             db.create_all()
             log.info('Tables: ALL verified (db.create_all() completed)')
-            try:
-                with db.engine.connect() as conn:
-                    exists = conn.execute(db.text(
-                        "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name='alembic_version')"
-                    )).scalar()
-                    if not exists:
-                        conn.execute(db.text(
-                            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
-                            "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
-                        ))
-                    current = conn.execute(db.text('SELECT version_num FROM alembic_version')).scalar()
-                    if not current:
-                        from flask_migrate import stamp
-                        stamp(revision='head')
-                        conn.commit()
-                        log.info('Alembic: stamped to head')
-                    else:
-                        log.info('Alembic: already at %s', current)
-            except Exception as e:
-                log.warning('Alembic stamp skipped: %s', e)
+            from flask_migrate import stamp
+            stamp(revision='head')
+            log.info('Alembic: stamped to head')
         except Exception as exc:
-            log.error('FATAL: db.create_all() failed: %s', exc)
+            log.warning('Alembic stamp skipped: %s', exc)
             if PRODUCTION:
+                log.error('FATAL: db.create_all() failed: %s', exc)
                 sys.exit(1)
 
 
