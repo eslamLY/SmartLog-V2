@@ -16,25 +16,42 @@ log.info('SmartLog starting up')
 log.info('=' * 60)
 
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import generate_csrf
 from itsdangerous import URLSafeTimedSerializer
 
 from models import db
 
+from core._state import db_ready_event
+
 
 def _init_db_background(app: Flask):
-    """Initialize DB in a background thread so the container starts fast."""
+    """Initialize DB in a daemon thread so the container starts fast.
+
+    Guards:
+        - SystemExit from auto_create_tables does not kill the thread
+          silently; the event is *not* set, so the request barrier will
+          block until a new worker process retries.
+        - threading.Event provides a memory fence so ``DB_READY`` is
+          visible across threads on all platforms.
+    """
     from core.database import test_db_connection, auto_create_tables, run_startup
+    if not app.config.get('_DB_CONFIGURED'):
+        log.warning('DATABASE_URL not configured — DB_READY set true trivially')
+        app.config['DB_READY'] = True
+        db_ready_event.set()
+        return
     with app.app_context():
         try:
             if test_db_connection(app, db):
                 auto_create_tables(app, db, '', app.config.get('PRODUCTION', False))
                 run_startup(app, db)
                 app.config['DB_READY'] = True
+                db_ready_event.set()
                 log.info('Background DB init: complete')
             else:
                 log.error('Background DB init: could not connect after retries')
+        except SystemExit:
+            log.error('Background DB init: sys.exit() called — thread terminated')
         except Exception as exc:
             log.error('Background DB init: failed (%s)', exc)
 
@@ -114,8 +131,9 @@ def create_app():
     # ── 14b. Background DB init thread ─────────────────────────
     if _DB_CONFIGURED:
         log.info('Starting background DB init thread...')
-        threading.Thread(target=_init_db_background, args=(app,),
-                         daemon=True).start()
+        t = threading.Thread(target=_init_db_background, args=(app,),
+                             daemon=True)
+        t.start()
 
     # ── 15. Init route + CLI ─────────────────────────────────
     from core.routes import register_init_route, register_cli

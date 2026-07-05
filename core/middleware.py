@@ -10,6 +10,8 @@ from datetime import datetime, UTC
 from flask import request, jsonify, render_template, session, redirect
 from flask_wtf.csrf import validate_csrf, ValidationError
 
+from core._state import db_ready_event
+
 log = logging.getLogger('app')
 
 _request_times = defaultdict(list)
@@ -20,6 +22,22 @@ def register_middleware(app, PRODUCTION):
     """Register all before/after request handlers."""
 
     # ── before_request ──────────────────────────────────────────────────
+    # ⚠  ORDER MATTERS — db barrier must run first to prevent race with
+    #    background thread (see core/__init__.py _init_db_background).
+
+    @app.before_request
+    def _wait_for_db():
+        """Block non-health requests until the background thread finishes
+        DB init.  Health checks and static assets pass through immediately
+        so Render does not kill the container."""
+        if request.path.startswith(('/api/health', '/static/', '/favicon.ico',
+                                    '/manifest.json', '/sw.js')):
+            return
+        if app.config.get('_DB_CONFIGURED') and not app.config.get('DB_READY'):
+            log.info('Request waiting for DB: %s', request.path)
+            if not db_ready_event.wait(timeout=120):
+                log.error('Request timed out waiting for DB: %s', request.path)
+                return jsonify({'ok': False, 'msg': 'Database not ready yet'}), 503
 
     @app.before_request
     def request_start_time():
@@ -27,6 +45,8 @@ def register_middleware(app, PRODUCTION):
 
     @app.before_request
     def check_auto_ban():
+        if not app.config.get('DB_READY', False):
+            return
         if request.path.startswith(('/static/', '/manifest.json', '/sw.js',
                                     '/uploads/', '/logout', '/api/health', '/admin/backup')):
             return
