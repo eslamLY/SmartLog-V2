@@ -27,8 +27,8 @@ jobs:
           echo "HTTP Status: $RESPONSE"
           cat /tmp/render-response.json
           echo ""
-          if [ "$RESPONSE" != "201" ]; then
+          if [ "$RESPONSE" != "201" ] && [ "$RESPONSE" != "202" ]; then
             echo "::error::Render deploy failed with status $RESPONSE"
             exit 1
           fi
-          echo "Deploy triggered successfully!"
+          echo "Deploy triggered successfully! (HTTP $RESPONSE)"
