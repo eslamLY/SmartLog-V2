@@ -61,7 +61,7 @@ def init_db(app: Flask, db: SQLAlchemy, fernet):
     return Migrate(app, db)
 
 
-def test_db_connection(app: Flask, db: SQLAlchemy, max_retries=5, delay=3):
+def test_db_connection(app: Flask, db: SQLAlchemy, max_retries=10, delay=5):
     """Retryable DB connection test. Returns True on success."""
     for attempt in range(1, max_retries + 1):
         try:
@@ -94,17 +94,14 @@ def auto_create_tables(app: Flask, db: SQLAlchemy, masked_url: str, PRODUCTION: 
                             "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, "
                             "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
                         ))
-                        conn.execute(db.text("INSERT INTO alembic_version (version_num) VALUES ('d4f2c8b1a93e')"))
+                    current = conn.execute(db.text('SELECT version_num FROM alembic_version')).scalar()
+                    if not current:
+                        from flask_migrate import stamp
+                        stamp(revision='head')
                         conn.commit()
-                        log.info('Alembic: table created + stamped at d4f2c8b1a93e')
+                        log.info('Alembic: stamped to head')
                     else:
-                        current = conn.execute(db.text('SELECT version_num FROM alembic_version')).scalar()
-                        if not current:
-                            conn.execute(db.text("INSERT INTO alembic_version (version_num) VALUES ('d4f2c8b1a93e')"))
-                            conn.commit()
-                            log.info('Alembic: stamped at d4f2c8b1a93e')
-                        else:
-                            log.info('Alembic: already at %s', current)
+                        log.info('Alembic: already at %s', current)
             except Exception as e:
                 log.warning('Alembic stamp skipped: %s', e)
         except Exception as exc:
