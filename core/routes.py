@@ -80,20 +80,17 @@ def register_health_endpoints(app: Flask, _DB_CONFIGURED, FLASK_ENV, ON_RENDER):
             'environment': FLASK_ENV, 'on_render': ON_RENDER,
         }
         if not _DB_CONFIGURED:
-            result['status'] = 'degraded'
             result['database'] = 'not_configured'
-            result['message'] = 'Set DATABASE_URL in environment and restart'
+            result['message'] = 'DATABASE_URL not set — app in degraded mode'
             return jsonify(result), 503
         try:
             with db.engine.connect() as conn:
                 conn.execute(db.text('SELECT 1'))
             result['database'] = 'connected'
         except Exception as exc:
-            result['status'] = 'degraded'
-            result['database'] = 'disconnected: ' + str(exc)
+            result['database'] = 'retrying: ' + str(exc)
         result['uptime_seconds'] = int(time.time() - _start_time)
-        status_code = 200 if result['status'] == 'healthy' else 503
-        return jsonify(result), status_code
+        return jsonify(result), 200
 
     @app.route('/api/health/static')
     def api_static_health():

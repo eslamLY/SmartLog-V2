@@ -113,12 +113,7 @@ def auto_create_tables(app: Flask, db: SQLAlchemy, masked_url: str, PRODUCTION: 
 def run_startup(app: Flask, db: SQLAlchemy):
     """Run migrations and seed data on startup."""
     with app.app_context():
-        try:
-            from flask_migrate import upgrade
-            upgrade()
-            log.info('Startup: flask db upgrade completed')
-        except Exception as exc:
-            log.warning('Startup: flask db upgrade skipped (%s)', exc)
+        log.info('Startup: schema handled by db.create_all() — skipping flask db upgrade')
 
         for col, typ in [('early_leave_minutes', 'INTEGER DEFAULT 0'),
                          ('overtime_minutes', 'INTEGER DEFAULT 0'),
