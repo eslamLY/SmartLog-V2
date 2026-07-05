@@ -20,11 +20,8 @@ else
     echo "[DB]   4. Save Changes (auto-restarts)"
 fi
 
-echo "=== [1/4] Running database migrations (if DB available) ==="
-flask db upgrade 2>&1 || echo "[WARN] flask db upgrade skipped — will retry inside app.py"
-
-echo "=== [2/4] Starting Gunicorn ==="
-echo "      (app.py handles db.create_all() and run_startup() at import time)"
+echo "=== [1/3] Starting Gunicorn ==="
+echo "      (app.py handles db.create_all(), stamp alembic head, and run_startup at import time)"
 exec gunicorn app:app \
     --bind 0.0.0.0:${PORT:-5000} \
     --workers ${GUNICORN_WORKERS:-4} \
