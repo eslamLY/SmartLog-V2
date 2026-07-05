@@ -154,11 +154,26 @@ def register_jinja(app: Flask, PRODUCTION):
 
 
 def register_limiter(app: Flask):
-    """Set up Flask-Limiter with per-route overrides."""
+    """Set up Flask-Limiter with per-route overrides.
+
+    Storage:
+        In-memory (``memory://``) — acceptable for per-minute limits on a
+        single container.  Per-route limits in the request handler layer
+        (``utils/rate_limit.check_rate_limit``) also use in-memory but are
+        the primary defence; Flask-Limiter is a secondary guard.
+
+        To persist across workers/gunicorn restarts, add Redis to the
+        Render stack and set ``RATELIMIT_STORAGE_URL=redis://...``.
+    """
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['WTF_CSRF_TIME_LIMIT'] = None
     app.config['WTF_CSRF_CHECK_DEFAULT'] = False
-    limiter = Limiter(get_remote_address, app=app, default_limits=["10000 per day", "2000 per hour"])
+    import logging
+    log = logging.getLogger('app')
+    if not app.config.get('TESTING') and app.config.get('PRODUCTION'):
+        log.info('Flask-Limiter: using in-memory storage (add Redis for persistence)')
+    limiter = Limiter(get_remote_address, app=app,
+                      default_limits=["10000 per day", "2000 per hour"])
     from routes.auth import login as _login_view
     from routes.employee import clock_in_qr as _clock_in_qr_view
     limiter.limit("5 per minute", methods=["POST"])(_login_view)
