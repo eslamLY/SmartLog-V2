@@ -1,4 +1,9 @@
 /* ── Login Error Handling (Issue #7) ── */
+function getCSRFToken() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
 async function handleLogin(event) {
   event.preventDefault();
 
@@ -11,43 +16,45 @@ async function handleLogin(event) {
 
   try {
     if (!navigator.onLine) {
-      throw {
-        message: 'لا يوجد اتصال بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.',
-        status: 0
-      };
+      throw { message: 'لا يوجد اتصال بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.', status: 0 };
     }
 
-    const response = await fetch('/api/login', {
+    const response = await fetch('/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify({
+        username: username.trim().toUpperCase(),
+        password: password
+      })
     });
 
     const data = await response.json();
 
-    if (response.ok) {
-      window.location.href = '/dashboard';
+    if (data.ok) {
+      window.location.href = data.redirect || '/admin';
       return;
     }
 
-    const errorMap = {
-      400: 'بيانات الدخول غير صحيحة. تأكد من الرقم الوظيفي وكلمة المرور.',
-      401: 'الرقم الوظيفي أو كلمة المرور غير صحيحة.',
-      429: 'محاولات دخول كثيرة جداً. انتظر 5 دقائق قبل المحاولة مرة أخرى.',
-      500: 'خطأ في الخادم. يرجى المحاولة بعد قليل.',
-      503: 'الخدمة غير متاحة حالياً. يرجى المحاولة لاحقاً.'
-    };
+    /* Map specific status codes to user-friendly messages */
+    var message = data.msg || 'بيانات الدخول غير صحيحة.';
 
-    throw {
-      message: errorMap[response.status] || data.error || 'حدث خطأ غير متوقع.',
-      status: response.status
-    };
+    if (response.status === 429) {
+      message = 'محاولات دخول كثيرة جداً. انتظر 5 دقائق قبل المحاولة مرة أخرى.';
+    }
+
+    if (data.blocked_until) {
+      message = 'الحساب محظور حالياً. حاول لاحقاً.';
+    }
+
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
 
   } catch (error) {
     console.error('Login error:', error);
-
-    errorDiv.textContent = error.message ||
-      'حدث خطأ غير متوقع. إذا استمرت المشكلة، تواصل مع الدعم الفني.';
+    errorDiv.textContent = 'حدث خطأ في الاتصال بالخادم. حاول مرة أخرى.';
     errorDiv.setAttribute('role', 'alert');
     errorDiv.setAttribute('aria-live', 'polite');
     errorDiv.style.display = 'block';
