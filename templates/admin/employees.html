@@ -44,23 +44,31 @@
         <div><span style="color:var(--text);font-weight:600">{{ "%.0f"|format(emp.base_salary or 0) }}</span> د.ل</div>
         <div>
           {% if emp.sync_status == 'synced' %}<span style="color:#22c55e">✅ متزامن</span>
-          {% elif emp.sync_status == 'failed' %}<span style="color:#ef4444">❌ فشل</span>
+          {% elif emp.sync_status == 'failed' %}<span style="color:var(--red)">❌ فشل</span>
           {% else %}<span style="color:var(--muted)">⚠️ غير متزامن</span>{% endif %}
         </div>
         <div>{{ emp.job_title or '—' }}</div>
         <div>{{ emp.employment_type|replace('_',' ')|title if emp.employment_type else 'دوام كامل' }}</div>
       </div>
       <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <a href="/admin/employees/{{ emp.id }}/profile" class="btn btn-ghost btn-xs" title="الملف الشخصي" aria-label="الملف الشخصي {{ emp.full_name }}"><i class="ti ti-user" style="color:var(--accent)" aria-hidden="true"></i></a>
-        <button class="btn btn-ghost btn-xs" onclick="openViewModal({{ emp.id }})" title="عرض" aria-label="عرض بيانات {{ emp.full_name }}"><i class="ti ti-eye" aria-hidden="true"></i></button>
-        <button class="btn btn-ghost btn-xs" onclick="openEditModal({{ emp.id }})" title="تعديل" aria-label="تعديل بيانات {{ emp.full_name }}"><i class="ti ti-edit" style="color:var(--amber)" aria-hidden="true"></i></button>
-        <button class="btn btn-ghost btn-xs" onclick="biotimeSync({{ emp.id }})" title="مزامنة" aria-label="مزامنة {{ emp.full_name }}"><i class="ti ti-device-mobile" style="color:var(--accent)" aria-hidden="true"></i></button>
-        <a href="/admin/documents?emp={{ emp.id }}" class="btn btn-ghost btn-xs" title="مستندات" aria-label="مستندات {{ emp.full_name }}"><i class="ti ti-files" style="color:#8b5cf6" aria-hidden="true"></i></a>
-        <button class="btn btn-ghost btn-xs" onclick="openResetPass({{ emp.id }})" title="إعادة تعيين كلمة المرور" aria-label="إعادة تعيين كلمة مرور {{ emp.full_name }}"><i class="ti ti-key" style="color:#f59e0b" aria-hidden="true"></i></button>
-        <button class="btn btn-ghost btn-xs" onclick="toggleEmp({{ emp.id }})" title="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %}" aria-label="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %} {{ emp.full_name }}">
+        <a href="/admin/employees/{{ emp.id }}/profile" class="btn btn-ghost btn-xs" title="الملف الشخصي" aria-label="الملف الشخصي {{ emp.full_name }}" aria-describedby="profile-desc-{{ emp.id }}"><i class="ti ti-user" style="color:var(--accent)" aria-hidden="true"></i></a>
+        <span id="profile-desc-{{ emp.id }}" class="sr-only">يفتح صفحة الملف الشخصي الكامل للموظف.</span>
+        <button class="btn btn-ghost btn-xs" onclick="openViewModal({{ emp.id }})" title="عرض" aria-label="عرض بيانات {{ emp.full_name }}" aria-describedby="view-desc-{{ emp.id }}"><i class="ti ti-eye" aria-hidden="true"></i></button>
+        <span id="view-desc-{{ emp.id }}" class="sr-only">يفتح نافذة منبثقة لعرض بيانات الموظف مع معلومات الحضور.</span>
+        <button class="btn btn-ghost btn-xs" onclick="openEditModal({{ emp.id }})" title="تعديل" aria-label="تعديل بيانات {{ emp.full_name }}" aria-describedby="edit-desc-{{ emp.id }}"><i class="ti ti-edit" style="color:var(--amber)" aria-hidden="true"></i></button>
+        <span id="edit-desc-{{ emp.id }}" class="sr-only">يفتح نافذة تعديل المعلومات الشخصية، المسمى الوظيفي، وبيانات الاتصال الخاصة بالموظف.</span>
+        <button class="btn btn-ghost btn-xs" onclick="biotimeSync({{ emp.id }})" title="مزامنة" aria-label="مزامنة {{ emp.full_name }}" aria-describedby="sync-desc-{{ emp.id }}"><i class="ti ti-device-mobile" style="color:var(--accent)" aria-hidden="true"></i></button>
+        <span id="sync-desc-{{ emp.id }}" class="sr-only">يرسل بيانات الموظف إلى أجهزة البصمة المتصلة.</span>
+        <a href="/admin/documents?emp={{ emp.id }}" class="btn btn-ghost btn-xs" title="مستندات" aria-label="مستندات {{ emp.full_name }}" aria-describedby="docs-desc-{{ emp.id }}"><i class="ti ti-files" style="color:#8b5cf6" aria-hidden="true"></i></a>
+        <span id="docs-desc-{{ emp.id }}" class="sr-only">يفتح صفحة المستندات والملفات الخاصة بالموظف.</span>
+        <button class="btn btn-ghost btn-xs" onclick="openResetPass({{ emp.id }})" title="إعادة تعيين كلمة المرور" aria-label="إعادة تعيين كلمة مرور {{ emp.full_name }}" aria-describedby="resetpass-desc-{{ emp.id }}"><i class="ti ti-key" style="color:#f59e0b" aria-hidden="true"></i></button>
+        <span id="resetpass-desc-{{ emp.id }}" class="sr-only">يفتح نافذة إعادة تعيين كلمة المرور مع إمكانية فرض تغييرها عند أول دخول.</span>
+        <button class="btn btn-ghost btn-xs" onclick="toggleEmp({{ emp.id }})" title="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %}" aria-label="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %} {{ emp.full_name }}" aria-describedby="toggle-desc-{{ emp.id }}">
           {% if emp.is_active %}<i class="ti ti-pause" style="color:#f59e0b" aria-hidden="true"></i>{% else %}<i class="ti ti-player-play" style="color:#22c55e" aria-hidden="true"></i>{% endif %}
         </button>
-        <button class="btn btn-ghost btn-xs" onclick="deleteEmp({{ emp.id }})" title="حذف" aria-label="حذف {{ emp.full_name }}"><i class="ti ti-trash" style="color:#ef4444" aria-hidden="true"></i></button>
+        <span id="toggle-desc-{{ emp.id }}" class="sr-only">{% if emp.is_active %}يوقف حساب الموظف مؤقتاً ويمنع دخوله للنظام.{% else %}يعيد تفعيل حساب الموظف بعد الإيقاف المؤقت.{% endif %}</span>
+        <button class="btn btn-ghost btn-xs" onclick="deleteEmp({{ emp.id }})" title="حذف" aria-label="حذف {{ emp.full_name }}" aria-describedby="delete-desc-{{ emp.id }}"><i class="ti ti-trash" style="color:#ef4444" aria-hidden="true"></i></button>
+        <span id="delete-desc-{{ emp.id }}" class="sr-only">تحذير: سيؤدي هذا الإجراء إلى حذف الموظف بشكل نهائي وسجلات الحضور الخاصة به من قاعدة البيانات دون إمكانية التراجع.</span>
       </div>
     </div>
     {% endfor %}
@@ -123,26 +131,29 @@
         <div class="tab-panel" id="tab_add_basic">
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label>الرقم الوظيفي <span class="required">*</span></label>
+              <label for="aeUsername">الرقم الوظيفي <span class="required">*</span></label>
               <div style="display:flex;gap:6px">
-                <input id="aeUsername" placeholder="EMP001" style="flex:1;font-family:monospace;direction:ltr;text-align:left" required>
+                <input id="aeUsername" placeholder="EMP001" style="flex:1;font-family:monospace;direction:ltr;text-align:left" required aria-label="الرقم الوظيفي للموظف" aria-describedby="aeUsername-hint err_aeUsername">
                 <button type="button" class="btn btn-ghost btn-sm" onclick="autoGenerateId()" title="توليد تلقائي"><i class="ti ti-refresh"></i></button>
               </div>
-              <div class="field-error" id="err_aeUsername"></div>
+              <small id="aeUsername-hint" class="field-hint">يُستخدم الرقم الوظيفي لتسجيل الدخول ويجب أن يكون فريداً.</small>
+              <div class="field-error" id="err_aeUsername" role="alert"></div>
             </div>
             <div class="form-group" style="flex:2">
-              <label>الاسم الكامل <span class="required">*</span></label>
-              <input id="aeName" placeholder="الاسم الثلاثي" required>
-              <div class="field-error" id="err_aeName"></div>
+              <label for="aeName">الاسم الكامل <span class="required">*</span></label>
+              <input id="aeName" placeholder="الاسم الثلاثي" required aria-label="الاسم الكامل للموظف" aria-describedby="aeName-hint err_aeName">
+              <small id="aeName-hint" class="field-hint">يجب إدخال الاسم الرباعي كاملاً كما هو مدون في الأوراق الرسمية.</small>
+              <div class="field-error" id="err_aeName" role="alert"></div>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label>القسم <span class="required">*</span></label>
-              <select id="aeDept" required>
+              <label for="aeDept">القسم <span class="required">*</span></label>
+              <select id="aeDept" required aria-label="القسم التابع له الموظف" aria-describedby="aeDept-hint">
                 <option value="">اختر القسم</option>
                 {% for d in depts_db %}<option value="{{ d.id }}">{{ d.name_ar }}</option>{% endfor %}
               </select>
+              <small id="aeDept-hint" class="field-hint">اختر القسم الذي يعمل به الموظف.</small>
             </div>
             <div class="form-group" style="flex:1">
               <label>الدور</label>
@@ -166,9 +177,10 @@
               </div>
             </div>
             <div class="form-group" style="flex:1">
-              <label>الرقم الوطني <span class="required">*</span></label>
-              <input id="aeNationalId" placeholder="أرقام فقط" style="direction:ltr;text-align:left">
-              <div class="field-error" id="err_aeNationalId"></div>
+              <label for="aeNationalId">الرقم الوطني <span class="required">*</span></label>
+              <input id="aeNationalId" placeholder="أرقام فقط" style="direction:ltr;text-align:left" aria-label="الرقم الوطني للموظف" aria-describedby="aeNationalId-hint err_aeNationalId">
+              <small id="aeNationalId-hint" class="field-hint">الرقم الوطني المكون من 12 رقماً كما هو مدون في بطاقة الأحوال المدنية.</small>
+              <div class="field-error" id="err_aeNationalId" role="alert"></div>
             </div>
           </div>
           <div class="form-row">
@@ -360,19 +372,21 @@
         <div class="tab-panel" id="tab_add_access" style="display:none">
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label>كلمة المرور <span class="required">*</span></label>
+              <label for="aePass">كلمة المرور <span class="required">*</span></label>
               <div class="password-field">
-                <input type="password" id="aePass" value="123456" oninput="checkPassStrength('add')" required>
+                <input type="password" id="aePass" value="123456" oninput="checkPassStrength('add')" required aria-label="كلمة المرور الجديدة" aria-describedby="aePass-hint aePassStrength">
                 <button type="button" class="btn btn-ghost btn-xs" onclick="togglePass('aePass',this)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%)"><i class="ti ti-eye"></i></button>
               </div>
-              <div id="aePassStrength" class="pass-strength"></div>
+              <small id="aePass-hint" class="field-hint">يجب أن تحتوي كلمة المرور على أحرف وأرقام ورموز لتكون آمنة.</small>
+              <div id="aePassStrength" class="pass-strength" role="status"></div>
             </div>
             <div class="form-group" style="flex:1">
-              <label>تأكيد كلمة المرور <span class="required">*</span></label>
+              <label for="aePassConfirm">تأكيد كلمة المرور <span class="required">*</span></label>
               <div class="password-field">
-                <input type="password" id="aePassConfirm" oninput="checkPassMatch('add')">
+                <input type="password" id="aePassConfirm" oninput="checkPassMatch('add')" aria-label="تأكيد كلمة المرور" aria-describedby="aePassConfirm-hint aePassMatch">
               </div>
-              <div id="aePassMatch" class="field-error"></div>
+              <small id="aePassConfirm-hint" class="field-hint">أعد إدخال كلمة المرور نفسها للتأكيد.</small>
+              <div id="aePassMatch" class="field-error" role="alert"></div>
             </div>
           </div>
           <div style="display:flex;gap:8px;margin-top:4px">
@@ -700,7 +714,7 @@
               <div class="password-field">
                 <input type="password" id="eePassConfirm" oninput="checkPassMatch('edit')">
               </div>
-              <div id="eePassMatch" class="field-error"></div>
+              <div id="eePassMatch" class="field-error" role="alert"></div>
             </div>
           </div>
           <div class="form-row" style="margin-top:12px">
@@ -773,7 +787,7 @@
       </div>
       <div><label>تأكيد كلمة المرور</label>
         <input type="password" id="rpPassConfirm" oninput="checkPassMatch('rp')">
-        <div id="rpPassMatch" class="field-error"></div>
+        <div id="rpPassMatch" class="field-error" role="alert"></div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-weight:400;font-size:13px">
         <input type="checkbox" id="rpForceChange" checked> فرض تغيير عند أول دخول
@@ -795,7 +809,7 @@
       <div>
         <label>سبب الحذف <span class="required">*</span></label>
         <textarea id="delEmpReason" rows="3" placeholder="يرجى كتابة سبب الحذف..."></textarea>
-        <div class="field-error" id="err_delEmpReason"></div>
+        <div class="field-error" id="err_delEmpReason" role="alert"></div>
       </div>
       <button class="btn" style="background:#ef4444;color:#fff" onclick="doDeleteEmp()"><i class="ti ti-trash"></i> حذف</button>
       <button class="btn btn-outline" onclick="closeModal('deleteEmpModal')">إلغاء</button>

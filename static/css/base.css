@@ -1,3 +1,37 @@
+/* ── WCAG AAA Design Tokens ── */
+:root {
+  --bg: #000000;
+  --card: #111111;
+  --card2: #1a1a1a;
+  --border: #4b5563;
+  --border2: #222222;
+  --text: #f0f0f5;
+  --muted: #e5e7eb;
+  --muted2: #d1d5db;
+  --red: #ff8080;
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --blue: #70b0ff;
+  --purple: #c090ff;
+  --orange: #f59e0b;
+  --indigo: #e4e4e4;
+  --accent: #e4e4e4;
+  --glow: rgba(255,255,255,.08);
+  --shadow: 0 2px 12px rgba(0,0,0,0.2);
+  --font: 'Cairo', sans-serif;
+  --transition: 0.3s ease;
+}
+
+/* ── Typography Baseline (Phase 2) ── */
+html { font-size: 16px; }
+body { font-size: 1rem; }
+label { font-size: 1rem; }
+input, select, textarea { font-size: 1rem; }
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.375rem; }
+.text-small, small, .field-hint { font-size: 0.875rem !important; }
+
 /* ── Focus Indicators (Issue #4) ── */
 button, a, input, select, textarea {
   outline: none;
@@ -69,6 +103,12 @@ textarea:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ── Screen-Reader-Only (Phase 3 AAA) ── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
 }
 
 /* ── Touch Targets (Issue #15) ── */
