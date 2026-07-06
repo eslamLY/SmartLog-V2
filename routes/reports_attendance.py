@@ -16,6 +16,7 @@ from functools import wraps
 import logging
 from utils.decorators import admin_required
 from services.performance import batch_attendance_stats, batch_work_days
+from services.report_service import YTDService, ComplianceService
 
 LOGGER = logging.getLogger(__name__)
 
@@ -149,10 +150,6 @@ def calc_attendance_stats(employee, start, end, status_filters=None):
                     total_late_minutes += late_mins
                 else:
                     present_days += 1
-            elif status == 'late':
-                present_days += 1
-                late_days += 1
-                total_late_minutes += late_mins
             if clock_in_time:
                 clock_in_times.append(clock_in_time.hour * 60 + clock_in_time.minute)
             if clock_out_time:
@@ -188,7 +185,10 @@ def calc_attendance_stats(employee, start, end, status_filters=None):
         d += timedelta(days=1)
 
     present_excluding_absent = max(work_days - absent_days, 0)
-    attendance_pct = round((present_days / work_days * 100), 1) if work_days > 0 else 0
+    expected_days = work_days
+    if employee.hire_date and employee.hire_date > start:
+        expected_days = get_work_days(max(employee.hire_date, start), end)
+    attendance_pct = round((present_days / expected_days * 100), 1) if expected_days > 0 else 0
     punctuality_score = 0
     if late_days > 0 and present_days > 0:
         punctuality_score = max(0, 100 - (total_late_minutes / present_days / 5))
@@ -1121,3 +1121,25 @@ def api_recommendations():
         recommendations = recommendations[:10]
 
     return jsonify({'recommendations': recommendations})
+
+
+@reports_attendance_bp.route('/api/ytd')
+@admin_required
+@safe_api
+def api_ytd():
+    employee_id = request.args.get('employee_id', type=int)
+    department_id = request.args.get('department_id', type=int)
+    result = YTDService.compute_ytd(employee_id, department_id)
+    return jsonify(result)
+
+
+@reports_attendance_bp.route('/api/compliance')
+@admin_required
+@safe_api
+def api_compliance():
+    employee_id = request.args.get('employee_id', type=int)
+    department_id = request.args.get('department_id', type=int)
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    result = ComplianceService.check_compliance(employee_id, department_id, year, month)
+    return jsonify(result)

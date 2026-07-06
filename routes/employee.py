@@ -8,6 +8,7 @@ from flask import (Blueprint, render_template, request, session,
 from models import db, Employee, AttendanceLog, LeaveRequest, OutingRequest, \
     ShiftSchedule, ShiftSwapRequest, BiometricCredential, GPSLog, ShiftType, \
     Notification, EmployeeDocument, Department, QRToken
+from models.employee_enhanced import EmployeeLeaveBalance
 from utils.decorators import login_required
 from utils.helpers import validate_coordinates, work_hours_str, monthly_deduction
 from utils.rate_limit import check_rate_limit, rate_limit_headers
@@ -35,7 +36,7 @@ def safe_api(f):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ■ AREA 1 — DASHBOARD, CLOCK-IN, CLOCK-OUT
+# ■ AREA 1 — DASHBOARD, CLOCK-IN, CLOCK-OUT, REPORTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -79,6 +80,77 @@ def employee_dashboard():
         shift_types=ShiftType.query.filter_by(is_active=True).all(),
         work_hours=work_hours_str(log),
         month_name=MONTH_NAMES[today.month - 1]
+    )
+
+
+@employee_bp.route('/employee/reports')
+@login_required
+def employee_reports():
+    import calendar as _cal
+    emp = Employee.query.get(session['user_id'])
+    today = date.today()
+
+    month_logs = AttendanceLog.query.filter(
+        AttendanceLog.employee_id == emp.id,
+        extract('month', AttendanceLog.log_date) == today.month,
+        extract('year',  AttendanceLog.log_date) == today.year
+    ).order_by(AttendanceLog.log_date.asc()).all()
+
+    present_days = sum(1 for l in month_logs if l.status in ('present', 'late'))
+    late_days = sum(1 for l in month_logs if l.status == 'late')
+    absent_days = sum(1 for l in month_logs if l.status == 'absent')
+    total_late_minutes = sum(l.late_minutes or 0 for l in month_logs)
+
+    worked_seconds = 0
+    for l in month_logs:
+        if l.clock_in and l.clock_out:
+            worked_seconds += (l.clock_out - l.clock_in).total_seconds()
+    total_worked_hours = round(worked_seconds / 3600, 1)
+
+    working_days = sum(1 for d in range(1, _cal.monthrange(today.year, today.month)[1] + 1)
+                       if date(today.year, today.month, d).weekday() < 5)
+    expected_hours = working_days * 8
+
+    attendance_pct = round((present_days / working_days) * 100, 1) if working_days > 0 else 0
+
+    overtime_minutes = 0
+    break_minutes = (emp.department_ref.break_duration_policy or 60) if emp.department_ref else 60
+    for l in month_logs:
+        if l.clock_in and l.clock_out:
+            gross = (l.clock_out - l.clock_in).total_seconds() / 3600
+            net = gross - (break_minutes / 60)
+            if net > 8:
+                overtime_minutes += (net - 8) * 60
+
+    deduction, _ = monthly_deduction(emp.id, today.year, today.month)
+
+    balances = EmployeeLeaveBalance.query.filter(
+        EmployeeLeaveBalance.employee_id == emp.id,
+        EmployeeLeaveBalance.year == today.year
+    ).all()
+
+    total_opening = sum(b.opening_balance for b in balances)
+    total_allocated = sum(b.total_days for b in balances)
+    total_used = sum(b.used_days for b in balances)
+    total_pending = sum(b.pending_days for b in balances)
+    total_remaining = sum(b.remaining_days for b in balances)
+
+    return render_template('employee/reports.html',
+        emp=emp, today=today,
+        month_name=MONTH_NAMES[today.month - 1],
+        month_logs=month_logs,
+        present_days=present_days, late_days=late_days,
+        absent_days=absent_days,
+        total_late_minutes=total_late_minutes,
+        total_worked_hours=total_worked_hours,
+        expected_hours=expected_hours,
+        attendance_pct=attendance_pct,
+        overtime_minutes=round(overtime_minutes),
+        deduction=deduction,
+        balances=balances,
+        total_opening=total_opening, total_allocated=total_allocated,
+        total_used=total_used, total_pending=total_pending,
+        total_remaining=total_remaining
     )
 
 

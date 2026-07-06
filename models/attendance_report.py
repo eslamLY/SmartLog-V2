@@ -160,14 +160,20 @@ class ReportDataService:
             leave_days = 0
             for lv in leaves:
                 if lv.start_date and lv.end_date:
-                    delta = (lv.end_date - lv.start_date).days + 1
-                    leave_days += delta
+                    d = lv.start_date
+                    while d <= lv.end_date:
+                        if d.weekday() < 5:
+                            leave_days += 1
+                        d += timedelta(days=1)
+            break_minutes = (emp.department_ref.break_duration_policy or 60) if emp.department_ref else 60
+            break_hours = break_minutes / 60
             overtime_minutes = 0
             for l in logs:
                 if l.clock_in and l.clock_out:
-                    worked = (l.clock_out - l.clock_in).total_seconds() / 3600
-                    if worked > 8:
-                        overtime_minutes += (worked - 8) * 60
+                    gross_hours = (l.clock_out - l.clock_in).total_seconds() / 3600
+                    net_hours = gross_hours - break_hours
+                    if net_hours > 8:
+                        overtime_minutes += (net_hours - 8) * 60
             base_salary = emp.base_salary or 0
             late_deduction = PayrollService.calculate_deduction(base_salary, late_minutes_total) if late_minutes_total > 0 else 0
             absence_deduction = PayrollService.calculate_deduction(base_salary, absent * 8 * 60) if absent > 0 else 0

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% set is_employee = true %}
+{% set nav_active = 'reports' %}
+{% block title %}التقارير{% endblock %}
+{% block employee_layout %}
+<div style="min-height:100vh;background:var(--bg)">
+  <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+    <a href="/employee" style="color:var(--muted);text-decoration:none;font-size:22px"><i class="ti ti-arrow-right"></i></a>
+    <div style="flex:1">
+      <h1 style="font-size:16px;font-weight:700;color:var(--text)">تقرير {{ month_name }}</h1>
+    </div>
+  </header>
+
+  <main class="mobile-pb" style="padding:14px;max-width:560px;margin:0 auto">
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+      <div class="stat-card animate-fade-in" style="--i:0;background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.2);padding:14px">
+        <div style="font-size:11px;color:var(--green);margin-bottom:4px"><i class="ti ti-percentage"></i> نسبة الحضور</div>
+        <div class="stat-val" style="color:var(--green)">{{ attendance_pct }}%</div>
+        <div style="font-size:10px;color:var(--green);opacity:.6">{{ present_days }} من {{ expected_hours//8 if expected_hours else 0 }} يوم</div>
+      </div>
+      <div class="stat-card animate-fade-in" style="--i:1;background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2);padding:14px">
+        <div style="font-size:11px;color:var(--amber);margin-bottom:4px"><i class="ti ti-clock"></i> إجمالي التأخير</div>
+        <div class="stat-val" style="color:var(--amber)">{{ total_late_minutes }}</div>
+        <div style="font-size:10px;color:var(--amber);opacity:.6">دقيقة</div>
+      </div>
+      <div class="stat-card animate-fade-in" style="--i:2;background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.2);padding:14px">
+        <div style="font-size:11px;color:var(--indigo);margin-bottom:4px"><i class="ti ti-calendar-check"></i> رصيد الإجازات</div>
+        <div class="stat-val" style="color:var(--indigo)">{{ total_remaining }}</div>
+        <div style="font-size:10px;color:var(--indigo);opacity:.6">يوم متبقي</div>
+      </div>
+      <div class="stat-card animate-fade-in" style="--i:3;background:rgba(139,92,246,.08);border-color:rgba(139,92,246,.2);padding:14px">
+        <div style="font-size:11px;color:var(--purple);margin-bottom:4px"><i class="ti ti-clock-plus"></i> ساعات إضافية</div>
+        <div class="stat-val" style="color:var(--purple)">{{ overtime_minutes // 60 }}<span style="font-size:12px">س</span></div>
+        <div style="font-size:10px;color:var(--purple);opacity:.6">{{ overtime_minutes % 60 }} دقيقة</div>
+      </div>
+    </div>
+
+    {% if deduction > 0 %}
+    <div class="card animate-fade-in" style="--i:4;padding:14px;margin-bottom:14px;background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--text)"><i class="ti ti-coin"></i> خصم التأخير</span>
+        <span style="font-size:16px;font-weight:800;color:var(--red)">{{ deduction }} د.ل</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card animate-fade-in" style="--i:5;margin-bottom:14px;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
+        <i class="ti ti-ledger" style="color:var(--accent);margin-left:6px"></i>سجل رصيد الإجازات — {{ today.year }}
+      </div>
+      {% if balances %}
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>نوع الإجازة</th>
+              <th>افتتاحي</th>
+              <th>مخصص</th>
+              <th>مستخدم</th>
+              <th>معلق</th>
+              <th>متبقي</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in balances %}
+            <tr>
+              <td style="font-weight:600">{{ b.leave_type.name_ar if b.leave_type else '—' }}</td>
+              <td>{{ b.opening_balance }}</td>
+              <td>{{ b.total_days }}</td>
+              <td>{{ b.used_days }}</td>
+              <td>{{ b.pending_days }}</td>
+              <td style="font-weight:700;color:var(--green)">{{ b.remaining_days }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="font-weight:700;background:var(--card2)">
+              <td>الإجمالي</td>
+              <td>{{ total_opening }}</td>
+              <td>{{ total_allocated }}</td>
+              <td>{{ total_used }}</td>
+              <td>{{ total_pending }}</td>
+              <td style="color:var(--green)">{{ total_remaining }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:28px 16px">
+        <i class="ti ti-calendar-off" style="font-size:32px;color:var(--muted);margin-bottom:8px;display:block"></i>
+        <div style="font-size:13px;color:var(--muted)">لا يوجد رصيد إجازات مسجل لهذا العام</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if month_logs %}
+    <div class="card animate-fade-in" style="--i:6;overflow:hidden;margin-bottom:14px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
+        <i class="ti ti-calendar-stats" style="color:var(--accent);margin-left:6px"></i>سجل الحضور اليومي
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>الحضور</th>
+              <th>الانصراف</th>
+              <th>الساعات</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for l in month_logs %}
+            {% set h = l.clock_out and l.clock_in and ((l.clock_out - l.clock_in).total_seconds() / 3600)|round(1) %}
+            <tr>
+              <td style="font-weight:600">{{ l.log_date.strftime('%d/%m') }}</td>
+              <td dir="ltr" style="text-align:right">{{ l.clock_in.strftime('%H:%M') if l.clock_in else '—' }}</td>
+              <td dir="ltr" style="text-align:right">{{ l.clock_out.strftime('%H:%M') if l.clock_out else '—' }}</td>
+              <td>{{ h if h else '—' }}</td>
+              <td>
+                <span class="badge {% if l.status=='present' %}badge-present{% elif l.status=='late' %}badge-late{% else %}badge-absent{% endif %}" style="font-size:11px">
+                  {% if l.status=='present' %}حاضر{% elif l.status=='late' %}متأخر{% else %}غائب{% endif %}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="card animate-fade-in" style="--i:6;padding:28px 16px;text-align:center;margin-bottom:14px">
+      <i class="ti ti-calendar-off" style="font-size:36px;color:var(--muted);margin-bottom:8px;display:block"></i>
+      <div style="font-size:14px;color:var(--muted)">لا توجد سجلات حضور لهذا الشهر</div>
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div class="card" style="flex:1;padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px"><i class="ti ti-clock-play"></i> ساعات العمل</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text)">{{ total_worked_hours }}</div>
+        <div style="font-size:10px;color:var(--muted2)">من {{ expected_hours }}</div>
+      </div>
+      <div class="card" style="flex:1;padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px"><i class="ti ti-users"></i> أيام الحضور</div>
+        <div style="font-size:18px;font-weight:800;color:var(--green)">{{ present_days }}</div>
+        <div style="font-size:10px;color:var(--muted2)">{{ absent_days }} غياب</div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" style="display:flex">
+    <a href="/employee" class="bottom-nav-item"><i class="ti ti-home-2"></i><span>الرئيسية</span></a>
+    <a href="/employee/shifts" class="bottom-nav-item"><i class="ti ti-calendar-event"></i><span>المناوبات</span></a>
+    <a href="/employee/reports" class="bottom-nav-item active"><i class="ti ti-report"></i><span>التقارير</span></a>
+    <a href="/employee/documents" class="bottom-nav-item"><i class="ti ti-files"></i><span>المستندات</span></a>
+    <a href="/employee/history" class="bottom-nav-item"><i class="ti ti-calendar-stats"></i><span>السجل</span></a>
+    <a href="/employee/leaves" class="bottom-nav-item"><i class="ti ti-file-text"></i><span>الطلبات</span></a>
+    <a href="/logout" class="bottom-nav-item"><i class="ti ti-logout"></i><span>خروج</span></a>
+  </nav>
+</div>
+{% endblock %}
+{% block scripts %}
+{% endblock %}

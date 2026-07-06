@@ -438,8 +438,10 @@ class EmployeeLeaveBalance(db.Model):
     employee_id       = db.Column(db.Integer, db.ForeignKey('employees.id', ondelete='CASCADE'), nullable=False)
     leave_type_id     = db.Column(db.Integer, db.ForeignKey('leave_types.id', ondelete='CASCADE'), nullable=False)
     year              = db.Column(db.Integer, nullable=False)
+    opening_balance   = db.Column(db.Float, default=0.0)
     total_days        = db.Column(db.Float, default=0.0)
     used_days         = db.Column(db.Float, default=0.0)
+    pending_days      = db.Column(db.Float, default=0.0)
     remaining_days    = db.Column(db.Float, default=0.0)
     carried_over      = db.Column(db.Float, default=0.0)
     carry_expiry_date = db.Column(db.Date, nullable=True)
@@ -452,6 +454,14 @@ class EmployeeLeaveBalance(db.Model):
         db.UniqueConstraint('employee_id', 'leave_type_id', 'year', name='uq_emp_leave_year'),
     )
 
+    @property
+    def allocated_days(self):
+        return self.total_days
+
+    @property
+    def available_balance(self):
+        return self.total_days - self.used_days
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -459,9 +469,12 @@ class EmployeeLeaveBalance(db.Model):
             'leave_type_id': self.leave_type_id,
             'leave_type_name': self.leave_type.name_ar if self.leave_type else None,
             'year': self.year,
+            'opening_balance': self.opening_balance,
             'total_days': self.total_days,
             'used_days': self.used_days,
+            'pending_days': self.pending_days,
             'remaining_days': self.remaining_days,
+            'available_balance': self.available_balance,
             'carried_over': self.carried_over,
             'carry_expiry_date': self.carry_expiry_date.isoformat() if self.carry_expiry_date else None,
         }

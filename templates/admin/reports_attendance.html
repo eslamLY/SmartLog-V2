@@ -209,6 +209,8 @@
     <button class="tab-btn" data-tab="statistics" onclick="switchTab('statistics', this)"><i class="ti ti-calculator"></i> الإحصائيات</button>
     <button class="tab-btn" data-tab="analysis" onclick="switchTab('analysis', this)"><i class="ti ti-brain"></i> التحليل المتقدم</button>
     <button class="tab-btn" data-tab="table" onclick="switchTab('table', this)"><i class="ti ti-table"></i> الجداول</button>
+    <button class="tab-btn" data-tab="ytd" onclick="switchTab('ytd', this);loadYTD()"><i class="ti ti-calendar-stats"></i> YTD</button>
+    <button class="tab-btn" data-tab="compliance" onclick="switchTab('compliance', this);loadCompliance()"><i class="ti ti-shield-check"></i> الامتثال القانوني</button>
   </div>
 
   <div class="tab-content" id="tabCharts">
@@ -412,6 +414,88 @@
     </div>
   </div>
 </div>
+
+  <div class="tab-content" id="tabYtd" style="display:none">
+    <div class="card premium-card" style="margin-bottom:14px">
+      <div class="chart-header">
+        <span class="chart-title"><i class="ti ti-calendar-stats"></i> ملخص الأداء التراكمي منذ بداية العام</span>
+        <span id="ytdPeriod" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div class="loading-spinner" id="ytdLoading" style="padding:40px;text-align:center"><i class="ti ti-loader ti-spin" style="font-size:24px"></i></div>
+      <div id="ytdSummary" style="display:none;padding:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px">
+          <div class="stat-card" style="padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--muted)">إجمالي الموظفين</div>
+            <div class="stat-value" id="ytdTotalEmployees" style="color:var(--text)">-</div>
+          </div>
+          <div class="stat-card" style="padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--muted)">أيام العمل</div>
+            <div class="stat-value" id="ytdWorkDays" style="color:var(--blue)">-</div>
+          </div>
+          <div class="stat-card" style="padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--muted)">إجمالي ساعات العمل</div>
+            <div class="stat-value" id="ytdTotalHours" style="color:var(--green)">-</div>
+          </div>
+          <div class="stat-card" style="padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--muted)">إجمالي دقائق التأخير</div>
+            <div class="stat-value" id="ytdLateMins" style="color:var(--amber)">-</div>
+          </div>
+          <div class="stat-card" style="padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--muted)">إجمالي أيام الإجازات</div>
+            <div class="stat-value" id="ytdLeaveDays" style="color:var(--purple)">-</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl" id="ytdTable">
+            <thead>
+              <tr>
+                <th onclick="sortYTD('employee_name')" style="cursor:pointer">الموظف <i class="ti ti-arrows-sort"></i></th>
+                <th onclick="sortYTD('present_days')" style="cursor:pointer">أيام الحضور <i class="ti ti-arrows-sort"></i></th>
+                <th onclick="sortYTD('late_minutes')" style="cursor:pointer">دقائق تأخير <i class="ti ti-arrows-sort"></i></th>
+                <th onclick="sortYTD('work_hours')" style="cursor:pointer">ساعات العمل <i class="ti ti-arrows-sort"></i></th>
+                <th onclick="sortYTD('overtime_hours')" style="cursor:pointer">ساعات إضافية <i class="ti ti-arrows-sort"></i></th>
+                <th onclick="sortYTD('leave_days')" style="cursor:pointer">أيام إجازة <i class="ti ti-arrows-sort"></i></th>
+              </tr>
+            </thead>
+            <tbody id="ytdBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tabCompliance" style="display:none">
+    <div class="card premium-card" style="margin-bottom:14px">
+      <div class="chart-header">
+        <span class="chart-title"><i class="ti ti-shield-check"></i> لوحة الامتثال القانوني للعمل</span>
+        <span id="compliancePeriod" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div class="loading-spinner" id="complianceLoading" style="padding:40px;text-align:center"><i class="ti ti-loader ti-spin" style="font-size:24px"></i></div>
+      <div id="complianceSummary" style="display:none;padding:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px">
+          <div class="stat-card" style="padding:12px;text-align:center;border-color:rgba(239,68,68,.3)">
+            <div style="font-size:11px;color:var(--red)">🚨 تجاوز المناوبة</div>
+            <div class="stat-value" id="compShiftOvertime" style="color:var(--red)">-</div>
+          </div>
+          <div class="stat-card" style="padding:12px;text-align:center;border-color:rgba(239,68,68,.3)">
+            <div style="font-size:11px;color:var(--red)">🚨 تجاوز أسبوعي</div>
+            <div class="stat-value" id="compWeeklyOvertime" style="color:var(--red)">-</div>
+          </div>
+          <div class="stat-card" style="padding:12px;text-align:center;border-color:rgba(245,158,11,.3)">
+            <div style="font-size:11px;color:var(--amber)">📋 استراحة مفقودة</div>
+            <div class="stat-value" id="compMissingBreak" style="color:var(--amber)">-</div>
+          </div>
+          <div class="stat-card" style="padding:12px;text-align:center;border-color:rgba(245,158,11,.3)">
+            <div style="font-size:11px;color:var(--amber)">⚠️ انتهاك الراحة</div>
+            <div class="stat-value" id="compRestViolation" style="color:var(--amber)">-</div>
+          </div>
+        </div>
+        <div id="complianceViolations" style="overflow-x:auto">
+          <div id="complianceList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -699,6 +783,88 @@ document.addEventListener('click', function(e) {
     document.getElementById('exportMenu').style.display = 'none';
   }
 });
+
+let ytdData = [];
+let ytdSort = { by: 'employee_name', dir: 'asc' };
+
+function loadYTD() {
+  document.getElementById('ytdLoading').style.display = 'block';
+  document.getElementById('ytdSummary').style.display = 'none';
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/ytd?' + params)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('ytdLoading').style.display = 'none';
+      document.getElementById('ytdSummary').style.display = 'block';
+      const s = d.summary;
+      document.getElementById('ytdPeriod').textContent = 'من ' + s.period_start + ' إلى ' + s.period_end;
+      document.getElementById('ytdTotalEmployees').textContent = s.total_employees;
+      document.getElementById('ytdWorkDays').textContent = s.working_days_ytd;
+      document.getElementById('ytdTotalHours').textContent = s.total_work_hours + ' س';
+      document.getElementById('ytdLateMins').textContent = s.total_late_minutes + ' د';
+      document.getElementById('ytdLeaveDays').textContent = s.total_leave_days;
+      ytdData = d.rows || [];
+      renderYTDSort();
+    });
+}
+
+function renderYTDSort() {
+  const sorted = [...ytdData].sort((a, b) => {
+    const va = a[ytdSort.by], vb = b[ytdSort.by];
+    if (typeof va === 'string') return ytdSort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    return ytdSort.dir === 'asc' ? (va - vb) : (vb - va);
+  });
+  document.getElementById('ytdBody').innerHTML = sorted.map(r => `
+    <tr>
+      <td style="font-weight:600">${r.employee_name}</td>
+      <td>${r.present_days}</td>
+      <td>${r.late_minutes}</td>
+      <td>${r.work_hours}</td>
+      <td style="color:var(--purple);font-weight:600">${r.overtime_hours}</td>
+      <td>${r.leave_days}</td>
+    </tr>
+  `).join('');
+}
+
+function sortYTD(by) {
+  if (ytdSort.by === by) ytdSort.dir = ytdSort.dir === 'asc' ? 'desc' : 'asc';
+  else { ytdSort.by = by; ytdSort.dir = 'asc'; }
+  renderYTDSort();
+}
+
+function loadCompliance() {
+  document.getElementById('complianceLoading').style.display = 'block';
+  document.getElementById('complianceSummary').style.display = 'none';
+  const params = getFilterParams();
+  fetch(API_BASE + '/api/compliance?' + params)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('complianceLoading').style.display = 'none';
+      document.getElementById('complianceSummary').style.display = 'block';
+      const s = d.summary;
+      document.getElementById('compliancePeriod').textContent = 'شهر ' + s.month + ' / ' + s.year;
+      document.getElementById('compShiftOvertime').textContent = s.shift_overtime_count;
+      document.getElementById('compWeeklyOvertime').textContent = s.weekly_overtime_count;
+      document.getElementById('compMissingBreak').textContent = s.missing_break_count;
+      document.getElementById('compRestViolation').textContent = s.rest_violation_count;
+      const violations = d.violations || [];
+      const container = document.getElementById('complianceList');
+      if (violations.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:24px"><i class="ti ti-shield-check" style="font-size:36px;color:var(--green)"></i><p style="color:var(--muted);margin-top:8px">لا توجد مخالفات امتثال للفترة المحددة</p></div>';
+        return;
+      }
+      container.innerHTML = violations.map(v => `
+        <div class="anomaly-item anomaly-${v.severity}" style="margin-bottom:8px">
+          <div class="anomaly-icon">${v.badge}</div>
+          <div class="anomaly-body">
+            <div class="anomaly-title"><span class="badge badge-absent" style="font-size:10px">${v.badge_label}</span> ${v.employee_name}</div>
+            <div class="anomaly-detail">${v.details}</div>
+            <div style="font-size:11px;color:var(--muted2);margin-top:4px"><i class="ti ti-calendar"></i> ${v.date}</div>
+          </div>
+        </div>
+      `).join('');
+    });
+}
 
 loadReports();
 setInterval(loadSummary, 60000);
