@@ -302,6 +302,7 @@
   <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
     <span style="font-size:14px;font-weight:700"><i class="ti ti-bell" style="color:var(--accent)"></i> الإشعارات</span>
     <span id="notifCountLabel" style="font-size:12px;color:var(--muted)"></span>
+    <span class="sr-only" aria-live="polite" id="notif-live-announcer"></span>
   </div>
   <div id="notifList" style="overflow-y:auto;max-height:320px;padding:4px 0"></div>
   <div style="padding:8px 16px;border-top:1px solid var(--border);text-align:center">
@@ -450,15 +451,22 @@ function markAllRead() {
     updateNotifBadge(); fetchNotifs();
   });
 }
+var _notifLastCount = -1;
 function updateNotifBadge() {
   api('/api/notifications/unread-count').then(function(data) {
     var badge = document.getElementById('notifBadge');
     var label = document.getElementById('notifCountLabel');
-    if (data.count > 0) {
-      badge.style.display = 'flex'; badge.textContent = data.count > 99 ? '99+' : data.count;
-      label.textContent = data.count + ' غير مقروء';
+    var announcer = document.getElementById('notif-live-announcer');
+    var c = data.count || 0;
+    if (c > 0) {
+      badge.style.display = 'flex'; badge.textContent = c > 99 ? '99+' : c;
+      label.textContent = c + ' غير مقروء';
     } else {
       badge.style.display = 'none'; label.textContent = 'لا توجد إشعارات جديدة';
+    }
+    if (announcer && c !== _notifLastCount) {
+      _notifLastCount = c;
+      announcer.textContent = c > 0 ? 'لديك ' + c + ' إشعارات جديدة لم تقرأ بعد' : 'لا توجد إشعارات جديدة';
     }
   });
 }
@@ -496,6 +504,8 @@ function toggleTheme() {
 <script>
 function esc(s){ if(typeof s==='undefined'||s===null) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
 </script>
+<div id="toast-container" role="log" aria-live="polite" aria-atomic="true"></div>
+<div id="critical-alert-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>

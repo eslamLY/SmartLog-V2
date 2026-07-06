@@ -50,6 +50,8 @@ async function handleLogin(event) {
     }
 
     errorDiv.textContent = message;
+    errorDiv.setAttribute('role', 'alert');
+    errorDiv.setAttribute('aria-live', 'assertive');
     errorDiv.style.display = 'block';
 
   } catch (error) {
