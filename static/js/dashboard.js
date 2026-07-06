@@ -84,7 +84,14 @@ function startLiveClock() {
 }
 
 function toggleSidebar() {
-  document.querySelector('.sidebar').classList.toggle('open');
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('show');
+    var btn = document.getElementById('mobileMenuBtn');
+    if (btn) {
+      btn.setAttribute('aria-expanded', sidebar.classList.contains('show') ? 'true' : 'false');
+    }
+  }
 }
 
 function toggleNotifDropdown() {
