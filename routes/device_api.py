@@ -1,4 +1,7 @@
 import json
+import time
+import hmac
+import hashlib
 import logging
 from datetime import datetime, UTC, date
 from functools import wraps
@@ -7,30 +10,78 @@ from flask import Blueprint, request, jsonify, current_app
 from models import db, Company, BiometricDevice, DeviceSyncLog, Employee, AttendanceLog
 from services.company_service import set_company_context
 
+# ---------------------------------------------------------------------------
+# Blueprints — old (deprecated) and v1
+# ---------------------------------------------------------------------------
 device_api_bp = Blueprint('device_api', __name__)
+api_v1_bp = Blueprint('api_v1_devices', __name__, url_prefix='/api/v1')
+
 log = logging.getLogger(__name__)
 
 
-def authenticate_device(f):
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _get_raw_body():
+    """Return raw request body as string, empty string if no data."""
+    try:
+        return request.get_data(as_text=True) or ''
+    except Exception:
+        return ''
+
+
+def require_device_hmac(f):
+    """Strict HMAC-based device authentication with replay protection.
+
+    Required headers:
+      X-Device-Id       — device primary key (int)
+      X-Device-Timestamp — Unix epoch seconds (float/int)
+      X-Device-Signature — HMAC-SHA256(raw_body + timestamp, secret_key)
+    """
     @wraps(f)
     def deco(*args, **kwargs):
-        auth_header = request.headers.get('Authorization', '')
-        license_key = None
-        if auth_header.startswith('Bearer '):
-            license_key = auth_header[7:]
-        if not license_key:
-            license_key = request.args.get('license_key')
+        device_id = request.headers.get('X-Device-Id')
+        timestamp = request.headers.get('X-Device-Timestamp')
+        signature = request.headers.get('X-Device-Signature')
 
-        if not license_key:
-            return jsonify({'ok': False, 'msg': 'Missing license_key'}), 401
+        if not all([device_id, timestamp, signature]):
+            return jsonify({'ok': False, 'msg': 'Missing HMAC headers'}), 401
 
-        device = BiometricDevice.query.filter_by(license_key=license_key, is_active=True, deleted_at=None).first()
-        if not device:
-            return jsonify({'ok': False, 'msg': 'Invalid license_key'}), 401
+        try:
+            ts = int(timestamp)
+        except (ValueError, TypeError):
+            return jsonify({'ok': False, 'msg': 'Invalid timestamp'}), 400
+        if abs(time.time() - ts) > 300:
+            return jsonify({'ok': False, 'msg': 'Request expired'}), 400
+
+        try:
+            did = int(device_id)
+        except (ValueError, TypeError):
+            return jsonify({'ok': False, 'msg': 'Invalid device id'}), 401
+
+        device = BiometricDevice.query.get(did)
+        if not device or not device.is_active or device.deleted_at is not None:
+            return jsonify({'ok': False, 'msg': 'Invalid device'}), 401
+
+        secret_key = device.secret_key or device.api_key
+        if not secret_key:
+            return jsonify({'ok': False, 'msg': 'Device not configured'}), 401
 
         company = Company.query.get(device.company_id)
         if not company or not company.is_active:
             return jsonify({'ok': False, 'msg': 'Company inactive'}), 403
+
+        raw_body = _get_raw_body()
+        message = raw_body + str(ts)
+        expected = hmac.new(
+            secret_key.encode(),
+            message.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+        if not hmac.compare_digest(expected, signature):
+            return jsonify({'ok': False, 'msg': 'Invalid signature'}), 403
 
         kwargs['device'] = device
         kwargs['company'] = company
@@ -53,9 +104,11 @@ def log_sync(company_id, device_id, event_type, status='received', payload=None,
     db.session.add(log_entry)
 
 
-@device_api_bp.route('/api/device/handshake', methods=['POST'])
-@authenticate_device
-def device_handshake(**kwargs):
+# ---------------------------------------------------------------------------
+# View functions (no route decorators — registered on both blueprints below)
+# ---------------------------------------------------------------------------
+
+def view_device_handshake(**kwargs):
     device = kwargs['device']
     company = kwargs['company']
     data = request.get_json() or {}
@@ -68,7 +121,6 @@ def device_handshake(**kwargs):
     device.txlog_used = data.get('txlog_used', device.txlog_used)
 
     log_sync(company.id, device.id, 'handshake', status='success')
-
     db.session.commit()
 
     return jsonify({
@@ -79,9 +131,7 @@ def device_handshake(**kwargs):
     })
 
 
-@device_api_bp.route('/api/device/sync/data', methods=['POST'])
-@authenticate_device
-def device_sync_data(**kwargs):
+def view_device_sync_data(**kwargs):
     device = kwargs['device']
     company = kwargs['company']
     data = request.get_json() or {}
@@ -182,9 +232,7 @@ def device_sync_data(**kwargs):
     })
 
 
-@device_api_bp.route('/api/device/config/download', methods=['GET'])
-@authenticate_device
-def device_config_download(**kwargs):
+def view_device_config_download(**kwargs):
     device = kwargs['device']
     company = kwargs['company']
 
@@ -212,9 +260,7 @@ def device_config_download(**kwargs):
     })
 
 
-@device_api_bp.route('/api/device/command/execute', methods=['POST'])
-@authenticate_device
-def device_command_execute(**kwargs):
+def view_device_command_execute(**kwargs):
     device = kwargs['device']
     company = kwargs['company']
     data = request.get_json() or {}
@@ -226,7 +272,6 @@ def device_command_execute(**kwargs):
 
     log_sync(company.id, device.id, f'command/{command}', status='queued',
              payload={'command': command})
-
     db.session.commit()
 
     return jsonify({
@@ -237,9 +282,7 @@ def device_command_execute(**kwargs):
     })
 
 
-@device_api_bp.route('/api/device/sync/status', methods=['GET'])
-@authenticate_device
-def device_sync_status(**kwargs):
+def view_device_sync_status(**kwargs):
     device = kwargs['device']
     company = kwargs['company']
 
@@ -258,3 +301,31 @@ def device_sync_status(**kwargs):
         'records_pulled': device.records_pulled or 0,
         'events': [s.to_dict() for s in recent],
     })
+
+
+# ---------------------------------------------------------------------------
+# Route registration — each view is registered on BOTH blueprints
+# ---------------------------------------------------------------------------
+
+_device_routes = [
+    ('/api/device/handshake',        '/devices/handshake',        view_device_handshake,        ['POST']),
+    ('/api/device/sync/data',        '/devices/sync/data',        view_device_sync_data,        ['POST']),
+    ('/api/device/config/download',  '/devices/config/download',  view_device_config_download,  ['GET']),
+    ('/api/device/command/execute',  '/devices/command/execute',  view_device_command_execute,  ['POST']),
+    ('/api/device/sync/status',      '/devices/sync/status',      view_device_sync_status,      ['GET']),
+]
+
+for old_path, v1_path, view_func, methods in _device_routes:
+    wrapped = require_device_hmac(view_func)
+    device_api_bp.add_url_rule(old_path, view_func=wrapped, methods=methods)
+    api_v1_bp.add_url_rule(v1_path, view_func=wrapped, methods=methods)
+
+
+# ---------------------------------------------------------------------------
+# Deprecation header for legacy blueprint routes
+# ---------------------------------------------------------------------------
+
+@device_api_bp.after_request
+def legacy_deprecation_header(response):
+    response.headers['X-API-Deprecated'] = 'true'
+    return response

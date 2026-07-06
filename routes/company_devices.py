@@ -1,3 +1,4 @@
+import os
 import logging
 from datetime import datetime, UTC
 from uuid import uuid4
@@ -63,6 +64,7 @@ def company_device_generate_key():
 
     license_key = uuid4().hex[:24].upper()
     api_key = uuid4().hex[:32]
+    secret_key = os.urandom(32).hex()
 
     device = BiometricDevice(
         company_id=company.id,
@@ -74,6 +76,7 @@ def company_device_generate_key():
         port=int(data.get('port', 4370)),
         license_key=license_key,
         api_key=api_key,
+        secret_key=secret_key,
         is_active=True,
     )
     db.session.add(device)
@@ -85,6 +88,7 @@ def company_device_generate_key():
         'device': device.to_dict(),
         'license_key': license_key,
         'api_key': api_key,
+        'secret_key': secret_key,
     })
 
 
@@ -98,6 +102,7 @@ def company_device_regenerate_key(did):
 
     device.license_key = uuid4().hex[:24].upper()
     device.api_key = uuid4().hex[:32]
+    device.secret_key = os.urandom(32).hex()
     db.session.commit()
 
     return jsonify({
@@ -105,6 +110,7 @@ def company_device_regenerate_key(did):
         'msg': 'تم تجديد مفاتيح الجهاز',
         'license_key': device.license_key,
         'api_key': device.api_key,
+        'secret_key': device.secret_key,
     })
 
 

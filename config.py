@@ -118,6 +118,34 @@ class DevelopmentConfig(BaseConfig):
     SESSION_COOKIE_SECURE = False
     REMEMBER_COOKIE_SECURE = False
 
+    # CSP for early security testing (Mirrors Production Policy)
+    CSP_HEADER = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' "
+        "https://cdn.jsdelivr.net https://fonts.gstatic.com https://d3js.org "
+        "https://fonts.googleapis.com https://cdnjs.cloudflare.com "
+        "https://cdn.datatables.net https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' "
+        "https://cdn.jsdelivr.net https://fonts.gstatic.com https://d3js.org "
+        "https://fonts.googleapis.com https://cdnjs.cloudflare.com "
+        "https://cdn.datatables.net https://unpkg.com; "
+        "img-src 'self' data: blob: https: "
+        "https://cdn.jsdelivr.net https://fonts.gstatic.com "
+        "https://*.tile.openstreetmap.org https://d3js.org "
+        "https://fonts.googleapis.com https://cdnjs.cloudflare.com "
+        "https://cdn.datatables.net https://unpkg.com; "
+        "font-src 'self' data: "
+        "https://cdn.jsdelivr.net https://fonts.gstatic.com https://d3js.org "
+        "https://fonts.googleapis.com https://cdnjs.cloudflare.com "
+        "https://cdn.datatables.net https://unpkg.com; "
+        "connect-src 'self' https:; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "object-src 'none'; "
+        "upgrade-insecure-requests;"
+    )
+
 
 class ProductionConfig(BaseConfig):
     DEBUG = False

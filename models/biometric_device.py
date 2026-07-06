@@ -32,6 +32,7 @@ class BiometricDevice(db.Model):
 
     license_key     = db.Column(db.String(64), unique=True, nullable=True)
     api_key         = db.Column(db.String(64), nullable=True)
+    secret_key      = db.Column(db.String(128), nullable=True)
 
     protocol        = db.Column(db.String(10), default='adms')
     is_active       = db.Column(db.Boolean, default=True)

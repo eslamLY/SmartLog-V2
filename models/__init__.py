@@ -44,6 +44,7 @@ from models.employee_enhanced import (
 from models.company import Company, CompanyAdmin
 from models.biometric_device import BiometricDevice
 from models.device_sync_log import DeviceSyncLog
+from models.refresh_token import RefreshToken
 
 __all__ = [
     'db', 'get_fernet', 'set_fernet',

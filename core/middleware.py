@@ -84,21 +84,24 @@ def register_middleware(app, PRODUCTION):
 
     @app.after_request
     def production_security_headers(response):
-        if not PRODUCTION:
-            return response
-        host = request.host.split(':')[0].lower()
-        if host in ('localhost', '127.0.0.1', '::1'):
-            return response
-        if request.scheme == 'http':
-            secure_url = request.url.replace('http://', 'https://', 1)
-            return redirect(secure_url, code=301)
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'DENY'
+        if PRODUCTION:
+            host = request.host.split(':')[0].lower()
+            if host in ('localhost', '127.0.0.1', '::1'):
+                return response
+            if request.scheme == 'http':
+                secure_url = request.url.replace('http://', 'https://', 1)
+                return redirect(secure_url, code=301)
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            response.headers['X-Frame-Options'] = 'DENY'
+            from config import ProductionConfig
+            config_cls = ProductionConfig
+        else:
+            from config import DevelopmentConfig
+            config_cls = DevelopmentConfig
         csp = getattr(app, '_csp_string', None)
         if not csp:
-            from config import ProductionConfig
-            csp = ProductionConfig.csp_string()
+            csp = config_cls.csp_string() if hasattr(config_cls, 'csp_string') else config_cls.CSP_HEADER
             app._csp_string = csp
         response.headers['Content-Security-Policy'] = csp
         return response
