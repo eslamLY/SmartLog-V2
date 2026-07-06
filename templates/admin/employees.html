@@ -25,7 +25,7 @@
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <div class="emp-avatar" style="width:44px;height:44px;border-radius:50%;background:var(--accent)15;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent);border:1px solid var(--accent)30;overflow:hidden;flex-shrink:0">
           {% if emp.profile_photo %}
-          <img src="/uploads/{{ emp.profile_photo }}" style="width:100%;height:100%;object-fit:cover">
+           <img src="/uploads/{{ emp.profile_photo }}" alt="صورة الموظف {{ emp.full_name }}" style="width:100%;height:100%;object-fit:cover">
           {% else %}
           {{ emp.full_name[0] }}
           {% endif %}
@@ -51,16 +51,16 @@
         <div>{{ emp.employment_type|replace('_',' ')|title if emp.employment_type else 'دوام كامل' }}</div>
       </div>
       <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <a href="/admin/employees/{{ emp.id }}/profile" class="btn btn-ghost btn-xs" title="الملف الشخصي"><i class="ti ti-user" style="color:var(--accent)"></i></a>
-        <button class="btn btn-ghost btn-xs" onclick="openViewModal({{ emp.id }})" title="عرض"><i class="ti ti-eye"></i></button>
-        <button class="btn btn-ghost btn-xs" onclick="openEditModal({{ emp.id }})" title="تعديل"><i class="ti ti-edit" style="color:var(--amber)"></i></button>
-        <button class="btn btn-ghost btn-xs" onclick="biotimeSync({{ emp.id }})" title="مزامنة"><i class="ti ti-device-mobile" style="color:var(--accent)"></i></button>
-        <a href="/admin/documents?emp={{ emp.id }}" class="btn btn-ghost btn-xs" title="مستندات"><i class="ti ti-files" style="color:#8b5cf6"></i></a>
-        <button class="btn btn-ghost btn-xs" onclick="openResetPass({{ emp.id }})" title="إعادة تعيين كلمة المرور"><i class="ti ti-key" style="color:#f59e0b"></i></button>
-        <button class="btn btn-ghost btn-xs" onclick="toggleEmp({{ emp.id }})" title="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %}">
-          {% if emp.is_active %}<i class="ti ti-pause" style="color:#f59e0b"></i>{% else %}<i class="ti ti-player-play" style="color:#22c55e"></i>{% endif %}
+        <a href="/admin/employees/{{ emp.id }}/profile" class="btn btn-ghost btn-xs" title="الملف الشخصي" aria-label="الملف الشخصي {{ emp.full_name }}"><i class="ti ti-user" style="color:var(--accent)" aria-hidden="true"></i></a>
+        <button class="btn btn-ghost btn-xs" onclick="openViewModal({{ emp.id }})" title="عرض" aria-label="عرض بيانات {{ emp.full_name }}"><i class="ti ti-eye" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="openEditModal({{ emp.id }})" title="تعديل" aria-label="تعديل بيانات {{ emp.full_name }}"><i class="ti ti-edit" style="color:var(--amber)" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="biotimeSync({{ emp.id }})" title="مزامنة" aria-label="مزامنة {{ emp.full_name }}"><i class="ti ti-device-mobile" style="color:var(--accent)" aria-hidden="true"></i></button>
+        <a href="/admin/documents?emp={{ emp.id }}" class="btn btn-ghost btn-xs" title="مستندات" aria-label="مستندات {{ emp.full_name }}"><i class="ti ti-files" style="color:#8b5cf6" aria-hidden="true"></i></a>
+        <button class="btn btn-ghost btn-xs" onclick="openResetPass({{ emp.id }})" title="إعادة تعيين كلمة المرور" aria-label="إعادة تعيين كلمة مرور {{ emp.full_name }}"><i class="ti ti-key" style="color:#f59e0b" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="toggleEmp({{ emp.id }})" title="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %}" aria-label="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %} {{ emp.full_name }}">
+          {% if emp.is_active %}<i class="ti ti-pause" style="color:#f59e0b" aria-hidden="true"></i>{% else %}<i class="ti ti-player-play" style="color:#22c55e" aria-hidden="true"></i>{% endif %}
         </button>
-        <button class="btn btn-ghost btn-xs" onclick="deleteEmp({{ emp.id }})" title="حذف"><i class="ti ti-trash" style="color:#ef4444"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="deleteEmp({{ emp.id }})" title="حذف" aria-label="حذف {{ emp.full_name }}"><i class="ti ti-trash" style="color:#ef4444" aria-hidden="true"></i></button>
       </div>
     </div>
     {% endfor %}
@@ -94,14 +94,28 @@
       <h3 style="font-size:15px;font-weight:700"><i class="ti ti-user-plus" style="color:var(--accent)"></i> إضافة موظف جديد</h3>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('addEmpModal');clearAddForm()"><i class="ti ti-x"></i></button>
     </div>
+    <!-- Form Progress -->
+    <div class="form-progress" aria-hidden="true">
+      <div class="progress-bar">
+        <div class="progress-fill" id="formProgress" style="width: 16%"></div>
+      </div>
+      <div class="progress-steps">
+        <span class="step active" data-step="1">1. معلومات أساسية</span>
+        <span class="step" data-step="2">2. بيانات شخصية</span>
+        <span class="step" data-step="3">3. التوظيف</span>
+        <span class="step" data-step="4">4. البيومترية</span>
+        <span class="step" data-step="5">5. مالية</span>
+        <span class="step" data-step="6">6. الصلاحيات</span>
+      </div>
+    </div>
     <!-- Tabs -->
-    <div class="emp-tabs" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:16px">
-      <button class="emp-tab active" data-tab="basic" onclick="switchTab('add','basic')"><span class="tab-indicator" id="tab_add_basic_ind"></span> الأساسية</button>
-      <button class="emp-tab" data-tab="personal" onclick="switchTab('add','personal')"><span class="tab-indicator" id="tab_add_personal_ind"></span> شخصية</button>
-      <button class="emp-tab" data-tab="employment" onclick="switchTab('add','employment')"><span class="tab-indicator" id="tab_add_employment_ind"></span> وظيفية</button>
-      <button class="emp-tab" data-tab="biometric" onclick="switchTab('add','biometric')"><span class="tab-indicator" id="tab_add_biometric_ind"></span> بصمة</button>
-      <button class="emp-tab" data-tab="financial" onclick="switchTab('add','financial')"><span class="tab-indicator" id="tab_add_financial_ind"></span> مالية</button>
-      <button class="emp-tab" data-tab="access" onclick="switchTab('add','access')"><span class="tab-indicator" id="tab_add_access_ind"></span> صلاحيات</button>
+    <div class="emp-tabs" role="tablist" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:16px">
+      <button class="emp-tab active" data-tab="basic" onclick="switchTab('add','basic')" role="tab" aria-selected="true" aria-label="التاب الأساسية"><span class="tab-indicator" id="tab_add_basic_ind"></span> الأساسية</button>
+      <button class="emp-tab" data-tab="personal" onclick="switchTab('add','personal')" role="tab" aria-selected="false" aria-label="التاب شخصية"><span class="tab-indicator" id="tab_add_personal_ind"></span> شخصية</button>
+      <button class="emp-tab" data-tab="employment" onclick="switchTab('add','employment')" role="tab" aria-selected="false" aria-label="التاب وظيفية"><span class="tab-indicator" id="tab_add_employment_ind"></span> وظيفية</button>
+      <button class="emp-tab" data-tab="biometric" onclick="switchTab('add','biometric')" role="tab" aria-selected="false" aria-label="التاب بصمة"><span class="tab-indicator" id="tab_add_biometric_ind"></span> بصمة</button>
+      <button class="emp-tab" data-tab="financial" onclick="switchTab('add','financial')" role="tab" aria-selected="false" aria-label="التاب مالية"><span class="tab-indicator" id="tab_add_financial_ind"></span> مالية</button>
+      <button class="emp-tab" data-tab="access" onclick="switchTab('add','access')" role="tab" aria-selected="false" aria-label="التاب صلاحيات"><span class="tab-indicator" id="tab_add_access_ind"></span> صلاحيات</button>
     </div>
     <div style="max-height:60vh;overflow-y:auto;padding:0 4px">
       <form id="addEmpForm" autocomplete="off">
@@ -443,13 +457,13 @@
       <h3 style="font-size:15px;font-weight:700"><i class="ti ti-edit" style="color:var(--amber)"></i> <span id="eeTitle">تعديل الموظف</span></h3>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('editEmpModal')"><i class="ti ti-x"></i></button>
     </div>
-    <div class="emp-tabs" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:16px">
-      <button class="emp-tab active" data-tab="basic" onclick="switchTab('edit','basic')"><span class="tab-indicator" id="tab_edit_basic_ind"></span> الأساسية</button>
-      <button class="emp-tab" data-tab="personal" onclick="switchTab('edit','personal')"><span class="tab-indicator" id="tab_edit_personal_ind"></span> شخصية</button>
-      <button class="emp-tab" data-tab="employment" onclick="switchTab('edit','employment')"><span class="tab-indicator" id="tab_edit_employment_ind"></span> وظيفية</button>
-      <button class="emp-tab" data-tab="biometric" onclick="switchTab('edit','biometric')"><span class="tab-indicator" id="tab_edit_biometric_ind"></span> بصمة</button>
-      <button class="emp-tab" data-tab="financial" onclick="switchTab('edit','financial')"><span class="tab-indicator" id="tab_edit_financial_ind"></span> مالية</button>
-      <button class="emp-tab" data-tab="access" onclick="switchTab('edit','access')"><span class="tab-indicator" id="tab_edit_access_ind"></span> صلاحيات</button>
+    <div class="emp-tabs" role="tablist" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:16px">
+      <button class="emp-tab active" data-tab="basic" onclick="switchTab('edit','basic')" role="tab" aria-selected="true" aria-label="التاب الأساسية"><span class="tab-indicator" id="tab_edit_basic_ind"></span> الأساسية</button>
+      <button class="emp-tab" data-tab="personal" onclick="switchTab('edit','personal')" role="tab" aria-selected="false" aria-label="التاب شخصية"><span class="tab-indicator" id="tab_edit_personal_ind"></span> شخصية</button>
+      <button class="emp-tab" data-tab="employment" onclick="switchTab('edit','employment')" role="tab" aria-selected="false" aria-label="التاب وظيفية"><span class="tab-indicator" id="tab_edit_employment_ind"></span> وظيفية</button>
+      <button class="emp-tab" data-tab="biometric" onclick="switchTab('edit','biometric')" role="tab" aria-selected="false" aria-label="التاب بصمة"><span class="tab-indicator" id="tab_edit_biometric_ind"></span> بصمة</button>
+      <button class="emp-tab" data-tab="financial" onclick="switchTab('edit','financial')" role="tab" aria-selected="false" aria-label="التاب مالية"><span class="tab-indicator" id="tab_edit_financial_ind"></span> مالية</button>
+      <button class="emp-tab" data-tab="access" onclick="switchTab('edit','access')" role="tab" aria-selected="false" aria-label="التاب صلاحيات"><span class="tab-indicator" id="tab_edit_access_ind"></span> صلاحيات</button>
     </div>
     <div style="max-height:60vh;overflow-y:auto;padding:0 4px">
       <form id="editEmpForm" autocomplete="off">
@@ -807,5 +821,7 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/form-progress.js') }}"></script>
 <script src="{{ url_for('static', filename='js/employees.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/form-progress.css') }}">
 {% endblock %}

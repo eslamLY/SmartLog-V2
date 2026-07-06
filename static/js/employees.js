@@ -10,13 +10,18 @@ function csrfToken() {
 function switchTab(ctx, tab){
   var tabs = document.querySelectorAll('#'+ctx+'EmpModal .emp-tab');
   var panels = document.querySelectorAll('#'+ctx+'EmpModal .tab-panel');
+  var tabKeys = ['basic','personal','employment','biometric','financial','access'];
   tabs.forEach(function(t){
-    t.classList.toggle('active', t.dataset.tab === tab);
+    var isActive = t.dataset.tab === tab;
+    t.classList.toggle('active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   panels.forEach(function(p){
     p.style.display = p.id === 'tab_'+ctx+'_'+tab ? 'block' : 'none';
   });
   updateTabProgress(ctx);
+  var idx = tabKeys.indexOf(tab);
+  if (idx !== -1 && typeof updateFormProgress === 'function') updateFormProgress(idx);
 }
 
 function updateTabProgress(ctx){

@@ -1049,3 +1049,16 @@ tr:hover .row-actions { opacity: 1; }
   .quick-actions { grid-template-columns: repeat(2, 1fr); }
   .dash-header { padding: 8px 12px; }
 }
+
+/* ── Visual Hierarchy (Issue #9) ── */
+.stat-card.priority-high {
+  border-left: 4px solid var(--accent);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+  transform: scale(1.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stat-card.priority-high:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+}
+.stat-card.large { grid-column: span 2; }

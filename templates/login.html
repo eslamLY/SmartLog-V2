@@ -15,6 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </head>
 <body class="login-page">
   <div class="login-background" style="background-image: url('{{ url_for('static', filename='images/tobruk-map.png') }}')"></div>
@@ -34,8 +35,8 @@
         <i class="ti ti-clock-hour-4"></i> انتهت جلستك. الرجاء تسجيل الدخول مرة أخرى.
       </div>
 
-      <div id="loginForm">
-        <div class="error-msg" id="errorMsg"></div>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div id="error" class="error-msg" role="alert" aria-live="polite" aria-atomic="true" style="display:none"></div>
         <div class="field">
           <label>الرقم الوظيفي</label>
           <div class="input-wrapper">
@@ -57,11 +58,11 @@
           </div>
           <a href="#" class="forgot-link">هل نسيت كلمة المرور؟</a>
         </div>
-        <button class="btn" id="loginBtn" onclick="doLogin()">
+        <button class="btn" id="loginBtn" type="submit">
           <span class="btn-text">تسجيل الدخول</span>
           <div class="spinner"></div>
         </button>
-      </div>
+      </form>
 
       <div class="login-footer">
         <p><i class="ti ti-map-pin" style="color:#e53935"></i> SMARTLOG — جميع الحقوق محفوظة © 2026</p>
@@ -86,63 +87,13 @@
     } catch (e) {}
   }
 
-  async function doLogin() {
-    var btn = document.getElementById('loginBtn');
-    var err = document.getElementById('errorMsg');
-    btn.classList.add('loading');
-    btn.disabled = true;
-    err.style.display = 'none';
-    try {
-      var r = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
-        body: JSON.stringify({
-          username: document.getElementById('username').value.trim(),
-          password: document.getElementById('password').value,
-        })
-      });
-      var d = await r.json();
-      if (d.ok) {
-        saveUsername();
-        window.location.href = d.redirect;
-      } else {
-        err.textContent = d.msg;
-        err.style.display = 'block';
-        btn.classList.remove('loading');
-        btn.disabled = false;
-        if (d.multi_device) {
-          var confirmed = confirm(d.msg + '\n\nهل تريد المتابعة؟');
-          if (confirmed) {
-            btn.classList.add('loading');
-            btn.disabled = true;
-            var r2 = await fetch('/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
-              body: JSON.stringify({
-                username: document.getElementById('username').value.trim(),
-                password: document.getElementById('password').value,
-                force_login: true,
-              })
-            });
-            var d2 = await r2.json();
-            if (d2.ok) { saveUsername(); window.location.href = d2.redirect; }
-            else { err.textContent = d2.msg; err.style.display = 'block'; btn.classList.remove('loading'); btn.disabled = false; }
-          } else { btn.classList.remove('loading'); btn.disabled = false; }
-        }
-      }
-    } catch (e) {
-      err.textContent = 'حدث خطأ في الاتصال بالخادم. حاول مرة أخرى.';
-      err.style.display = 'block';
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    }
-  }
+  // Login handled via auth.js → handleLogin()
 
   function checkOnline() {
     if (!navigator.onLine) { document.getElementById('offlineBanner').style.display = 'block'; }
   }
 
-  document.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  // Enter key submits form natively via onsubmit="handleLogin(event)"
   window.addEventListener('online', function () { document.getElementById('offlineBanner').style.display = 'none'; });
   window.addEventListener('offline', function () { document.getElementById('offlineBanner').style.display = 'block'; });
   loadUsername();

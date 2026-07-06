@@ -10,17 +10,17 @@
   <!-- Header -->
   <div class="reports-header">
     <div>
-      <h1><i class="fas fa-chart-bar"></i> التقارير</h1>
+      <h1><i class="ti ti-chart-bar"></i> التقارير</h1>
       <p class="text-muted">تحليلات الحضور والانصراف — تقارير شهرية شاملة</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-sm btn-outline" onclick="refreshData()"><i class="fas fa-sync-alt"></i></button>
+      <button class="btn btn-sm btn-outline" onclick="refreshData()"><i class="ti ti-refresh"></i></button>
       <div class="dropdown d-inline-block">
-        <button class="btn btn-sm btn-outline dropdown-toggle" data-toggle="dropdown"><i class="fas fa-download"></i> تصدير</button>
+        <button class="btn btn-sm btn-outline dropdown-toggle" data-toggle="dropdown"><i class="ti ti-download"></i> تصدير</button>
         <div class="dropdown-menu">
-          <a class="dropdown-item" href="#" onclick="exportPDF()"><i class="fas fa-file-pdf text-danger"></i> PDF</a>
-          <a class="dropdown-item" href="#" onclick="exportExcel()"><i class="fas fa-file-excel text-success"></i> Excel</a>
-          <a class="dropdown-item" href="#" onclick="exportWhatsApp()"><i class="fab fa-whatsapp text-success"></i> واتساب</a>
+          <a class="dropdown-item" href="#" onclick="exportPDF()"><i class="ti ti-file-text text-danger"></i> PDF</a>
+          <a class="dropdown-item" href="#" onclick="exportExcel()"><i class="ti ti-file-spreadsheet text-success"></i> Excel</a>
+          <a class="dropdown-item" href="#" onclick="exportWhatsApp()"><i class="ti ti-brand-whatsapp text-success"></i> واتساب</a>
         </div>
       </div>
     </div>
@@ -31,7 +31,7 @@
     <div class="card-body">
       <div class="filter-grid">
         <div class="filter-group">
-          <label class="filter-label"><i class="fas fa-users"></i> القسم</label>
+          <label class="filter-label"><i class="ti ti-users"></i> القسم</label>
           <select id="filterDept" class="form-control" onchange="applyFilters()">
             <option value="">جميع الأقسام</option>
             {% for d in departments %}
@@ -40,7 +40,7 @@
           </select>
         </div>
         <div class="filter-group">
-          <label class="filter-label"><i class="fas fa-clock"></i> الشفت</label>
+          <label class="filter-label"><i class="ti ti-clock"></i> الشفت</label>
           <select id="filterShift" class="form-control" onchange="applyFilters()">
             <option value="">جميع الشفتات</option>
             {% for s in shifts %}
@@ -49,7 +49,7 @@
           </select>
         </div>
         <div class="filter-group">
-          <label class="filter-label"><i class="fas fa-briefcase"></i> نوع التوظيف</label>
+          <label class="filter-label"><i class="ti ti-briefcase"></i> نوع التوظيف</label>
           <select id="filterEmployment" class="form-control" onchange="applyFilters()">
             <option value="">الكل</option>
             <option value="full-time">دوام كامل</option>
@@ -59,7 +59,7 @@
           </select>
         </div>
         <div class="filter-group">
-          <label class="filter-label"><i class="fas fa-calendar"></i> الشهر</label>
+          <label class="filter-label"><i class="ti ti-calendar"></i> الشهر</label>
           <select id="filterMonth" class="form-control" onchange="applyFilters()">
             {% for m in months %}
             <option value="{{ m.value }}" {% if m.selected %}selected{% endif %}>{{ m.label }}</option>
@@ -67,7 +67,7 @@
           </select>
         </div>
         <div class="filter-group">
-          <label class="filter-label"><i class="fas fa-calendar-alt"></i> السنة</label>
+          <label class="filter-label"><i class="ti ti-calendar"></i> السنة</label>
           <select id="filterYear" class="form-control" onchange="applyFilters()">
             {% for y in years %}
             <option value="{{ y }}" {% if y == now.year %}selected{% endif %}>{{ y }}</option>
@@ -91,23 +91,23 @@
 
   <!-- Summary Cards -->
   <div class="summary-grid" id="summaryCards">
-    <div class="stat-card red"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><span class="stat-value" id="sTotal">0</span><span class="stat-label">إجمالي الموظفين</span></div></div>
-    <div class="stat-card green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><span class="stat-value" id="sPresent">0</span><span class="stat-label">إجمالي الحضور</span></div></div>
-    <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-chart-line"></i></div><div class="stat-info"><span class="stat-value" id="sRate">0%</span><span class="stat-label">معدل الحضور</span></div></div>
-    <div class="stat-card orange"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><span class="stat-value" id="sLate">0</span><span class="stat-label">دقائق تأخير</span></div></div>
-    <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-ban"></i></div><div class="stat-info"><span class="stat-value" id="sAbsent">0</span><span class="stat-label">إجمالي الغياب</span></div></div>
-    <div class="stat-card red"><div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div><div class="stat-info"><span class="stat-value" id="sDeductions">0</span><span class="stat-label">إجمالي الخصومات</span></div></div>
+    <div class="stat-card red"><div class="stat-icon"><i class="ti ti-users"></i></div><div class="stat-info"><span class="stat-value" id="sTotal">0</span><span class="stat-label">إجمالي الموظفين</span></div></div>
+    <div class="stat-card green"><div class="stat-icon"><i class="ti ti-circle-check"></i></div><div class="stat-info"><span class="stat-value" id="sPresent">0</span><span class="stat-label">إجمالي الحضور</span></div></div>
+    <div class="stat-card blue"><div class="stat-icon"><i class="ti ti-chart-line"></i></div><div class="stat-info"><span class="stat-value" id="sRate">0%</span><span class="stat-label">معدل الحضور</span></div></div>
+    <div class="stat-card orange"><div class="stat-icon"><i class="ti ti-clock"></i></div><div class="stat-info"><span class="stat-value" id="sLate">0</span><span class="stat-label">دقائق تأخير</span></div></div>
+    <div class="stat-card purple"><div class="stat-icon"><i class="ti ti-ban"></i></div><div class="stat-info"><span class="stat-value" id="sAbsent">0</span><span class="stat-label">إجمالي الغياب</span></div></div>
+    <div class="stat-card red"><div class="stat-icon"><i class="ti ti-currency-dollar"></i></div><div class="stat-info"><span class="stat-value" id="sDeductions">0</span><span class="stat-label">إجمالي الخصومات</span></div></div>
   </div>
 
   <!-- Tabs -->
   <div class="tabs-container card">
     <div class="card-header tabs-header">
       <ul class="nav nav-tabs" id="reportTabs">
-        <li class="nav-item"><a class="nav-link active" data-tab="table" href="#"><i class="fas fa-table"></i> جدول البيانات</a></li>
-        <li class="nav-item"><a class="nav-link" data-tab="charts" href="#"><i class="fas fa-chart-pie"></i> تحليلات</a></li>
-        <li class="nav-item"><a class="nav-link" data-tab="corrections" href="#"><i class="fas fa-edit"></i> طلبات تصحيح</a></li>
-        <li class="nav-item"><a class="nav-link" data-tab="comparison" href="#"><i class="fas fa-balance-scale"></i> مقارنة</a></li>
-        <li class="nav-item"><a class="nav-link" data-tab="schedule" href="#"><i class="fas fa-calendar-check"></i> جدولة</a></li>
+        <li class="nav-item"><a class="nav-link active" data-tab="table" href="#"><i class="ti ti-table"></i> جدول البيانات</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="charts" href="#"><i class="ti ti-chart-pie"></i> تحليلات</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="corrections" href="#"><i class="ti ti-edit"></i> طلبات تصحيح</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="comparison" href="#"><i class="ti ti-scale"></i> مقارنة</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="schedule" href="#"><i class="ti ti-calendar-check"></i> جدولة</a></li>
       </ul>
     </div>
     <div class="card-body">
@@ -119,7 +119,7 @@
           </div>
           <div class="toolbar-right">
             <div class="search-box">
-              <i class="fas fa-search"></i>
+              <i class="ti ti-search"></i>
               <input type="text" id="searchInput" class="form-control" placeholder="بحث..." oninput="debounceSearch()">
             </div>
           </div>
@@ -154,7 +154,7 @@
           </table>
         </div>
         <div class="table-footer">
-          <button class="btn btn-sm btn-outline" onclick="loadMoreRows()" id="loadMoreBtn" style="display:none"><i class="fas fa-chevron-down"></i> عرض المزيد</button>
+          <button class="btn btn-sm btn-outline" onclick="loadMoreRows()" id="loadMoreBtn" style="display:none"><i class="ti ti-chevron-down"></i> عرض المزيد</button>
         </div>
       </div>
 
@@ -162,23 +162,23 @@
       <div class="tab-pane" id="tab-charts">
         <div class="charts-grid">
           <div class="chart-card">
-            <h4><i class="fas fa-chart-area"></i> الاتجاه اليومي</h4>
+            <h4><i class="ti ti-chart-area"></i> الاتجاه اليومي</h4>
             <div class="chart-container"><canvas id="dailyTrendChart"></canvas></div>
           </div>
           <div class="chart-card">
-            <h4><i class="fas fa-chart-bar"></i> مقارنة الأقسام</h4>
+            <h4><i class="ti ti-chart-bar"></i> مقارنة الأقسام</h4>
             <div class="chart-container"><canvas id="deptCompareChart"></canvas></div>
           </div>
           <div class="chart-card">
-            <h4><i class="fas fa-chart-bar"></i> توزيع التأخير</h4>
+            <h4><i class="ti ti-chart-bar"></i> توزيع التأخير</h4>
             <div class="chart-container"><canvas id="lateDistChart"></canvas></div>
           </div>
           <div class="chart-card">
-            <h4><i class="fas fa-border-all"></i> خريطة الحضور الحرارية</h4>
+            <h4><i class="ti ti-border-all"></i> خريطة الحضور الحرارية</h4>
             <div class="chart-container"><canvas id="reportHeatmap"></canvas></div>
           </div>
           <div class="chart-card full-width">
-            <h4><i class="fas fa-chart-doughnut"></i> تفاصيل الخصومات</h4>
+            <h4><i class="ti ti-chart-donut"></i> تفاصيل الخصومات</h4>
             <div class="chart-container"><canvas id="deductionsChart"></canvas></div>
           </div>
         </div>
@@ -187,7 +187,7 @@
       <!-- Tab: Corrections -->
       <div class="tab-pane" id="tab-corrections">
         <div class="corrections-toolbar">
-          <button class="btn btn-red" onclick="showCorrectionModal()"><i class="fas fa-plus"></i> طلب تصحيح</button>
+          <button class="btn btn-red" onclick="showCorrectionModal()"><i class="ti ti-plus"></i> طلب تصحيح</button>
         </div>
         <div class="table-wrapper">
           <table class="table reports-table">
@@ -206,7 +206,7 @@
             <label>اختر موظفين للمقارنة</label>
             <select id="compareEmployees" class="form-control" multiple></select>
           </div>
-          <button class="btn btn-red" onclick="loadComparison()"><i class="fas fa-chart-simple"></i> مقارنة</button>
+          <button class="btn btn-red" onclick="loadComparison()"><i class="ti ti-chart-bar"></i> مقارنة</button>
         </div>
         <div class="comparison-results" id="comparisonResults"></div>
       </div>
@@ -229,7 +229,7 @@
               <option value="excel">Excel</option>
             </select>
           </div>
-          <button class="btn btn-red" onclick="createScheduledReport()"><i class="fas fa-clock"></i> جدولة</button>
+          <button class="btn btn-red" onclick="createScheduledReport()"><i class="ti ti-clock"></i> جدولة</button>
         </div>
         <div class="table-wrapper">
           <table class="table reports-table">

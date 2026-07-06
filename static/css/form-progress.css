@@ -1,0 +1,50 @@
+/* ── Form Progress Indicator (Issue #11) ── */
+.form-progress {
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+
+.form-progress .progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.form-progress .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.form-progress .progress-steps {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.form-progress .step {
+  font-size: 11px;
+  color: var(--muted2);
+  text-align: center;
+  flex: 1;
+  padding: 4px 2px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.form-progress .step.active {
+  color: var(--accent);
+  font-weight: 700;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.form-progress .step.completed {
+  color: var(--green);
+}

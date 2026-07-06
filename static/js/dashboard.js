@@ -684,3 +684,15 @@ function exportRecords() {
 function editRecord(id) {
   window.location.href = '/admin/attendance?edit=' + id;
 }
+
+/* ── Skeleton Loading Toggle (Issue #8) ── */
+function showLoadingState() {
+  document.getElementById('statsContainer')?.querySelectorAll('.stat-card').forEach(el => el.classList.add('skeleton'));
+  document.getElementById('chartsContainer')?.querySelectorAll('.chart-container').forEach(el => el.classList.add('skeleton'));
+  document.querySelectorAll('[data-interactive]').forEach(el => el.style.pointerEvents = 'none');
+}
+
+function hideLoadingState() {
+  document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+  document.querySelectorAll('[data-interactive]').forEach(el => el.style.pointerEvents = '');
+}

@@ -15,7 +15,9 @@
   <title>{% block title %}SMARTLOG{% endblock %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v={{ static_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}?v={{ static_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/loading.css') }}?v={{ static_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pwa.css') }}?v={{ static_version }}">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
@@ -26,8 +28,8 @@
       --border: #2a2a2a;
       --border2: #222222;
       --text: #f0f4f9;
-      --muted: #9ca3af;
-      --muted2: #6b7280;
+      --muted: #d1d5db;
+      --muted2: #9ca3af;
       --red: #dc2626;
       --green: #22c55e;
       --amber: #f59e0b;
@@ -151,6 +153,11 @@
     .bottom-nav-item.active::after { content: ''; position: absolute; top: -4px; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; border-radius: 2px; background: var(--indigo); }
     .bottom-nav-item:hover { color: var(--text); background: rgba(255,255,255,.04); }
 
+    /* ── Mobile menu toggle ── */
+    .mobile-menu-toggle { display: none; position: fixed; top: 12px; right: 12px; z-index: 60; width: 40px; height: 40px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); color: var(--text); cursor: pointer; align-items: center; justify-content: center; transition: all .2s; font-size: 22px; font-family: var(--font); }
+    .mobile-menu-toggle:hover { background: var(--card2); }
+    .mobile-menu-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
     /* ── Misc ── */
     .mobile-pb { padding-bottom: 70px; }
 
@@ -193,10 +200,12 @@
     @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
     @media (max-width: 768px) {
-      .sidebar { display: none; }
+      .sidebar { display: none; position: fixed; top: 0; right: 0; z-index: 55; height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,.5); }
+      .sidebar.show { display: flex; }
       .bottom-nav { display: flex; }
       .main-area { padding-bottom: 64px; }
       .modal-sheet { border-radius: 20px 20px 0 0; max-width: 100%; margin: auto 0 0; }
+      .mobile-menu-toggle { display: flex; }
     }
     @media (min-width: 769px) {
       .modal-sheet { border-radius: 20px; margin: auto; }
@@ -210,6 +219,7 @@
   {% block employee_layout %}{% endblock %}
 {% else %}
   <div style="display:flex;min-height:100vh;background:var(--bg)">
+    <button class="mobile-menu-toggle" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="sidebar"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
     <aside class="sidebar">
       <div class="logo-section">
         <div style="display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:22px">
@@ -366,6 +376,30 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.open').forEach(el => { el.classList.remove('open'); el.style.display = 'none'; document.body.style.overflow = ''; }); }
 });
 
+/* ── Mobile sidebar toggle ── */
+function toggleMobileSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var btn = document.getElementById('mobileMenuBtn');
+  sidebar.classList.toggle('show');
+  btn.setAttribute('aria-expanded', sidebar.classList.contains('show') ? 'true' : 'false');
+}
+document.querySelectorAll('#sidebar a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    if (window.innerWidth <= 768) {
+      document.getElementById('sidebar').classList.remove('show');
+    }
+  });
+});
+document.addEventListener('click', function(e) {
+  if (window.innerWidth <= 768) {
+    var sidebar = document.getElementById('sidebar');
+    var btn = document.getElementById('mobileMenuBtn');
+    if (!sidebar.contains(e.target) && !btn.contains(e.target)) {
+      sidebar.classList.remove('show');
+    }
+  }
+});
+
 {% if not is_employee|default(false) %}
 var notifPanelOpen = false;
 function toggleNotifPanel() {
@@ -457,6 +491,9 @@ function toggleTheme() {
     if (meta) meta.content = '#000000';
   }
 })();
+</script>
+<script>
+function esc(s){ if(typeof s==='undefined'||s===null) return ''; var d=document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}" defer></script>
 {% block scripts %}{% endblock %}

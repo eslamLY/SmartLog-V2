@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% set nav_active = 'settings' %}
+{% block title %}الإعدادات{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;backdrop-filter:blur(12px)">
+  <i class="ti ti-settings" style="font-size:20px;color:var(--accent)"></i>
+  <h1 style="font-size:16px;font-weight:700">الإعدادات</h1>
+</header>
+<div style="padding:20px;max-width:720px">
+  <div class="card" style="padding:20px;margin-bottom:16px">
+    <h2 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <i class="ti ti-text-size" style="color:var(--accent)"></i> حجم الخط
+    </h2>
+    <div class="font-size-controls" style="display:flex;align-items:center;gap:12px">
+      <label style="font-size:14px;margin-bottom:0">حجم الخط:</label>
+      <button class="btn btn-outline btn-sm" onclick="setFontSize(-1)" aria-label="تصغير الخط" title="صغير">A-</button>
+      <button class="btn btn-outline btn-sm" onclick="setFontSize(0)" aria-label="حجم الخط الافتراضي" title="عادي">A</button>
+      <button class="btn btn-outline btn-sm" onclick="setFontSize(1)" aria-label="تكبير الخط" title="كبير">A+</button>
+      <span style="font-size:12px;color:var(--muted2);margin-right:8px" id="currentFontLabel">عادي</span>
+    </div>
+  </div>
+
+  <div class="card" style="padding:20px;margin-bottom:16px">
+    <h2 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <i class="ti ti-bell" style="color:var(--accent)"></i> الإشعارات
+    </h2>
+    <div class="settings-section">
+      <div class="settings-option" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <label style="font-size:14px;margin-bottom:0">تردد التحقق من الإشعارات:</label>
+        <select id="notifIntervalSelect" class="btn-sm" onchange="setNotifInterval(parseInt(this.value))" style="width:180px">
+          <option value="0">معطل</option>
+          <option value="10000">كل 10 ثوان</option>
+          <option value="30000">كل 30 ثانية</option>
+          <option value="60000">كل دقيقة</option>
+          <option value="300000">كل 5 دقائق</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:20px">
+    <h2 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <i class="ti ti-palette" style="color:var(--accent)"></i> السمة
+    </h2>
+    <div style="display:flex;align-items:center;gap:12px">
+      <label style="font-size:14px;margin-bottom:0">السمة الحالية:</label>
+      <button class="btn btn-outline btn-sm" onclick="toggleTheme()" id="settingsThemeBtn"><i class="ti ti-moon"></i> تبديل السمة</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/typography.js') }}"></script>
+<script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+<script>
+(function() {
+  var sizes = { small: 'صغير', normal: 'عادي', large: 'كبير' };
+  var saved = localStorage.getItem('fontSize') || 'normal';
+  var label = document.getElementById('currentFontLabel');
+  if (label) label.textContent = sizes[saved] || 'عادي';
+  var btn = document.getElementById('settingsThemeBtn');
+  if (btn) {
+    var isDark = document.documentElement.classList.contains('light-mode');
+    btn.innerHTML = (isDark ? '<i class="ti ti-sun"></i>' : '<i class="ti ti-moon"></i>') + ' تبديل السمة';
+  }
+})();
+</script>
+{% endblock %}

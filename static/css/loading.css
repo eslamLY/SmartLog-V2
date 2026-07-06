@@ -1,0 +1,15 @@
+/* ── Skeleton Loading (Issue #8) ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--skeleton-bg, #1f2937) 0%, var(--skeleton-light, #374151) 50%, var(--skeleton-bg, #1f2937) 100%);
+  background-size: 200% 100%;
+  animation: loadingAnimation 1.5s infinite linear;
+}
+
+@keyframes loadingAnimation {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.stat-card.skeleton { height: 120px; border-radius: 8px; pointer-events: none; }
+.chart-container.skeleton { height: 300px; border-radius: 8px; }
+.table-row.skeleton td { height: 50px; background: var(--skeleton-bg, #1f2937); }

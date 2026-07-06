@@ -59,8 +59,8 @@ function loadRoles() {
         + '<td>' + (r.child_count || 0) + '</td>'
         + '<td><span class="badge ' + riskCls + '">' + r.risk_level + '</span></td>'
         + '<td style="white-space:nowrap">'
-        + '<button class="btn-icon" onclick="editRole(' + r.id + ')" title="تعديل"><i class="fas fa-edit"></i></button> '
-        + (r.is_system ? '' : '<button class="btn-icon" style="color:var(--red)" onclick="deleteRole(' + r.id + ')" title="حذف"><i class="fas fa-trash"></i></button>')
+        + '<button class="btn-icon" onclick="editRole(' + r.id + ')" title="تعديل"><i class="ti ti-edit"></i></button> '
+        + (r.is_system ? '' : '<button class="btn-icon" style="color:var(--red)" onclick="deleteRole(' + r.id + ')" title="حذف"><i class="ti ti-trash"></i></button>')
         + '</td></tr>';
     });
   });
@@ -80,16 +80,16 @@ function renderPermissionsTable(perms) {
   tb.innerHTML = '';
   if(!perms.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">لا توجد صلاحيات</td></tr>'; return; }
   perms.forEach(function(p){
-    var riskIcon = p.is_high_risk ? '<i class="fas fa-exclamation-triangle" style="color:var(--red)"></i>' : '<i class="fas fa-check" style="color:var(--green)"></i>';
-    var faIcon = p.requires_2fa ? '<i class="fas fa-check" style="color:var(--green)"></i>' : '<i class="fas fa-times" style="color:var(--muted)"></i>';
-    var appIcon = p.requires_approval ? '<i class="fas fa-check" style="color:var(--green)"></i>' : '<i class="fas fa-times" style="color:var(--muted)"></i>';
+    var riskIcon = p.is_high_risk ? '<i class="ti ti-alert-triangle" style="color:var(--red)"></i>' : '<i class="ti ti-check" style="color:var(--green)"></i>';
+    var faIcon = p.requires_2fa ? '<i class="ti ti-check" style="color:var(--green)"></i>' : '<i class="ti ti-x" style="color:var(--muted)"></i>';
+    var appIcon = p.requires_approval ? '<i class="ti ti-check" style="color:var(--green)"></i>' : '<i class="ti ti-x" style="color:var(--muted)"></i>';
     tb.innerHTML += '<tr><td>' + esc(p.name_ar || p.name) + '</td>'
       + '<td><code>' + esc(p.code) + '</code></td>'
       + '<td><span class="badge badge-muted">' + esc(p.module||'-') + '</span></td>'
       + '<td>' + riskIcon + '</td>'
       + '<td>' + faIcon + '</td>'
       + '<td>' + appIcon + '</td>'
-      + '<td><button class="btn-icon" onclick="editPermission(' + p.id + ')" title="تعديل"><i class="fas fa-edit"></i></button></td></tr>';
+      + '<td><button class="btn-icon" onclick="editPermission(' + p.id + ')" title="تعديل"><i class="ti ti-edit"></i></button></td></tr>';
   });
 }
 
@@ -267,7 +267,7 @@ function loadAssignments() {
         + '<td><span class="badge badge-muted">' + typeName + '</span></td>'
         + '<td style="color:var(--muted)">' + (a.effective_date||'-') + '</td>'
         + '<td style="color:var(--muted)">' + (a.expiry_date||'-') + '</td><td>' + status + '</td>'
-        + '<td>' + (a.is_active ? '<button class="btn-icon" style="color:var(--red)" onclick="revokeAssignment(' + a.id + ')" title="إنهاء"><i class="fas fa-ban"></i></button>' : '') + '</td></tr>';
+        + '<td>' + (a.is_active ? '<button class="btn-icon" style="color:var(--red)" onclick="revokeAssignment(' + a.id + ')" title="إنهاء"><i class="ti ti-ban"></i></button>' : '') + '</td></tr>';
     });
   });
 }
@@ -417,8 +417,8 @@ function showMatrix() {
     var r2Name = d.roles.find(function(r){return r.id===r2}).name;
     var html = '<table class="tbl" style="font-size:13px"><thead><tr><th>الصلاحية</th><th>' + esc(r1Name) + '</th><th>' + esc(r2Name) + '</th></tr></thead><tbody>';
     d.matrix.forEach(function(m){
-      var c1 = m['role_' + r1] ? '<i class="fas fa-check" style="color:var(--green)"></i>' : '<i class="fas fa-times" style="color:var(--muted)"></i>';
-      var c2 = m['role_' + r2] ? '<i class="fas fa-check" style="color:var(--green)"></i>' : '<i class="fas fa-times" style="color:var(--muted)"></i>';
+      var c1 = m['role_' + r1] ? '<i class="ti ti-check" style="color:var(--green)"></i>' : '<i class="ti ti-x" style="color:var(--muted)"></i>';
+      var c2 = m['role_' + r2] ? '<i class="ti ti-check" style="color:var(--green)"></i>' : '<i class="ti ti-x" style="color:var(--muted)"></i>';
       var diff = m['role_' + r1] !== m['role_' + r2];
       html += '<tr' + (diff ? ' style="background:rgba(245,158,11,0.08)"' : '') + '>'
         + '<td>' + esc(m.permission.name_ar || m.permission.name) + '</td><td>' + c1 + '</td><td>' + c2 + '</td></tr>';

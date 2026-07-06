@@ -103,7 +103,7 @@ function renderTable() {
       <td style="font-weight:700;color:${statusColor}">${r.net_salary}</td>
       <td>${r.attendance_pct}%</td>
       <td><span class="status-badge" style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}40">${statusLabel}</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="showDetail(${r.employee_id},'${r.emp_name}')"><i class="fas fa-eye"></i></button></td>
+      <td><button class="btn btn-sm btn-outline" onclick="showDetail(${r.employee_id},'${r.emp_name}')"><i class="ti ti-eye"></i></button></td>
     </tr>`;
   });
   tbody.innerHTML = html;
@@ -278,8 +278,8 @@ function loadCorrections() {
     data.forEach((c, i) => {
       const statusClass = c.status === 'approved' ? 'text-success' : c.status === 'rejected' ? 'text-danger' : 'text-warning';
       const statusLabel = c.status === 'approved' ? 'مقبول' : c.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
-      const actions = c.status === 'pending' ? `<button class="btn btn-sm btn-success" onclick="reviewCorrection(${c.id},'approved')"><i class="fas fa-check"></i></button>
-        <button class="btn btn-sm btn-danger" onclick="reviewCorrection(${c.id},'rejected')"><i class="fas fa-times"></i></button>` : '-';
+      const actions = c.status === 'pending' ? `<button class="btn btn-sm btn-success" onclick="reviewCorrection(${c.id},'approved')"><i class="ti ti-check"></i></button>
+        <button class="btn btn-sm btn-danger" onclick="reviewCorrection(${c.id},'rejected')"><i class="ti ti-x"></i></button>` : '-';
       html += `<tr>
         <td>${i+1}</td><td>${c.employee_name}</td><td>${c.log_date}</td><td>${c.correction_type}</td><td>${c.reason}</td>
         <td class="${statusClass}">${statusLabel}</td><td>${c.created_at}</td><td>${actions}</td>
@@ -398,9 +398,9 @@ function loadScheduled() {
         <td>${i+1}</td><td>${s.frequency}</td><td>${s.format}</td><td>${s.created_at}</td><td>${s.last_run || '-'}</td><td>${s.next_run || '-'}</td>
         <td>${active}</td>
         <td>
-          <button class="btn btn-sm btn-outline" onclick="toggleScheduled(${s.id})"><i class="fas ${s.is_active ? 'fa-pause' : 'fa-play'}"></i></button>
-          <button class="btn btn-sm btn-outline" onclick="runScheduledNow(${s.id})"><i class="fas fa-play"></i></button>
-          <button class="btn btn-sm btn-outline text-danger" onclick="deleteScheduled(${s.id})"><i class="fas fa-trash"></i></button>
+          <button class="btn btn-sm btn-outline" onclick="toggleScheduled(${s.id})"><i class="ti ${s.is_active ? 'ti-pause' : 'ti-player-play'}"></i></button>
+          <button class="btn btn-sm btn-outline" onclick="runScheduledNow(${s.id})"><i class="ti ti-player-play"></i></button>
+          <button class="btn btn-sm btn-outline text-danger" onclick="deleteScheduled(${s.id})"><i class="ti ti-trash"></i></button>
         </td>
       </tr>`;
     });

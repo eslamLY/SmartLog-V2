@@ -36,7 +36,7 @@ function loadBackups(page) {
     d.backups.forEach(function(b){
       var tname = typeNames[b.type] || b.type;
       var sname = statusNames[b.status] || b.status;
-      var lockIcon = b.encrypted ? '<i class="fas fa-lock" style="color:var(--green)"></i>' : '<i class="fas fa-unlock" style="color:var(--muted)"></i>';
+      var lockIcon = b.encrypted ? '<i class="ti ti-lock" style="color:var(--green)"></i>' : '<i class="ti ti-unlock" style="color:var(--muted)"></i>';
       var dateStr = b.created_at ? new Date(b.created_at).toLocaleString('ar-SA') : '-';
       tb.innerHTML += '<tr>'
         + '<td><span class="file-name">' + esc(b.filename) + '</span></td>'
@@ -46,9 +46,9 @@ function loadBackups(page) {
         + '<td><span class="badge badge-' + b.status + '">' + sname + '</span></td>'
         + '<td style="color:var(--muted)">' + dateStr + '</td>'
         + '<td style="white-space:nowrap">'
-        + '<button class="btn-icon" onclick="previewBackup(' + b.id + ')" title="معاينة"><i class="fas fa-eye"></i></button> '
-        + '<button class="btn-icon" onclick="verifySingle(' + b.id + ')" title="تحقق"><i class="fas fa-check-circle"></i></button> '
-        + '<button class="btn-icon" style="color:var(--red)" onclick="deleteBackup(' + b.id + ')" title="حذف"><i class="fas fa-trash"></i></button>'
+        + '<button class="btn-icon" onclick="previewBackup(' + b.id + ')" title="معاينة"><i class="ti ti-eye"></i></button> '
+        + '<button class="btn-icon" onclick="verifySingle(' + b.id + ')" title="تحقق"><i class="ti ti-circle-check"></i></button> '
+        + '<button class="btn-icon" style="color:var(--red)" onclick="deleteBackup(' + b.id + ')" title="حذف"><i class="ti ti-trash"></i></button>'
         + '</td></tr>';
     });
     var pg = byId('backupPagination');
@@ -224,9 +224,9 @@ function loadSchedules() {
         + '<td style="color:var(--muted)">' + nextRun + '</td>'
         + '<td><span class="badge ' + rateCls + '">' + rate + '%</span></td>'
         + '<td style="white-space:nowrap">'
-        + '<button class="btn-icon" onclick="runScheduleNow(' + s.id + ')" title="تشغيل الآن"><i class="fas fa-play"></i></button> '
-        + '<button class="btn-icon" onclick="toggleSchedule(' + s.id + ')" title="' + (s.is_active?'إيقاف':'تشغيل') + '"><i class="fas fa-' + (s.is_active?'pause':'play') + '"></i></button> '
-        + '<button class="btn-icon" style="color:var(--red)" onclick="deleteSchedule(' + s.id + ')" title="حذف"><i class="fas fa-trash"></i></button>'
+        + '<button class="btn-icon" onclick="runScheduleNow(' + s.id + ')" title="تشغيل الآن"><i class="ti ti-player-play"></i></button> '
+        + '<button class="btn-icon" onclick="toggleSchedule(' + s.id + ')" title="' + (s.is_active?'إيقاف':'تشغيل') + '"><i class="ti ti-' + (s.is_active?'pause':'player-play') + '"></i></button> '
+        + '<button class="btn-icon" style="color:var(--red)" onclick="deleteSchedule(' + s.id + ')" title="حذف"><i class="ti ti-trash"></i></button>'
         + '</td></tr>';
     });
   });
@@ -339,13 +339,13 @@ function executeRestore() {
     div.style.display = 'block';
     if(d.ok) {
       div.innerHTML = '<div style="padding:16px;border-radius:10px;background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.3);color:var(--green);text-align:center">'
-        + '<i class="fas fa-check-circle" style="font-size:24px;display:block;margin-bottom:8px"></i>'
+        + '<i class="ti ti-circle-check" style="font-size:24px;display:block;margin-bottom:8px"></i>'
         + 'تمت الاستعادة بنجاح!<br>السجلات: ' + d.records_restored + ' | الجداول: ' + d.tables_restored + ' | المدة: ' + d.duration_seconds + ' ث</div>';
       byId('wizStep3').classList.add('completed');
       loadBackups(); loadStats();
     } else {
       div.innerHTML = '<div style="padding:16px;border-radius:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--red);text-align:center">'
-        + '<i class="fas fa-times-circle" style="font-size:24px;display:block;margin-bottom:8px"></i>'
+        + '<i class="ti ti-circle-x" style="font-size:24px;display:block;margin-bottom:8px"></i>'
         + 'فشل الاستعادة: ' + (d.error || '') + '</div>';
     }
   });

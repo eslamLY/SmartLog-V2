@@ -46,13 +46,13 @@ function uploadFile(file) {
       rd.style.display = 'block';
       if(d.ok) {
         rd.innerHTML = '<div style="padding:14px;border-radius:10px;background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.3);color:var(--green);text-align:center">'
-          + '<i class="fas fa-check-circle" style="font-size:20px;display:block;margin-bottom:6px"></i>'
+          + '<i class="ti ti-circle-check" style="font-size:20px;display:block;margin-bottom:6px"></i>'
           + 'تم رفع الملف بنجاح<br><strong>' + (d.filename || file.name) + '</strong> (' + fmtBytes(file.size) + ')</div>';
         toast('تم رفع النسخة بنجاح', 'success');
         loadBackups(); loadStats();
       } else {
         rd.innerHTML = '<div style="padding:14px;border-radius:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--red);text-align:center">'
-          + '<i class="fas fa-times-circle" style="font-size:20px;display:block;margin-bottom:6px"></i>'
+          + '<i class="ti ti-circle-x" style="font-size:20px;display:block;margin-bottom:6px"></i>'
           + 'فشل الرفع: ' + (d.error || 'خطأ غير معروف') + '</div>';
         toast('فشل الرفع', 'error');
       }

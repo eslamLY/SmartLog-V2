@@ -9,7 +9,7 @@
     <button class="btn btn-ghost btn-sm d-md-none" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
     <div class="header-date-info">
       <div class="header-day">{{ day_name }}</div>
-      <div class="header-date">{{ today.strftime('%d %B %Y') }}</div>
+      <div class="header-date" id="headerDate">{{ today.strftime('%d %B %Y') }}</div>
     </div>
     <div class="header-live-clock" id="liveClock">--:--:--</div>
     <span class="status-dot online" id="statusDot" title="متصل"></span>
@@ -52,8 +52,8 @@
     <span id="lastUpdateLabel">آخر تحديث: الآن</span>
     <button class="btn btn-ghost btn-sm" onclick="manualRefresh()"><i class="ti ti-refresh"></i> تحديث الآن</button>
   </div>
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card stat-purple" onclick="location.href='/admin/employees'">
+  <div class="stats-grid" id="statsContainer">
+    <div class="stat-card stat-purple priority-high large" onclick="location.href='/admin/employees'">
       <div class="stat-icon"><i class="ti ti-users"></i></div>
       <div class="stat-content">
         <div class="stat-number" id="statTotal" data-target="0">0</div>
@@ -163,7 +163,7 @@
       <button class="btn btn-ghost btn-xs" onclick="dismissAllAlerts()">تجاهل الكل</button>
     </div>
   </div>
-  <div class="charts-grid">
+  <div class="charts-grid" id="chartsContainer">
     <div class="card chart-card chart-card-large">
       <div class="card-header">
         <span>نظرة عامة على الحضور</span>
@@ -257,5 +257,30 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/localization.js') }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+(function() {
+  var el = document.getElementById('headerDate');
+  if (el && el.textContent.trim()) {
+    try {
+      var parts = el.textContent.trim().split(' ');
+      if (parts.length >= 3) {
+        var day = parseInt(parts[0]);
+        var month = parts[1];
+        var year = parseInt(parts[2]);
+        var monthMap = {
+          'January':'01','February':'02','March':'03','April':'04','May':'05','June':'06',
+          'July':'07','August':'08','September':'09','October':'10','November':'11','December':'12',
+          'يناير':'01','فبراير':'02','مارس':'03','أبريل':'04','مايو':'05','يونيو':'06',
+          'يوليو':'07','أغسطس':'08','سبتمبر':'09','أكتوبر':'10','نوفمبر':'11','ديسمبر':'12'
+        };
+        var m = monthMap[month] || '01';
+        var dt = new Date(year, parseInt(m) - 1, day);
+        if (!isNaN(dt.getTime())) el.textContent = formatArabicDate(dt);
+      }
+    } catch(e) {}
+  }
+})();
+</script>
 {% endblock %}
