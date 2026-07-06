@@ -133,7 +133,7 @@
             <div class="form-group" style="flex:1">
               <label for="aeUsername">الرقم الوظيفي <span class="required">*</span></label>
               <div style="display:flex;gap:6px">
-                <input id="aeUsername" placeholder="EMP001" style="flex:1;font-family:monospace;direction:ltr;text-align:left" required aria-label="الرقم الوظيفي للموظف" aria-describedby="aeUsername-hint err_aeUsername">
+                <input id="aeUsername" placeholder="EMP001" style="flex:1;font-family:monospace;direction:ltr;text-align:left" required aria-label="الرقم الوظيفي للموظف" aria-describedby="aeUsername-hint err_aeUsername" aria-invalid="false">
                 <button type="button" class="btn btn-ghost btn-sm" onclick="autoGenerateId()" title="توليد تلقائي"><i class="ti ti-refresh"></i></button>
               </div>
               <small id="aeUsername-hint" class="field-hint">يُستخدم الرقم الوظيفي لتسجيل الدخول ويجب أن يكون فريداً.</small>
@@ -141,7 +141,7 @@
             </div>
             <div class="form-group" style="flex:2">
               <label for="aeName">الاسم الكامل <span class="required">*</span></label>
-              <input id="aeName" placeholder="الاسم الثلاثي" required aria-label="الاسم الكامل للموظف" aria-describedby="aeName-hint err_aeName">
+              <input id="aeName" placeholder="الاسم الثلاثي" required aria-label="الاسم الكامل للموظف" aria-describedby="aeName-hint err_aeName" aria-invalid="false">
               <small id="aeName-hint" class="field-hint">يجب إدخال الاسم الرباعي كاملاً كما هو مدون في الأوراق الرسمية.</small>
               <div class="field-error" id="err_aeName" role="alert"></div>
             </div>
@@ -149,11 +149,12 @@
           <div class="form-row">
             <div class="form-group" style="flex:1">
               <label for="aeDept">القسم <span class="required">*</span></label>
-              <select id="aeDept" required aria-label="القسم التابع له الموظف" aria-describedby="aeDept-hint">
+              <select id="aeDept" required aria-label="القسم التابع له الموظف" aria-describedby="aeDept-hint" aria-invalid="false">
                 <option value="">اختر القسم</option>
                 {% for d in depts_db %}<option value="{{ d.id }}">{{ d.name_ar }}</option>{% endfor %}
               </select>
               <small id="aeDept-hint" class="field-hint">اختر القسم الذي يعمل به الموظف.</small>
+              <div class="field-error" id="err_aeDept" role="alert"></div>
             </div>
             <div class="form-group" style="flex:1">
               <label>الدور</label>
@@ -173,12 +174,14 @@
                 <select id="aePhoneCode" style="width:120px;flex-shrink:0;font-size:12px">
                   {% for cc in country_codes %}<option value="{{ cc.code }}" {% if cc.code == '+218' %}selected{% endif %}>{{ cc.code }} {{ cc.name }}</option>{% endfor %}
                 </select>
-                <input id="aePhone" placeholder="912345678" style="flex:1;direction:ltr;text-align:left" type="tel">
+                <input id="aePhone" placeholder="912345678" style="flex:1;direction:ltr;text-align:left" type="tel" aria-label="رقم الهاتف المحمول" aria-describedby="aePhone-hint err_aePhone" aria-invalid="false">
               </div>
+              <small id="aePhone-hint" class="field-hint">رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 9 أرقام.</small>
+              <div class="field-error" id="err_aePhone" role="alert"></div>
             </div>
             <div class="form-group" style="flex:1">
               <label for="aeNationalId">الرقم الوطني <span class="required">*</span></label>
-              <input id="aeNationalId" placeholder="أرقام فقط" style="direction:ltr;text-align:left" aria-label="الرقم الوطني للموظف" aria-describedby="aeNationalId-hint err_aeNationalId">
+              <input id="aeNationalId" placeholder="أرقام فقط" style="direction:ltr;text-align:left" aria-label="الرقم الوطني للموظف" aria-describedby="aeNationalId-hint err_aeNationalId" aria-invalid="false">
               <small id="aeNationalId-hint" class="field-hint">الرقم الوطني المكون من 12 رقماً كما هو مدون في بطاقة الأحوال المدنية.</small>
               <div class="field-error" id="err_aeNationalId" role="alert"></div>
             </div>
@@ -374,16 +377,17 @@
             <div class="form-group" style="flex:1">
               <label for="aePass">كلمة المرور <span class="required">*</span></label>
               <div class="password-field">
-                <input type="password" id="aePass" value="123456" oninput="checkPassStrength('add')" required aria-label="كلمة المرور الجديدة" aria-describedby="aePass-hint aePassStrength">
+                <input type="password" id="aePass" value="123456" oninput="checkPassStrength('add')" required aria-label="كلمة المرور الجديدة" aria-describedby="aePass-hint aePassStrength" aria-invalid="false">
                 <button type="button" class="btn btn-ghost btn-xs" onclick="togglePass('aePass',this)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%)"><i class="ti ti-eye"></i></button>
               </div>
               <small id="aePass-hint" class="field-hint">يجب أن تحتوي كلمة المرور على أحرف وأرقام ورموز لتكون آمنة.</small>
               <div id="aePassStrength" class="pass-strength" role="status"></div>
+              <div class="field-error" id="err_aePass" role="alert"></div>
             </div>
             <div class="form-group" style="flex:1">
               <label for="aePassConfirm">تأكيد كلمة المرور <span class="required">*</span></label>
               <div class="password-field">
-                <input type="password" id="aePassConfirm" oninput="checkPassMatch('add')" aria-label="تأكيد كلمة المرور" aria-describedby="aePassConfirm-hint aePassMatch">
+                <input type="password" id="aePassConfirm" oninput="checkPassMatch('add')" aria-label="تأكيد كلمة المرور" aria-describedby="aePassConfirm-hint aePassMatch" aria-invalid="false">
               </div>
               <small id="aePassConfirm-hint" class="field-hint">أعد إدخال كلمة المرور نفسها للتأكيد.</small>
               <div id="aePassMatch" class="field-error" role="alert"></div>

@@ -50,7 +50,10 @@ function openAddModal(){
 function clearAddForm(){
   document.getElementById('addEmpForm').reset();
   document.getElementById('aePhotoPreview').innerHTML = '<i class="ti ti-user" style="font-size:32px;color:var(--muted2)"></i>';
-  ['err_aeUsername','err_aeName','err_aeNationalId'].forEach(function(id){
+  ['aeUsername','aeName','aeDept','aeNationalId','aePhone','aePass','aePassConfirm'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.setAttribute('aria-invalid', 'false');
+  });
+  ['err_aeUsername','err_aeName','err_aeNationalId','err_aePhone'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.textContent = '';
   });
 }
@@ -218,13 +221,78 @@ async function checkDuplicate(ctx){
 
 /* ── ADD EMPLOYEE ── */
 async function doAddEmp(){
+  // ── Reset all validation states ──
+  var fields = ['aeUsername','aeName','aeDept','aeNationalId','aePhone','aePass','aePassConfirm'];
+  fields.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.setAttribute('aria-invalid', 'false'); }
+  });
+  ['err_aeUsername','err_aeName','err_aeDept','err_aeNationalId','err_aePhone','err_aePass','aePassMatch'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.textContent = ''; }
+  });
+
+  // ── Per-field validation with correctional suggestions ──
+  var firstInvalid = null;
+
+  function markInvalid(inputId, errorId, message){
+    var inp = document.getElementById(inputId);
+    var err = document.getElementById(errorId);
+    if(inp){
+      inp.setAttribute('aria-invalid', 'true');
+      if(!firstInvalid) firstInvalid = inp;
+    }
+    if(err) err.textContent = message;
+  }
+
   var username = document.getElementById('aeUsername').value.trim();
+  if(!username){
+    markInvalid('aeUsername','err_aeUsername','خطأ: الرقم الوظيفي مطلوب ولم يتم إدخاله. يرجى إدخال رقم وظيفي فريد.');
+  } else if(!/^EMP\d{3,}$/i.test(username)){
+    markInvalid('aeUsername','err_aeUsername','خطأ: الرقم الوظيفي يجب أن يبدأ بـ "EMP" يتبعه 3 أرقام على الأقل (مثال: EMP001). يرجى تصحيح الحقل.');
+  }
+
   var name = document.getElementById('aeName').value.trim();
+  if(!name){
+    markInvalid('aeName','err_aeName','خطأ: الاسم الكامل مطلوب ولم يتم إدخاله. يرجى كتابة الاسم الرباعي كاملاً.');
+  } else if(name.length < 8){
+    markInvalid('aeName','err_aeName','خطأ: الاسم قصير جداً. الاسم الرباعي يجب أن يتكون من 8 أحرف على الأقل. يرجى كتابة الاسم الكامل كما هو مدون في الأوراق الرسمية.');
+  }
+
   var deptId = document.getElementById('aeDept').value;
+  if(!deptId){
+    markInvalid('aeDept','err_aeDept','خطأ: القسم مطلوب ولم يتم اختياره. يرجى اختيار القسم التابع له الموظف.');
+  }
+
+  var nationalId = document.getElementById('aeNationalId').value.trim();
+  if(nationalId && !/^\d{12}$/.test(nationalId)){
+    markInvalid('aeNationalId','err_aeNationalId','خطأ: الرقم الوطني يجب أن يتكون من 12 رقماً بالضبط ويبدأ بـ 1 أو 2. يرجى مراجعة الحقل وإعادة الإدخال.');
+  } else if(nationalId && !/^[12]/.test(nationalId)){
+    markInvalid('aeNationalId','err_aeNationalId','خطأ: الرقم الوطني يجب أن يبدأ بـ 1 أو 2. يرجى مراجعة الحقل وإعادة الإدخال.');
+  }
+
+  var phone = document.getElementById('aePhone').value.trim();
+  if(phone && !/^09\d{8}$/.test(phone)){
+    markInvalid('aePhone','err_aePhone','خطأ: رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678). يرجى مراجعة الحقل.');
+  }
+
   var pass = document.getElementById('aePass').value;
+  if(!pass){
+    markInvalid('aePass','err_aePass','خطأ: كلمة المرور مطلوبة ولم يتم إدخالها. يرجى إدخال كلمة مرور قوية.');
+  } else if(pass.length < 8){
+    markInvalid('aePass','err_aePass','خطأ: كلمة المرور ضعيفة جداً. يجب أن تتكون من 8 أحرف على الأقل وتحتوي على أحرف كبيرة وصغيرة وأرقام ورموز.');
+  }
+
   var pass2 = document.getElementById('aePassConfirm').value;
-  if(!username || !name || !deptId || !pass){ toast('الحقول المطلوبة (*) يجب ملؤها.','err'); return; }
-  if(pass !== pass2){ toast('كلمة المرور غير متطابقة.','err'); return; }
+  if(pass && pass !== pass2){
+    markInvalid('aePassConfirm','aePassMatch','خطأ: كلمة المرور غير متطابقة. يرجى إعادة إدخال كلمة المرور نفسها في حقل التأكيد.');
+  }
+
+  // ── Focus first invalid field, abort if any errors ──
+  if(firstInvalid){
+    firstInvalid.focus();
+    return;
+  }
 
   var otherRows = document.getElementById('aeOtherAllowances').querySelectorAll('.allowance-row');
   var allowances = [];
