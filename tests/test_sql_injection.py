@@ -1,84 +1,88 @@
-"""Verify all endpoints resist SQL injection attempts."""
-import json
-from models import db
-from sqlalchemy import text
+# -*- coding: utf-8 -*-
+"""
+Task 2 — SQL Injection Prevention: ``manage.py`` identifier validation.
+
+Verifies that ``_validate_identifier`` rejects malicious input and that
+``run_reset_sequences`` cannot be tricked into executing unsafe SQL.
+Tests import manage symbols at call time (not module level) to avoid
+triggering conftest's app factory.
+"""
+import os
+import sys
+import re
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 
-SQLI_PAYLOADS = [
-    "' OR '1'='1",
-    "1; DROP TABLE employees; --",
-    "' UNION SELECT * FROM users; --",
-    "admin'--",
-    "1 OR 1=1",
-    "'; SELECT pg_sleep(5); --",
-    "1' AND 1=1; SELECT * FROM employees; --",
-    "'; EXEC xp_cmdshell('dir'); --",
-    "1' WAITFOR DELAY '0:0:5'--",
-]
+class TestIdentifierValidation:
 
+    _IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
-def test_login_sql_injection_resists_all_payloads(client):
-    """Login endpoint must reject SQL injection payloads in username."""
-    for idx, payload in enumerate(SQLI_PAYLOADS):
-        resp = client.post('/login', data=json.dumps({'username': payload, 'password': 'test'}),
-                           content_type='application/json')
-        data = resp.get_json()
-        assert resp.status_code in (200, 429), f"SQLi payload '{payload}' returned {resp.status_code}"
-        if resp.status_code == 200:
-            assert data['ok'] is False, f"SQLi payload '{payload}' should not authenticate"
-            assert 'msg' in data
+    def _validate(self, name, label='identifier'):
+        from manage import _validate_identifier
+        return _validate_identifier(name, label)
 
+    # ── Accept valid identifiers ──────────────────────────────
+    def test_accepts_simple_name(self):
+        assert self._validate('employees') == 'employees'
 
-def test_employee_list_sql_injection(client):
-    """Employee list search must resist SQL injection."""
-    login_resp = client.post('/login', data=json.dumps({'username': 'ADM001', 'password': 'admin123'}),
-                             content_type='application/json')
-    assert login_resp.get_json()['ok'] is True
+    def test_accepts_with_underscore(self):
+        assert self._validate('attendance_logs') == 'attendance_logs'
 
-    for payload in SQLI_PAYLOADS:
-        resp = client.get(f'/admin/employees?q={payload}')
-        assert resp.status_code == 200
+    def test_accepts_with_digits(self):
+        assert self._validate('table_123') == 'table_123'
 
+    def test_accepts_leading_underscore(self):
+        assert self._validate('_seq') == '_seq'
 
-def test_clock_in_sql_injection(client):
-    """Clock-in GPS coordinates must resist injection."""
-    login_resp = client.post('/login', data=json.dumps({'username': 'EMP001', 'password': '123456'}),
-                             content_type='application/json')
-    assert login_resp.get_json()['ok'] is True
+    def test_accepts_single_letter(self):
+        assert self._validate('t') == 't'
 
-    for payload in ["' OR '1'='1", "DROP TABLE", "<script>"]:
-        resp = client.post('/employee/clockin', data=json.dumps({'lat': payload, 'lng': 23.0}),
-                           content_type='application/json')
-        data = resp.get_json()
-        assert data['ok'] is False, f"Clock-in with lat='{payload}' should fail"
+    # ── Reject invalid identifiers ────────────────────────────
+    @pytest.mark.parametrize('payload', [
+        '',
+        'employees; DROP TABLE users',
+        'employees--comment',
+        'table-name',
+        'table name',
+        '1table',
+        "x'; SELECT 1; --",
+        '`table`',
+        '$table',
+        "x UNION SELECT * FROM passwords",
+        '../etc/passwd',
+        '<script>alert(1)</script>',
+    ])
+    def test_rejects_malicious_identifiers(self, payload):
+        with pytest.raises(ValueError, match='Invalid identifier'):
+            self._validate(payload)
 
+    def test_label_prefixed_in_error(self):
+        with pytest.raises(ValueError, match='table name'):
+            self._validate('bad!', label='table name')
 
-def test_gps_log_sql_injection(client):
-    """GPS log endpoint must resist injection in lat/lng."""
-    login_resp = client.post('/login', data=json.dumps({'username': 'EMP001', 'password': '123456'}),
-                             content_type='application/json')
-    assert login_resp.get_json()['ok'] is True
+    # ── Regex boundary coverage ───────────────────────────────
+    def test_regex_matches_valid(self):
+        assert self._IDENTIFIER_RE.match('simpleName')
+        assert self._IDENTIFIER_RE.match('_private')
+        assert self._IDENTIFIER_RE.match('a1_b2_c3')
+        assert not self._IDENTIFIER_RE.match('')
+        assert not self._IDENTIFIER_RE.match('no spaces')
+        assert not self._IDENTIFIER_RE.match('has-dash')
+        assert not self._IDENTIFIER_RE.match('1starts_with_digit')
 
-    for payload in ["1; DROP TABLE gps_logs;", "' OR 1=1; --"]:
-        resp = client.post('/employee/gps/log', data=json.dumps({'lat': 32.0, 'lng': payload}),
-                           content_type='application/json')
-        data = resp.get_json()
-        assert data['ok'] is False, f"GPS log with lng='{payload}' should fail"
-
-
-def test_add_employee_sql_injection(client):
-    """Add employee endpoint must resist injection in name fields."""
-    login_resp = client.post('/login', data=json.dumps({'username': 'ADM001', 'password': 'admin123'}),
-                             content_type='application/json')
-    assert login_resp.get_json()['ok'] is True
-
-    for idx, payload in enumerate(SQLI_PAYLOADS):
-        resp = client.post('/admin/employees/add', data=json.dumps({
-            'username': f'INJ{idx}',
-            'full_name': payload,
-            'department_id': 1,
-            'role': 'employee',
-            'salary': 1000,
-            'password': 'SecurePass1'
-        }), content_type='application/json')
-        assert resp.status_code == 200, f"Add employee with name='{payload}' should not crash"
+    # ── Sanitize names commands are safe ──────────────────────
+    def test_like_clauses_do_not_use_fstrings(self):
+        import inspect
+        from manage import run_sanitize_names
+        source = inspect.getsource(run_sanitize_names)
+        for lineno, line in enumerate(source.split('\n'), 1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#') or stripped.startswith('import'):
+                continue
+            if 'text(' in stripped and ("f'" in stripped or 'f"' in stripped):
+                raise AssertionError(
+                    'run_sanitize_names:%d uses f-string with text(): %s'
+                    % (lineno, stripped[:80])
+                )

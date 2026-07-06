@@ -1,14 +1,12 @@
-import json, os, io, re, random, string
+import json, os, random, string
 from datetime import date, datetime, UTC
 from uuid import uuid4
 
 from flask import Blueprint, render_template, request, session, jsonify, current_app
-from werkzeug.security import generate_password_hash
 from sqlalchemy import or_
-from werkzeug.utils import secure_filename
 
 from models import db, Employee, Department, AttendanceLog, AuditLog, \
-    Permission, Role, EmployeePermission, Branch, ShiftType, BioTimeDevice
+    Permission, Role, EmployeePermission, BioTimeDevice
 from utils.decorators import admin_required
 from utils.helpers import validate_password_strength
 from utils.constants import DEPARTMENTS
@@ -25,7 +23,7 @@ def safe_api(f):
             return f(*args, **kwargs)
         except Exception as e:
             LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': str(e)}), 500
+            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
     return wrapper
 
 
@@ -408,7 +406,7 @@ def biotime_sync_employee(eid):
                 emp.sync_status = 'failed'
                 all_ok = False
         except Exception as e:
-            results.append({'device_id': did, 'device_name': device.name, 'status': 'error', 'msg': str(e)})
+            results.append({'device_id': did, 'device_name': device.name, 'status': 'error', 'msg': 'فشل المزامنة.'})
             emp.sync_status = 'failed'
             all_ok = False
     if all_ok:

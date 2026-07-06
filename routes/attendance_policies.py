@@ -1,3 +1,4 @@
+import html
 import logging
 from datetime import datetime, UTC
 from flask import Blueprint, render_template, request, session, jsonify
@@ -17,7 +18,7 @@ def safe_api(f):
             return f(*args, **kwargs)
         except Exception as e:
             LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': str(e)}), 500
+            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
     return wrapper
 
 
@@ -38,9 +39,9 @@ def api_attendance_policies():
     policies = AttendancePolicy.query.order_by(AttendancePolicy.is_active.desc(), AttendancePolicy.id.desc()).all()
     return jsonify([{
         'id': p.id,
-        'name': p.name,
-        'department_name': p.department.name_ar if p.department else None,
-        'shift_type_name': p.shift_type.name if p.shift_type else None,
+        'name': html.escape(p.name or ''),
+        'department_name': html.escape(p.department.name_ar) if p.department else None,
+        'shift_type_name': html.escape(p.shift_type.name) if p.shift_type else None,
         'late_grace_minutes': p.late_grace_minutes,
         'early_leave_grace': p.early_leave_grace,
         'max_late_minutes': p.max_late_minutes,

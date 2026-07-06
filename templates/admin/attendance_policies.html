@@ -108,7 +108,7 @@ function openAddModal(){
 async function editPolicy(pid){
   const r = await api('/api/attendance-policies/' + pid);
   document.getElementById('policyId').value = r.id;
-  document.getElementById('modalTitle').innerHTML = '<i class="ti ti-settings" style="color:var(--accent)"></i> تعديل: ' + r.name;
+  document.getElementById('modalTitle').innerHTML = '<i class="ti ti-settings" style="color:var(--accent)"></i> تعديل: ' + esc(r.name);
   document.getElementById('policyName').value = r.name;
   document.getElementById('policyDept').value = r.department_id || '';
   document.getElementById('policyShift').value = r.shift_type_id || '';

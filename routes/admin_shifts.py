@@ -25,7 +25,7 @@ def safe_api(f):
             return f(*args, **kwargs)
         except Exception as e:
             LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': str(e)}), 500
+            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
     return wrapper
 
 

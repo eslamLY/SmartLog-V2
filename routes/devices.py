@@ -1,12 +1,11 @@
-import json, csv, io, os, re
-from datetime import datetime, UTC, date
+import json, re
+from datetime import datetime, UTC
 from uuid import uuid4
 
 from flask import Blueprint, render_template, request, session, jsonify, send_file
-from werkzeug.security import generate_password_hash
 
 from models import db, BioTimeDevice, DeviceEventLog, DeviceHealthSnapshot, \
-    Employee, Department, AttendanceLog, AuditLog, Branch
+    Employee, Department, AttendanceLog, Branch
 from utils.decorators import admin_required
 from services.biotime_service import (
     test_connection, get_device_info, push_employee, restart_device,
@@ -27,7 +26,7 @@ def safe_api(f):
             return f(*args, **kwargs)
         except Exception as e:
             LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': str(e)}), 500
+            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
     return wrapper
 
 
@@ -403,7 +402,7 @@ def sync_device(did):
         dev.is_online = False
         _add_device_event(dev.id, 'sync_failed', str(e), error_code='SYNC_ERR')
         errors = dev.sync_error_list
-        errors.append({'time': datetime.now(UTC).isoformat(), 'error': str(e)})
+        errors.append({'time': datetime.now(UTC).isoformat(), 'error': str(e)[:200]})
         if len(errors) > 5:
             errors = errors[-5:]
         dev.sync_error_list = errors
@@ -431,7 +430,8 @@ def bulk_sync_devices():
             results.append({'id': dev.id, 'name': dev.name, 'status': 'synced', 'count': len(logs)})
             dev.last_sync = datetime.now(UTC)
         except Exception as e:
-            results.append({'id': dev.id, 'name': dev.name, 'status': 'error', 'msg': str(e)})
+            _add_device_event(dev.id, 'sync_error', str(e))
+            results.append({'id': dev.id, 'name': dev.name, 'status': 'error', 'msg': 'فشل المزامنة.'})
     db.session.commit()
     return jsonify({'ok': True, 'results': results})
 

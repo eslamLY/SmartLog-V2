@@ -1,5 +1,6 @@
 """IP-based adaptive rate limiter with 3‑tier escalating bans + DB persistence."""
 
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta, UTC
 from threading import Lock
@@ -7,6 +8,73 @@ from threading import Lock
 # ─── In‑memory request tracking (fast path, no DB hit per request) ───────
 _ip_request_log = defaultdict(list)
 _ip_request_log_lock = Lock()
+
+# ─── Periodic cleanup throttle ──────────────────────────────────────────
+_cleanup_COOLDOWN = 300  # seconds (5 min)
+_last_cleanup_time = 0.0
+_cleanup_lock = Lock()
+
+def _periodic_cleanup():
+    """Remove expired entries from all in-memory dictionaries."""
+    now = datetime.now(UTC)
+    # Prune _ip_request_log: entries older than 120 s are dead
+    ip_cutoff = now - timedelta(seconds=120)
+    with _ip_request_log_lock:
+        dead_ips = [
+            ip for ip, ts_list in _ip_request_log.items()
+            if not ts_list or max(ts_list) < ip_cutoff
+        ]
+        for ip in dead_ips:
+            del _ip_request_log[ip]
+
+    # Prune _request_log: entries older than 120 s
+    route_cutoff = now - timedelta(seconds=120)
+    dead_routes = [
+        k for k, ts_list in _request_log.items()
+        if not ts_list or max(ts_list) < route_cutoff
+    ]
+    for k in dead_routes:
+        _request_log.pop(k, None)
+
+    # Prune _user_action_log: entries older than 120 s
+    user_cutoff = now - timedelta(seconds=120)
+    dead_users = [
+        uid for uid, ts_list in _user_action_log.items()
+        if not ts_list or max(ts_list) < user_cutoff
+    ]
+    for uid in dead_users:
+        _user_action_log.pop(uid, None)
+
+    # Prune expired user blocks
+    dead_blocks = [
+        uid for uid, expiry in list(_user_blocked_until.items())
+        if expiry and expiry < now
+    ]
+    for uid in dead_blocks:
+        _user_blocked_until.pop(uid, None)
+        _user_offense_count.pop(uid, None)
+
+    # Prune expired banned-IP cache entries
+    with _banned_ips_cache_lock:
+        dead_bans = [
+            ip for ip, entry in list(_banned_ips_cache.items())
+            if entry.get('expiry') and entry['expiry'] < now
+        ]
+        for ip in dead_bans:
+            _banned_ips_cache.pop(ip, None)
+
+def _maybe_cleanup():
+    """Throttled wrapper — runs _periodic_cleanup at most every COOLDOWN s."""
+    global _last_cleanup_time
+    t = time.monotonic()
+    if t - _last_cleanup_time < _cleanup_COOLDOWN:
+        return
+    with _cleanup_lock:
+        # Double-check inside lock
+        if t - _last_cleanup_time < _cleanup_COOLDOWN:
+            return
+        _last_cleanup_time = t
+    _periodic_cleanup()
 
 # ─── Legacy helpers (used by specific endpoint decorators) ───────────────
 _request_log = defaultdict(list)
@@ -17,9 +85,13 @@ def reset_rate_limits():
     with _banned_ips_cache_lock:
         _banned_ips_cache.clear()
     _request_log.clear()
+    _user_action_log.clear()
+    _user_blocked_until.clear()
+    _user_offense_count.clear()
 
 # ─── Route‑level rate limit (legacy, per‑endpoint) ──────────────────────
 def check_rate_limit(route_key, max_requests=30, window_seconds=60):
+    _maybe_cleanup()
     now = datetime.now(UTC)
     cutoff = now - timedelta(seconds=window_seconds)
     _request_log[route_key] = [t for t in _request_log[route_key] if t > cutoff]
@@ -42,6 +114,7 @@ _banned_ips_cache_lock = Lock()
 
 def check_ip_flood(ip_address: str, max_requests: int = 100,
                    window_seconds: int = 60) -> dict:
+    _maybe_cleanup()
     now = datetime.now(UTC)
 
     # 0. Fast in-memory banned cache (avoids DB hit for already-banned IPs)

@@ -1,13 +1,5 @@
-/* ── Fluid Typography (Issue #6) ── */
-html { font-size: 14px; }
-body { font-size: 1rem; }
-h1 { font-size: 2rem; }
-h2 { font-size: 1.5rem; }
-h3 { font-size: 1.25rem; }
-label { font-size: 0.875rem; }
-.text-small { font-size: 0.75rem; }
-.text-large { font-size: 1.125rem; }
-
-html.font-small { font-size: 12px; }
-html.font-normal { font-size: 14px; }
-html.font-large { font-size: 16px; }
+/* ── Fluid Typography (Phase 2) ── */
+html { font-size: 16px; }
+html.font-small { font-size: 14px; }
+html.font-normal { font-size: 16px; }
+html.font-large { font-size: 18px; }

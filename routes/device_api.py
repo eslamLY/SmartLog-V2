@@ -161,7 +161,7 @@ def device_sync_data(**kwargs):
                 imported += 1
 
         except Exception as e:
-            errors.append({'uid': rec.get('uid'), 'error': str(e)})
+            errors.append({'uid': rec.get('uid'), 'error': 'فشل استيراد البصمة.'})
 
     device.is_online = True
     device.last_online_at = datetime.now(UTC)

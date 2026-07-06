@@ -52,7 +52,7 @@
           var badge = 'offline';
           if (dev.online_status === 'online') badge = 'online';
           else if (dev.online_status === 'warning') badge = 'warning';
-          tbody.innerHTML += '<tr><td>' + dev.serial_no + '</td><td>' + dev.name + '</td><td>' + (dev.company_name || '-') + '</td><td>' + (dev.ip_address || '-') + '</td><td><span class="badge ' + badge + '">' + (badge === 'online' ? 'متصل' : badge === 'warning' ? 'تحذير' : 'غير متصل') + '</span></td><td>' + (dev.last_sync || '-') + '</td><td><button class="btn btn-sm" onclick="alert(\'التفاصيل\')"><i class="ti ti-eye"></i></button></td></tr>';
+          tbody.innerHTML += '<tr><td>' + esc(dev.serial_no) + '</td><td>' + esc(dev.name) + '</td><td>' + esc(dev.company_name || '-') + '</td><td>' + esc(dev.ip_address || '-') + '</td><td><span class="badge ' + badge + '">' + (badge === 'online' ? 'متصل' : badge === 'warning' ? 'تحذير' : 'غير متصل') + '</span></td><td>' + esc(dev.last_sync || '-') + '</td><td><button class="btn btn-sm" onclick="alert(\'التفاصيل\')"><i class="ti ti-eye"></i></button></td></tr>';
         });
       } catch(e) {}
     }

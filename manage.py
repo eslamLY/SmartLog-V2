@@ -6,7 +6,17 @@ Usage:
   python manage.py seed             # Seed initial data
   python manage.py reset-sequence   # Reset auto-increment sequences
 """
-import os, sys, json
+import os, sys, json, re
+
+_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+
+def _validate_identifier(name: str, label: str = 'identifier') -> str:
+    """Reject identifiers with special chars that could enable SQL injection."""
+    if not _IDENTIFIER_RE.match(name):
+        raise ValueError(
+            f"Invalid {label} '{name}': must contain only letters, digits, and underscores."
+        )
+    return name
 
 def run_check():
     from check_database_state import check_database
@@ -68,7 +78,7 @@ def run_seed():
         conn.commit()
 
         # Check/create admin user in employees table
-        r = conn.execute(text("SELECT id FROM employees WHERE username='ADM001'"))
+        r = conn.execute(text("SELECT id FROM employees WHERE username = :u"), {'u': 'ADM001'})
         if not r.fetchone():
             from werkzeug.security import generate_password_hash
             conn.execute(
@@ -81,21 +91,22 @@ def run_seed():
             print('  + Admin user: ADM001 / admin123')
 
         # Seed login_attempts placeholder
-        r = conn.execute(text("SELECT id FROM login_attempts WHERE ip_address='0.0.0.0'"))
+        r = conn.execute(text("SELECT id FROM login_attempts WHERE ip_address = :ip"), {'ip': '0.0.0.0'})
         if not r.fetchone():
             from datetime import datetime, UTC
             conn.execute(
-                text("INSERT INTO login_attempts (ip_address, attempts, last_attempt) VALUES ('0.0.0.0', 0, :now)"),
-                {'now': datetime.now(UTC)}
+                text("INSERT INTO login_attempts (ip_address, attempts, last_attempt) VALUES (:ip, 0, :now)"),
+                {'ip': '0.0.0.0', 'now': datetime.now(UTC)}
             )
         conn.commit()
         print('  + Login attempts placeholder')
 
         # Seed branding config
-        r = conn.execute(text("SELECT id FROM branding_config WHERE tenant_name='SMARTLOG'"))
+        r = conn.execute(text("SELECT id FROM branding_config WHERE tenant_name = :tn"), {'tn': 'SMARTLOG'})
         if not r.fetchone():
             conn.execute(
-                text("INSERT INTO branding_config (tenant_name, primary_color, bg_color) VALUES ('SMARTLOG', '#dc2626', '#0f172a')")
+                text("INSERT INTO branding_config (tenant_name, primary_color, bg_color) VALUES (:tn, :pc, :bc)"),
+                {'tn': 'SMARTLOG', 'pc': '#dc2626', 'bc': '#0f172a'}
             )
             conn.commit()
             print('  + Branding config')
@@ -114,13 +125,31 @@ def run_reset_sequences():
     tables = inspector.get_table_names()
     with engine.connect() as conn:
         for t in tables:
+            try:
+                _validate_identifier(t, 'table name')
+            except ValueError:
+                print(f'  SKIP table (invalid name): {t}')
+                continue
             cols = [c for c in inspector.get_columns(t) if c.get('autoincrement') and c['primary_key']]
             for c in cols:
-                seq = f'{t}_{c["name"]}_seq'
+                col_name = c['name']
                 try:
-                    r = conn.execute(text(f"SELECT setval('{seq}', COALESCE((SELECT max({c['name']}) FROM {t}), 1))"))
+                    _validate_identifier(col_name, 'column name')
+                except ValueError:
+                    print(f'  SKIP column (invalid name): {t}.{col_name}')
+                    continue
+                seq = f'{t}_{col_name}_seq'
+                try:
+                    _validate_identifier(seq, 'sequence name')
+                    r = conn.execute(
+                        text(f"SELECT setval(:seq, COALESCE((SELECT max({col_name}) FROM {t}), 1))"),
+                        {'seq': seq}
+                    )
                     print(f'  Reset sequence: {seq} -> {r.scalar()}')
-                except:
+                except ValueError:
+                    print(f'  SKIP sequence (invalid name): {seq}')
+                    continue
+                except Exception:
                     pass
         conn.commit()
     engine.dispose()

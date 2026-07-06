@@ -16,7 +16,6 @@ log.info('SmartLog starting up')
 log.info('=' * 60)
 
 from flask import Flask
-from flask_wtf.csrf import generate_csrf
 from itsdangerous import URLSafeTimedSerializer
 
 from models import db

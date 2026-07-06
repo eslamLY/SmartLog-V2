@@ -33,7 +33,7 @@ def safe_api(f):
             return f(*args, **kwargs)
         except Exception as e:
             LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': str(e)}), 500
+            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
     return wrapper
 
 
@@ -101,7 +101,7 @@ def api_delete_role(role_id):
             ip_address=request.remote_addr)
         return jsonify({'ok': True})
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return jsonify({'ok': False, 'error': 'حدث خطأ داخلي.'}), 400
 
 @rbac_bp.route('/api/roles/<int:role_id>', methods=['GET'])
 @login_required

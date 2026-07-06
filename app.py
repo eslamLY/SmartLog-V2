@@ -3,7 +3,6 @@ SMARTLOG — Attendance & HR Management System
 Entry point — delegates to core.create_app().
 """
 import os
-import sys
 
 from core import create_app
 

@@ -1,4 +1,4 @@
-import html, json, math, logging
+import html, logging
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
 from functools import wraps
@@ -15,7 +15,7 @@ from models.misc import EmployeeDocument
 from models.biotime_device import BioTimeDevice
 from models.shifts import ShiftType
 from models.notifications import Notification
-from models.employee_enhanced import EmployeeExtended, EmployeeLeaveRequest as NewLeaveRequest, EmployeePromotion, EmployeeGrade
+from models.employee_enhanced import EmployeeExtended, EmployeeLeaveRequest as NewLeaveRequest
 from utils.decorators import admin_required
 
 admin_dashboard_bp = Blueprint('admin_dashboard', __name__)
@@ -30,7 +30,7 @@ def safe_json_response(f):
             return f(*args, **kwargs)
         except Exception as e:
             LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': str(e), 'data': []}), 500
+            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.', 'data': []}), 500
     return wrapper
 
 DAY_NAMES = ['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد']

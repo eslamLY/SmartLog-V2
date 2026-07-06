@@ -158,7 +158,7 @@ function filterSwapEmps(){
   var sel=document.getElementById('swapRequester');
   sel.innerHTML='<option value="">— اختر الموظف —</option>';
   allSwapEmps.forEach(function(e){
-    if(!q||e.name.includes(q)||e.dept.includes(q)){sel.innerHTML+='<option value="'+e.id+'" data-dept="'+e.dept+'" data-name="'+e.name+'">'+e.name+' — '+e.dept+'</option>';}
+    if(!q||e.name.includes(q)||e.dept.includes(q)){sel.innerHTML+='<option value="'+e.id+'" data-dept="'+esc(e.dept)+'" data-name="'+esc(e.name)+'">'+esc(e.name)+' — '+esc(e.dept)+'</option>';}
   });
   filterTargetsByDept();
 }

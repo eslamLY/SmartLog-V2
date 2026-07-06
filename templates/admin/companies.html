@@ -102,7 +102,7 @@
           var verifiedBadge = c.is_verified ? 'verified' : '';
           var verifiedLabel = c.is_verified ? 'موثقة' : '';
           var created = c.created_at ? new Date(c.created_at).toLocaleDateString('ar') : '-';
-          tbody.innerHTML += '<tr><td><strong>' + c.name_ar + '</strong></td><td><span class="badge plan">' + c.plan + '</span></td><td>' + c.employee_count + '/' + c.max_employees + '</td><td>' + c.device_count + '/' + c.max_devices + '</td><td><span class="badge ' + activeBadge + '">' + activeLabel + '</span> ' + (verifiedLabel ? '<span class="badge ' + verifiedBadge + '">' + verifiedLabel + '</span>' : '') + '</td><td style="color:#64748b;font-size:12px">' + created + '</td><td><button class="btn btn-sm" onclick="showPlanModal(' + c.id + ',\'' + c.plan + '\')"><i class="ti ti-coin"></i></button> <button class="btn btn-sm" onclick="toggle(' + c.id + ')"><i class="ti ti-toggle-left"></i></button></td></tr>';
+          tbody.innerHTML += '<tr><td><strong>' + esc(c.name_ar) + '</strong></td><td><span class="badge plan">' + esc(c.plan) + '</span></td><td>' + c.employee_count + '/' + c.max_employees + '</td><td>' + c.device_count + '/' + c.max_devices + '</td><td><span class="badge ' + activeBadge + '">' + activeLabel + '</span> ' + (verifiedLabel ? '<span class="badge ' + verifiedBadge + '">' + verifiedLabel + '</span>' : '') + '</td><td style="color:#64748b;font-size:12px">' + esc(created) + '</td><td><button class="btn btn-sm" onclick="showPlanModal(' + c.id + ')"><i class="ti ti-coin"></i></button> <button class="btn btn-sm" onclick="toggle(' + c.id + ')"><i class="ti ti-toggle-left"></i></button></td></tr>';
         });
       } catch(e) { console.error(e); }
     }
