@@ -109,6 +109,15 @@ def run_startup(app: Flask, db: SQLAlchemy):
             except Exception:
                 db.session.rollback()
 
+        for col, typ in [('opening_balance', 'FLOAT DEFAULT 0'),
+                         ('pending_days', 'FLOAT DEFAULT 0')]:
+            try:
+                db.session.execute(db.text(f'ALTER TABLE employee_leave_balances ADD COLUMN {col} {typ}'))
+                db.session.commit()
+                log.info('Startup: added column employee_leave_balances.%s', col)
+            except Exception:
+                db.session.rollback()
+
         try:
             from utils.seeds import seed_enterprise, seed_db, seed_shift_types, seed_leave_types
             seed_enterprise()
