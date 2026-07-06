@@ -36,17 +36,17 @@ body {
 }
 
 .header-day {
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
 .header-date {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
 .header-live-clock {
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--accent);
   direction: ltr;
@@ -71,7 +71,7 @@ body {
 }
 
 .status-text {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
@@ -92,7 +92,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px 6px 30px;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--text);
   width: 160px;
   transition: width 0.2s;
@@ -136,7 +136,7 @@ body {
   padding: 8px 12px;
   text-decoration: none;
   color: var(--text);
-  font-size: 12px;
+  font-size: 0.875rem;
   transition: background 0.15s;
 }
 
@@ -145,7 +145,7 @@ body {
 }
 
 .search-result-type {
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-right: auto;
 }
@@ -154,7 +154,7 @@ body {
   padding: 12px;
   text-align: center;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 
 .font-controls {
@@ -164,7 +164,7 @@ body {
 
 .font-controls button {
   font-weight: 700;
-  font-size: 11px;
+  font-size: 0.875rem;
   padding: 4px 6px;
 }
 
@@ -191,15 +191,15 @@ body {
   right: 0;
   background: var(--accent);
   color: #fff;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 700;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
+  padding: 0 6px;
 }
 
 .notif-dropdown {
@@ -221,7 +221,7 @@ body {
 
 .notif-dropdown-header {
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 700;
   border-bottom: 1px solid var(--border);
 }
@@ -237,18 +237,18 @@ body {
 .notif-item.unread { background: var(--accent)08; }
 
 .notif-title {
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .notif-msg {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 2px;
 }
 
 .notif-time {
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted2);
   margin-top: 2px;
 }
@@ -257,7 +257,7 @@ body {
   display: block;
   padding: 10px 14px;
   text-align: center;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--accent);
   text-decoration: none;
   border-top: 1px solid var(--border);
@@ -285,12 +285,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
 .admin-name {
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -314,7 +314,7 @@ body {
 .profile-dropdown a {
   display: block;
   padding: 8px 14px;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--text);
   text-decoration: none;
   transition: background 0.15s;
@@ -335,7 +335,7 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
@@ -402,13 +402,13 @@ body {
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 2px;
 }
 
 .stat-trend {
-  font-size: 10px;
+  font-size: 0.875rem;
   margin-top: 2px;
 }
 
@@ -440,7 +440,7 @@ body {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s;
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--text);
   font-family: var(--font);
 }
@@ -470,7 +470,7 @@ body {
   gap: 8px;
   padding: 12px 16px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 700;
   user-select: none;
 }
@@ -478,7 +478,7 @@ body {
 .alerts-count {
   background: var(--accent);
   color: #fff;
-  font-size: 10px;
+  font-size: 0.875rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 8px;
@@ -515,12 +515,12 @@ body {
 .alert-content { flex: 1; min-width: 0; }
 
 .alert-title {
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .alert-msg {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -534,7 +534,7 @@ body {
   text-align: center;
   padding: 16px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 
 /* Charts Grid */
@@ -556,7 +556,7 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -608,7 +608,7 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 
 .donut-dot {
@@ -631,7 +631,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 
 .heatmap-header, .heatmap-row {
@@ -644,11 +644,11 @@ body {
 .heatmap-dept-header, .heatmap-day-header, .heatmap-pct {
   text-align: center;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.875rem;
 }
 
 .heatmap-dept-name {
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -724,22 +724,22 @@ body {
 }
 
 .schedule-time {
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .schedule-label {
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
 .schedule-info {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-top: 2px;
 }
 
 .schedule-current-badge {
-  font-size: 9px;
+  font-size: 0.875rem;
   background: var(--accent);
   color: #fff;
   padding: 1px 6px;
@@ -798,7 +798,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px 6px 30px;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--text);
   width: 180px;
   font-family: var(--font);
@@ -815,7 +815,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--text);
   font-family: var(--font);
 }
@@ -825,7 +825,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--text);
   font-family: var(--font);
 }
@@ -833,7 +833,7 @@ body {
 .records-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 
 .records-table th {
@@ -842,7 +842,7 @@ body {
   border-bottom: 1px solid var(--border);
   color: var(--muted);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 0.875rem;
   white-space: nowrap;
 }
 
@@ -872,7 +872,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -881,12 +881,12 @@ body {
 }
 
 .emp-dept {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 
 .td-ltr { direction: ltr; text-align: center; }
-.td-small { font-size: 11px; }
+.td-small { font-size: 0.875rem; }
 
 .row-actions {
   display: flex;
@@ -915,8 +915,69 @@ tr:hover .row-actions { opacity: 1; }
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
+}
+
+/* ── Touch Targets (Phase 7 AAA) ── */
+.font-controls button {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.notif-bell {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-profile {
+  min-height: 48px;
+  padding: 4px 12px;
+}
+.profile-dropdown a {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+}
+.notif-item {
+  min-height: 48px;
+  padding: 10px 16px;
+}
+.search-result-item {
+  min-height: 48px;
+  padding: 10px 16px;
+}
+.scroll-top {
+  width: 48px;
+  height: 48px;
+}
+.records-filters select,
+.records-filters input[type="date"],
+.filter-group input {
+  min-height: 48px;
+  padding: 8px 12px;
+}
+.records-table td .btn,
+.row-actions button,
+.row-actions .btn {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.alerts-header {
+  min-height: 48px;
+  padding: 8px 16px;
+}
+.stat-card {
+  min-height: 48px;
 }
 
 /* Skeleton */
@@ -939,7 +1000,7 @@ tr:hover .row-actions { opacity: 1; }
 }
 
 /* Badges */
-.badge { font-size: 11px; padding: 2px 10px; border-radius: 12px; white-space: nowrap; }
+.badge { font-size: 0.875rem; padding: 2px 10px; border-radius: 12px; white-space: nowrap; }
 .badge-present { background: var(--green)20; color: var(--green); }
 .badge-late { background: var(--orange)20; color: var(--orange); }
 .badge-absent { background: var(--red)20; color: var(--red); }
@@ -1035,7 +1096,7 @@ tr:hover .row-actions { opacity: 1; }
   .records-filters { flex-direction: column; }
   .filter-group input { width: 100%; }
   .records-filters select, .records-filters input { width: 100%; }
-  .records-table { font-size: 11px; }
+  .records-table { font-size: 0.875rem; }
   .records-table th, .records-table td { padding: 6px 8px; }
   .heatmap-header, .heatmap-row { grid-template-columns: 80px repeat(7, 24px) 30px; }
   .heatmap-cell { width: 22px; height: 22px; }

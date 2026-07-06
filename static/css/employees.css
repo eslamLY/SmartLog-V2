@@ -85,8 +85,8 @@
   outline: none !important;
   border-color: var(--accent) !important;
 }
-.required { color: #ef4444; }
-.field-error { font-size: 11px; color: #ef4444; min-height: 16px; }
+.required { color: var(--red); }
+.field-error { font-size: 11px; color: var(--red); min-height: 16px; }
 
 /* ── Password Field ── */
 .password-field {
@@ -240,6 +240,44 @@
 }
 .bio-status {
   font-size: 16px;
+}
+
+/* ── Touch Targets (Phase 7 AAA) ── */
+.action-btn, .btn-icon, td .btn {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.emp-tab {
+  min-height: 48px;
+  padding: 6px 16px;
+}
+.toggle-btn {
+  min-height: 48px;
+  padding: 8px 20px;
+}
+.pill-btn {
+  min-height: 48px;
+  padding: 8px 20px;
+}
+.device-check {
+  min-height: 48px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.device-check input[type="checkbox"] {
+  min-width: 24px;
+  min-height: 24px;
+  cursor: pointer;
+}
+.modal-overlay .btn, .modal-overlay button:not(.btn-xs):not(.btn-ghost) {
+  min-height: 48px;
+  padding: 12px 24px;
 }
 
 /* ── Responsive ── */
