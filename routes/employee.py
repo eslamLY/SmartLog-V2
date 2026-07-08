@@ -157,6 +157,51 @@ def employee_reports():
     )
 
 
+@employee_bp.route('/employee/reports/export')
+@login_required
+def employee_reports_export():
+    import calendar as _cal
+    import csv
+    import io as _io
+    emp = Employee.query.get(session['user_id'])
+    today = date.today()
+    month = request.args.get('month', today.month, type=int)
+    year  = request.args.get('year',  today.year,  type=int)
+
+    logs = AttendanceLog.query.filter(
+        AttendanceLog.employee_id == emp.id,
+        extract('month', AttendanceLog.log_date) == month,
+        extract('year',  AttendanceLog.log_date) == year
+    ).order_by(AttendanceLog.log_date.asc()).all()
+
+    rows = []
+    for l in logs:
+        h = ''
+        if l.clock_in and l.clock_out:
+            h = round((l.clock_out - l.clock_in).total_seconds() / 3600, 1)
+        rows.append({
+            'date': l.log_date.isoformat(),
+            'clock_in': l.clock_in.strftime('%H:%M') if l.clock_in else '',
+            'clock_out': l.clock_out.strftime('%H:%M') if l.clock_out else '',
+            'status': l.status or '',
+            'late_minutes': l.late_minutes or 0,
+            'work_hours': h,
+        })
+
+    si = _io.StringIO()
+    if rows:
+        writer = csv.DictWriter(si, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    output = si.getvalue().encode('utf-8-sig')
+    return send_file(
+        _io.BytesIO(output),
+        mimetype='text/csv; charset=utf-8',
+        as_attachment=True,
+        download_name=f'attendance_{year}_{month:02d}.csv',
+    )
+
+
 @employee_bp.route('/employee/clockin', methods=['POST'])
 @login_required
 def clock_in():
