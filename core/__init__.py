@@ -7,10 +7,35 @@ Usage:
 import os
 import threading
 import logging
+from logging.handlers import RotatingFileHandler
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s [%(levelname)s] %(name)s %(message)s')
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+_plain_fmt = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s %(message)s')
+
+_error_handler = RotatingFileHandler(
+    os.path.join(LOG_DIR, 'smartlog_errors.log'), maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+_error_handler.setLevel(logging.ERROR)
+_error_handler.setFormatter(_plain_fmt)
+
+_warn_handler = RotatingFileHandler(
+    os.path.join(LOG_DIR, 'smartlog_warnings.log'), maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+_warn_handler.setLevel(logging.WARNING)
+_warn_handler.setFormatter(_plain_fmt)
+
+_access_handler = RotatingFileHandler(
+    os.path.join(LOG_DIR, 'smartlog_access.log'), maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+_access_handler.setLevel(logging.INFO)
+_access_handler.setFormatter(_plain_fmt)
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s %(message)s')
 log = logging.getLogger('app')
+log.addHandler(_error_handler)
+log.addHandler(_warn_handler)
+log.addHandler(_access_handler)
+log.propagate = False
+
 log.info('=' * 60)
 log.info('SmartLog starting up')
 log.info('=' * 60)

@@ -51,7 +51,7 @@ def get_date_range(year, month, preset=None, start_date=None, end_date=None):
             sd = datetime.strptime(start_date, '%Y-%m-%d').date()
             ed = datetime.strptime(end_date, '%Y-%m-%d').date()
             return sd, ed
-        except:
+        except Exception:
             pass
     first = date(year, month, 1)
     last_day = calendar.monthrange(year, month)[1]

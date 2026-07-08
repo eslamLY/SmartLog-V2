@@ -181,23 +181,56 @@ def register_limiter(app: Flask):
     limiter.limit("5 per minute")(_clock_in_qr_view)
 
 
+def _is_api_request():
+    return request.path.startswith('/api/') or request.is_json
+
+def _sanitised_error(msg: str, status: int):
+    return jsonify({'ok': False, 'error': msg, 'status': status}), status
+
+
 def register_error_handlers(app: Flask):
-    """Custom error pages for 500 and 429."""
+    """Global error handlers with hybrid JSON/template dispatch."""
+
+    @app.errorhandler(400)
+    def bad_request_handler(e):
+        log.warning('400 Bad Request — %s %s', request.method, request.path)
+        if _is_api_request():
+            return _sanitised_error('طلب غير صالح. تحقق من البيانات المرسلة.', 400)
+        return render_template('errors/400.html'), 400
+
+    @app.errorhandler(401)
+    def unauthorized_handler(e):
+        log.warning('401 Unauthorized — %s %s', request.method, request.path)
+        if _is_api_request():
+            return _sanitised_error('يجب تسجيل الدخول أولاً.', 401)
+        return render_template('errors/401.html'), 401
+
+    @app.errorhandler(403)
+    def forbidden_handler(e):
+        log.warning('403 Forbidden — %s %s', request.method, request.path)
+        if _is_api_request():
+            return _sanitised_error('ليس لديك صلاحية للوصول إلى هذا المورد.', 403)
+        return render_template('errors/403.html'), 403
+
+    @app.errorhandler(404)
+    def not_found_handler(e):
+        log.warning('404 Not Found — %s %s', request.method, request.path)
+        if _is_api_request():
+            return _sanitised_error('الصفحة أو المورد المطلوب غير موجود.', 404)
+        return render_template('errors/404.html'), 404
 
     @app.errorhandler(500)
     def internal_error_handler(e):
         import traceback
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        tb = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-        log.error('500 Internal Server Error:\n%s', tb)
+        tb = traceback.format_exc()
+        log.error('500 Internal Server Error — %s %s\n%s', request.method, request.path, tb)
         try:
             db.session.rollback()
         except Exception:
             pass
-        if request.path.startswith('/api/') or request.headers.get('Accept') == 'application/json':
-            return jsonify({'ok': False, 'error': str(exc_value), 'traceback': tb}), 500
-        return f"""<!doctype html><meta charset="utf-8"><title>500 Error</title>
-<pre style="background:#1a1a2e;color:#e2e8f0;padding:20px;font-size:13px;direction:ltr;text-align:left;overflow:auto;height:100vh">{tb}</pre>""", 500
+        if _is_api_request():
+            return _sanitised_error('حدث خطأ داخلي في الخادم. الرجاء المحاولة لاحقاً.', 500)
+        return render_template('errors/500.html'), 500
 
     @app.errorhandler(429)
     def rate_limit_handler(e):
@@ -209,8 +242,8 @@ def register_error_handlers(app: Flask):
             db.session.commit()
         except Exception:
             db.session.rollback()
-        if request.path.startswith('/api/') or request.headers.get('Accept') == 'application/json':
-            return jsonify({'ok': False, 'msg': 'Too many requests'}), 429
+        if _is_api_request():
+            return jsonify({'ok': False, 'msg': 'محاولات كثيرة جداً. انتظر قليلاً.'}), 429
         return render_template('blocked.html'), 429
 
 
