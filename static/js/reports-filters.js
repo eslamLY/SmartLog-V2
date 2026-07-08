@@ -28,10 +28,6 @@ function getFilterParams() {
   if (chips.length > 0) {
     params.set('statuses', Array.from(chips).map(c => c.value).join(','));
   }
-  const patterns = document.querySelectorAll('.filter-section .chip-group:not(#statusChips) .chip.active input:checked');
-  if (patterns.length > 0) {
-    params.set('patterns', Array.from(patterns).map(c => c.value).join(','));
-  }
   return params.toString();
 }
 
@@ -68,8 +64,6 @@ function resetFilters() {
   toggleScope();
   document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.add('active'));
   document.querySelectorAll('#statusChips .chip input').forEach(c => c.checked = true);
-  document.querySelectorAll('.filter-section .chip-group:not(#statusChips) .chip').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('.filter-section .chip-group:not(#statusChips) .chip input').forEach(c => c.checked = false);
   document.getElementById('tableSearch').value = '';
   loadReports();
 }
