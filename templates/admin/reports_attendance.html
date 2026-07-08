@@ -203,6 +203,7 @@
     <button class="tab-btn" data-tab="ytd" onclick="switchTab('ytd', this);loadYTD()"><i class="ti ti-calendar-stats"></i> YTD</button>
     <button class="tab-btn" data-tab="compliance" onclick="switchTab('compliance', this);loadCompliance()"><i class="ti ti-shield-check"></i> الامتثال القانوني</button>
     <button class="tab-btn" data-tab="teams" onclick="switchTab('teams', this);loadTeams()"><i class="ti ti-building"></i> أداء الفرق</button>
+    <button class="tab-btn" data-tab="scheduling" onclick="switchTab('scheduling', this);loadSchedule()"><i class="ti ti-clock"></i> الجدولة</button>
   </div>
 
   <div class="tab-content" id="tabCharts">
@@ -512,6 +513,58 @@
             <tbody id="teamsBody"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tabScheduling" style="display:none">
+    <div class="card" style="overflow:hidden;margin-bottom:12px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;font-size:14px"><i class="ti ti-clock" style="color:var(--accent);margin-left:6px"></i>التقارير المجدولة</span>
+        <button class="btn btn-sm btn-indigo" onclick="showAddSchedule()"><i class="ti ti-plus"></i> جديد</button>
+      </div>
+      <div class="loading-spinner" id="schedLoading" style="padding:40px;text-align:center"><i class="ti ti-loader ti-spin" style="font-size:24px"></i></div>
+      <div id="schedList" style="display:none"></div>
+    </div>
+
+    <div id="schedFormModal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);padding:20px" onclick="if(event.target===this)hideSchedForm()">
+      <div style="max-width:400px;margin:10vh auto;background:var(--card);border-radius:16px;overflow:hidden">
+        <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:15px" id="schedFormTitle">إضافة تقرير مجدول</span>
+          <button class="btn btn-sm btn-ghost" onclick="hideSchedForm()" style="font-size:18px">&times;</button>
+        </div>
+        <form onsubmit="saveSchedule(event)" style="padding:16px">
+          <input type="hidden" id="schedId">
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">اسم التقرير</label>
+            <input type="text" id="schedName" class="form-control" required style="width:100%" placeholder="مثال: تقرير الحضور الشهري">
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">التكرار</label>
+            <select id="schedFreq" class="form-control" style="width:100%" onchange="toggleSchedFreq()">
+              <option value="monthly">شهري</option>
+              <option value="weekly">أسبوعي</option>
+              <option value="daily">يومي</option>
+            </select>
+          </div>
+          <div style="margin-bottom:12px" id="schedDayOfMonthWrap">
+            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">يوم الشهر</label>
+            <input type="number" id="schedDayOfMonth" class="form-control" style="width:100%" value="1" min="1" max="31">
+          </div>
+          <div style="margin-bottom:12px;display:none" id="schedDayOfWeekWrap">
+            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">يوم الأسبوع</label>
+            <select id="schedDayOfWeek" class="form-control" style="width:100%">
+              <option value="0">الأحد</option><option value="1">الإثنين</option><option value="2">الثلاثاء</option>
+              <option value="3">الأربعاء</option><option value="4">الخميس</option><option value="5">الجمعة</option><option value="6">السبت</option>
+            </select>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">الوقت</label>
+            <input type="time" id="schedTime" class="form-control" style="width:100%" value="08:00">
+          </div>
+          <button type="submit" class="btn btn-indigo" style="width:100%"><i class="ti ti-save"></i> حفظ</button>
+          <div id="schedMsg" style="margin-top:8px;font-size:13px"></div>
+        </form>
       </div>
     </div>
   </div>
@@ -907,6 +960,87 @@ function loadTeams() {
         </tr>
       `).join('');
     });
+}
+
+function loadSchedule() {
+  document.getElementById('schedLoading').style.display = 'block';
+  document.getElementById('schedList').style.display = 'none';
+  fetch('/admin/reports/api/scheduled').then(r=>r.json()).then(d=>{
+    document.getElementById('schedLoading').style.display = 'none';
+    document.getElementById('schedList').style.display = 'block';
+    const reports = d.reports || [];
+    if (!reports.length) {
+      document.getElementById('schedList').innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد تقارير مجدولة</div>';
+      return;
+    }
+    document.getElementById('schedList').innerHTML = reports.map(r => `
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px">${r.name}</div>
+          <div style="font-size:11px;color:var(--muted)">
+            ${r.frequency === 'monthly' ? 'شهري' : r.frequency === 'weekly' ? 'أسبوعي' : 'يومي'} · ${r.time}
+            · ${r.format_type}
+            ${r.last_run_at ? '· آخر تشغيل: ' + new Date(r.last_run_at).toLocaleDateString('ar') : ''}
+          </div>
+        </div>
+        <button class="btn btn-xs btn-ghost" onclick="runNow(${r.id})" title="تشغيل الآن" style="font-size:14px"><i class="ti ti-play"></i></button>
+        <button class="btn btn-xs btn-ghost" onclick="toggleSched(${r.id})" style="color:${r.is_active ? 'var(--green)' : 'var(--muted)'};font-size:14px">
+          <i class="ti ${r.is_active ? 'ti-toggle-left' : 'ti-toggle-right'}"></i>
+        </button>
+        <button class="btn btn-xs btn-ghost" onclick="deleteSched(${r.id})" style="color:var(--red);font-size:14px"><i class="ti ti-trash"></i></button>
+      </div>
+    `).join('');
+  });
+}
+function showAddSchedule(){
+  document.getElementById('schedId').value='';
+  document.getElementById('schedName').value='';
+  document.getElementById('schedFreq').value='monthly';
+  document.getElementById('schedDayOfMonth').value='1';
+  document.getElementById('schedDayOfWeek').value='0';
+  document.getElementById('schedTime').value='08:00';
+  document.getElementById('schedMsg').textContent='';
+  document.getElementById('schedFormTitle').textContent='إضافة تقرير مجدول';
+  document.getElementById('schedFormModal').style.display='block';
+}
+function hideSchedForm(){document.getElementById('schedFormModal').style.display='none';}
+function toggleSchedFreq(){
+  const f=document.getElementById('schedFreq').value;
+  document.getElementById('schedDayOfMonthWrap').style.display=f==='monthly'?'block':'none';
+  document.getElementById('schedDayOfWeekWrap').style.display=f==='weekly'?'block':'none';
+}
+function saveSchedule(e){
+  e.preventDefault();
+  const msg=document.getElementById('schedMsg');
+  msg.innerHTML='<i class="ti ti-loader ti-spin"></i> جاري الحفظ...';
+  const freq=document.getElementById('schedFreq').value;
+  const t=document.getElementById('schedTime').value.split(':');
+  fetch('/admin/reports/api/scheduled/create', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      name:document.getElementById('schedName').value,
+      frequency:freq,
+      day_of_month:freq==='monthly'?document.getElementById('schedDayOfMonth').value:null,
+      day_of_week:freq==='weekly'?document.getElementById('schedDayOfWeek').value:null,
+      time_hour:parseInt(t[0]), time_minute:parseInt(t[1]),
+      format_type:'csv',
+    })
+  }).then(r=>r.json()).then(d=>{
+    if(d.error){msg.style.color='var(--red)';msg.textContent=d.error;return;}
+    msg.style.color='var(--green)';msg.textContent='تم الحفظ';
+    hideSchedForm();
+    loadSchedule();
+  }).catch(()=>{msg.style.color='var(--red)';msg.textContent='حدث خطأ';});
+}
+function toggleSched(id){
+  fetch('/admin/reports/api/scheduled/'+id+'/toggle', {method:'POST'}).then(r=>r.json()).then(()=>loadSchedule());
+}
+function deleteSched(id){
+  if(!confirm('حذف هذا التقرير المجدول؟'))return;
+  fetch('/admin/reports/api/scheduled/'+id+'/delete', {method:'POST'}).then(r=>r.json()).then(()=>loadSchedule());
+}
+function runNow(id){
+  fetch('/admin/reports/api/scheduled/'+id+'/run-now', {method:'POST'}).then(r=>r.json()).then(()=>loadSchedule());
 }
 
 restoreFilterState();
