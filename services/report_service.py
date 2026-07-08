@@ -138,7 +138,8 @@ class ComplianceService:
         today = date.today()
         year = year or today.year
         month = month or today.month
-        month_start = date(year, month, 1)
+        _, last_day = calendar.monthrange(year, month)
+        month_end   = date(year, month, last_day)
 
         qry = Employee.query.filter(Employee.is_active == True, Employee.deleted_at == None)
         if employee_id:
@@ -154,7 +155,7 @@ class ComplianceService:
         logs = AttendanceLog.query.filter(
             AttendanceLog.employee_id.in_(emp_ids),
             AttendanceLog.log_date >= month_start,
-            AttendanceLog.log_date <= today,
+            AttendanceLog.log_date <= month_end,
             AttendanceLog.clock_in.isnot(None),
         ).order_by(AttendanceLog.employee_id, AttendanceLog.log_date).all()
 
