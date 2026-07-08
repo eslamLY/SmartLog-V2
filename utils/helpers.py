@@ -173,6 +173,6 @@ def to_dt(tpl):
     try:
         if isinstance(tpl, (tuple, list)) and len(tpl) == 3:
             return date(int(tpl[0]), int(tpl[1]), int(tpl[2]))
-    except:
+    except Exception:
         pass
     return None

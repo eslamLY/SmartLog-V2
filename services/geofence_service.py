@@ -14,7 +14,7 @@ class GeofenceService:
 
     def check_all_zones(self, lat, lng, accuracy=0.0):
         results = []
-        zones = GeofenceZone.query.filter_by(is_active=True).all()
+        zones = GeofenceZone.query.filter_by(is_active=True).limit(200).all()
         for zone in zones:
             inside, distance = zone.contains(lat, lng)
             results.append({
@@ -32,7 +32,7 @@ class GeofenceService:
         return results
 
     def process_location_update(self, employee_id, lat, lng, accuracy=0.0, source='app'):
-        zones = GeofenceZone.query.filter_by(is_active=True).all()
+        zones = GeofenceZone.query.filter_by(is_active=True).limit(200).all()
         events = []
         employee = Employee.query.get(employee_id)
         employee_name = employee.full_name if employee else ''
@@ -165,7 +165,7 @@ class GeofenceService:
 
     def get_nearby_zones(self, lat, lng, max_distance=500):
         results = []
-        zones = GeofenceZone.query.filter_by(is_active=True).all()
+        zones = GeofenceZone.query.filter_by(is_active=True).limit(200).all()
         for zone in zones:
             if zone.zone_type == 'circle' and zone.center_lat and zone.center_lng:
                 dist = haversine(lat, lng, zone.center_lat, zone.center_lng)

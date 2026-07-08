@@ -56,7 +56,7 @@ class GovernmentExport:
             'نسبة المعاش', 'سنوات الخدمة', 'المعاش المتوقع',
             'رقم التأمينات', 'نسبة الاشتراك',
         ])
-        employees = Employee.query.filter_by(is_active=True).all()
+        employees = Employee.query.filter_by(is_active=True).yield_per(200)
         for emp in employees:
             if not emp.extended:
                 continue
@@ -85,7 +85,7 @@ class GovernmentExport:
             'عدد المعالين', 'قسط التأمين الصحي', 'تغطية تأمين الحياة',
             'المستفيد', 'قسط الحياة', 'تغطية إصابات العمل',
         ])
-        employees = Employee.query.filter_by(is_active=True).all()
+        employees = Employee.query.filter_by(is_active=True).yield_per(200)
         for emp in employees:
             if not emp.extended:
                 continue
@@ -111,7 +111,7 @@ class GovernmentExport:
             'الرقم الوظيفي', 'الاسم', 'مستوى التصريح', 'تاريخ التصريح',
             'تاريخ انتهاء التصريح', 'جهة الإصدار', 'الحالة',
         ])
-        employees = Employee.query.filter_by(is_active=True).all()
+        employees = Employee.query.filter_by(is_active=True).yield_per(200)
         for emp in employees:
             if not emp.extended:
                 continue

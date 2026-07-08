@@ -362,7 +362,7 @@ class AnomalyDetectionModel:
         return np.array(features, dtype=np.float32)
 
     def build_all_employee_features(self) -> Tuple[np.ndarray, List[int]]:
-        employees = Employee.query.filter_by(is_active=True).all()
+        employees = Employee.query.filter_by(is_active=True).limit(2000).all()
         X, ids = [], []
         for emp in employees:
             try:
@@ -413,7 +413,7 @@ class EmployeeSegmentationModel:
         return np.array(features, dtype=np.float32)
 
     def build_all_features(self) -> Tuple[np.ndarray, List[int]]:
-        employees = Employee.query.filter_by(is_active=True).all()
+        employees = Employee.query.filter_by(is_active=True).limit(2000).all()
         X, ids = [], []
         for emp in employees:
             try:
@@ -432,7 +432,7 @@ class EmployeeSegmentationModel:
 class CorrelationAnalyzer:
     @staticmethod
     def analyze_leave_factors() -> List[Dict]:
-        employees = Employee.query.filter_by(is_active=True).all()
+        employees = Employee.query.filter_by(is_active=True).limit(2000).all()
         data = []
         for emp in employees:
             leaves = EmployeeLeaveRequest.query.filter(
@@ -473,7 +473,7 @@ class CorrelationAnalyzer:
 
     @staticmethod
     def analyze_turnover_factors() -> List[Dict]:
-        active = Employee.query.filter_by(is_active=True).all()
+        active = Employee.query.filter_by(is_active=True).limit(2000).all()
         inactive = Employee.query.filter_by(is_active=False).limit(20).all()
         data = []
         for emp in active + inactive:

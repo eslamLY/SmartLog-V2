@@ -42,8 +42,12 @@ def scenarios_page():
 @safe_api
 def simulate():
     data = request.get_json(force=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'ok': False, 'msg': 'بيانات غير صالحة'}), 400
     scenario_type = data.get('type', 'departure')
     params = data.get('params', {})
+    if not isinstance(params, dict):
+        return jsonify({'ok': False, 'msg': 'المعاملات يجب أن تكون كائن JSON'}), 400
     simulator = ScenarioSimulator()
     result = simulator.run(scenario_type, params)
     return jsonify(result)
@@ -117,10 +121,16 @@ class ScenarioSimulator:
         total_resource_loss = 0
         project_delay_days = 0
         total_salary_cost = 0
+        dept_counts = dict(
+            db.session.query(Employee.department, db.func.count(Employee.id))
+            .filter(Employee.is_active == True)
+            .group_by(Employee.department)
+            .all()
+        )
         for emp in employees:
-            dept_total = Employee.query.filter_by(department=emp.department, is_active=True).count()
-            total_resource_loss += (1 / max(dept_total, 1)) * 100
-            project_delay_days += max(1, int(5 / max(dept_total, 1)))
+            dept_total = dept_counts.get(emp.department, 0) or 1
+            total_resource_loss += (1 / dept_total) * 100
+            project_delay_days += max(1, int(5 / dept_total))
             total_salary_cost += float(emp.base_salary or 0)
         hiring_cost = int(total_salary_cost * 1.5)
         weeks_to_replace = 8 + count * 2

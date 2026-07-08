@@ -232,7 +232,7 @@ class DataPreprocessor:
 
     @staticmethod
     def build_department_weekly_pattern(dept: str) -> dict:
-        employees = Employee.query.filter_by(department=dept, is_active=True).all()
+        employees = Employee.query.filter_by(department=dept, is_active=True).limit(500).all()
         emp_ids = [e.id for e in employees]
         logs = AttendanceLog.query.filter(
             AttendanceLog.employee_id.in_(emp_ids),

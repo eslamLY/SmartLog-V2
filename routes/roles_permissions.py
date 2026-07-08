@@ -75,7 +75,9 @@ def api_list_roles():
 @login_required
 @safe_api
 def api_create_role():
-    data = request.get_json()
+    data = request.get_json() or {}
+    if not data.get('name') or not data.get('code'):
+        return jsonify({'ok': False, 'msg': 'اسم الدور ورمز مطلوبان'}), 400
     role = create_role(data, request.user_id)
     log_role_creation(role, request.user_id,
         ip_address=request.remote_addr, user_agent=request.user_agent.string if hasattr(request, 'user_agent') else None)
@@ -85,7 +87,7 @@ def api_create_role():
 @login_required
 @safe_api
 def api_update_role(role_id):
-    data = request.get_json()
+    data = request.get_json() or {}
     role = update_role(role_id, data, request.user_id)
     return jsonify({'ok': True, 'role': role.to_dict()})
 

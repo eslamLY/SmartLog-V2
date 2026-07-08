@@ -31,7 +31,7 @@ class AttendanceAnalytics:
             query = query.filter(Employee.department_id == self.department_id)
         if self.employee_ids:
             query = query.filter(Employee.id.in_(self.employee_ids))
-        return query.order_by(Employee.full_name).all()
+        return query.order_by(Employee.full_name).limit(500).all()
 
     def get_work_days(self):
         count = 0

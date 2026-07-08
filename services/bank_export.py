@@ -124,7 +124,7 @@ class BankExportService:
 
     @staticmethod
     def get_missing_iban(month, year):
-        payments = BankPaymentDetail.query.filter_by(month=month, year=year).all()
+        payments = BankPaymentDetail.query.filter_by(month=month, year=year).limit(500).all()
         missing = []
         for p in payments:
             if not p.iban:
@@ -139,7 +139,7 @@ class BankExportService:
 
     @staticmethod
     def validate_all_iban(month, year):
-        payments = BankPaymentDetail.query.filter_by(month=month, year=year).all()
+        payments = BankPaymentDetail.query.filter_by(month=month, year=year).limit(500).all()
         results = []
         for p in payments:
             valid, msg = BankExportService.validate_iban(p.iban or '')

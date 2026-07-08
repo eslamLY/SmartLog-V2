@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime, UTC, date
 from sqlalchemy import text as sa_text
 from werkzeug.security import generate_password_hash
+log = logging.getLogger(__name__)
 
 from models import db, Employee, Department, AttendanceLog, \
     AuditLog, Permission, Role, EmailTemplate, BrandingConfig, \
@@ -130,7 +132,9 @@ def _ensure_indexes():
             col_str = ', '.join(cols)
             db.session.execute(sa_text(f'CREATE INDEX IF NOT EXISTS {idx} ON {tbl} ({col_str})'))
             db.session.commit()
-        except Exception:
+        except Exception as exc:
+            logger = logging.getLogger(__name__)
+            logger.warning('Index %s on %s failed: %s', idx, tbl, exc)
             db.session.rollback()
 
 

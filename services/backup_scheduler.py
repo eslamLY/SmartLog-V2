@@ -81,7 +81,7 @@ def delete_schedule(schedule_id: int) -> dict:
 
 
 def list_schedules() -> list:
-    schedules = BackupSchedule.query.order_by(BackupSchedule.created_at.desc()).all()
+    schedules = BackupSchedule.query.order_by(BackupSchedule.created_at.desc()).limit(100).all()
     return [{
         'id': s.id,
         'name': s.name,

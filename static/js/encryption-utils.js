@@ -5,17 +5,12 @@ var EncryptionUtils = (function () {
   var IV_LENGTH = 12;
   var ITERATIONS = 100000;
 
+  var _memoryKey = null;
+
   function getDeviceKey() {
     return new Promise(function (resolve, reject) {
+      if (_memoryKey) { resolve(_memoryKey.slice(0)); return; }
       var deviceId = localStorage.getItem('device_id') || 'unknown-device';
-      var storedKey = localStorage.getItem('_ek');
-      if (storedKey) {
-        try {
-          var parsed = JSON.parse(storedKey);
-          resolve(base64ToArrayBuffer(parsed.k));
-          return;
-        } catch (e) {}
-      }
       var salt = new Uint8Array(SALT_LENGTH);
       crypto.getRandomValues(salt);
       var enc = new TextEncoder();
@@ -31,8 +26,7 @@ var EncryptionUtils = (function () {
       }).then(function (aesKey) {
         return crypto.subtle.exportKey('raw', aesKey);
       }).then(function (rawKey) {
-        var keyObj = { k: arrayBufferToBase64(rawKey), s: arrayBufferToBase64(salt) };
-        localStorage.setItem('_ek', JSON.stringify(keyObj));
+        _memoryKey = rawKey;
         resolve(rawKey);
       }).catch(reject);
     });
@@ -90,19 +84,16 @@ var EncryptionUtils = (function () {
 
   function encryptString(plaintext) {
     try {
-      var key = getDeviceKeySync();
-      if (!key) return null;
+      if (!_memoryKey) return null;
       var iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
       var enc = new TextEncoder();
-      return crypto.subtle.encrypt(
-        { name: ALGORITHM, iv: iv },
-        key,
-        enc.encode(plaintext)
-      ).then(function (ciphertext) {
-        var combined = new Uint8Array(iv.length + ciphertext.byteLength);
-        combined.set(iv, 0);
-        combined.set(new Uint8Array(ciphertext), iv.length);
-        return arrayBufferToBase64(combined.buffer);
+      return crypto.subtle.importKey('raw', _memoryKey, { name: ALGORITHM, length: KEY_LENGTH }, false, ['encrypt', 'decrypt']).then(function (key) {
+        return crypto.subtle.encrypt({ name: ALGORITHM, iv: iv }, key, enc.encode(plaintext)).then(function (ciphertext) {
+          var combined = new Uint8Array(iv.length + ciphertext.byteLength);
+          combined.set(iv, 0);
+          combined.set(new Uint8Array(ciphertext), iv.length);
+          return arrayBufferToBase64(combined.buffer);
+        });
       });
     } catch (e) {
       return null;
@@ -110,14 +101,7 @@ var EncryptionUtils = (function () {
   }
 
   function getDeviceKeySync() {
-    try {
-      var storedKey = localStorage.getItem('_ek');
-      if (!storedKey) return null;
-      var parsed = JSON.parse(storedKey);
-      return base64ToArrayBuffer(parsed.k);
-    } catch (e) {
-      return null;
-    }
+    return _memoryKey ? _memoryKey.slice(0) : null;
   }
 
   function encryptData(data) {

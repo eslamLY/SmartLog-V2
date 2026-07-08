@@ -72,7 +72,8 @@ def audit_log_action(action=None, entity_type=None):
                     })
                 ))
                 db.session.commit()
-            except Exception:
+            except Exception as exc:
+                log.warning('Audit log write failed: %s', exc)
                 db.session.rollback()
             return resp
         return wrapper
