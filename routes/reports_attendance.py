@@ -1143,3 +1143,13 @@ def api_compliance():
     month = request.args.get('month', type=int)
     result = ComplianceService.check_compliance(employee_id, department_id, year, month)
     return jsonify(result)
+
+
+@reports_attendance_bp.route('/api/team-performance')
+@admin_required
+@safe_api
+def api_team_performance():
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    result = ReportDataService.team_performance(year, month)
+    return jsonify(result)

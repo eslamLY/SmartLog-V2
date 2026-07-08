@@ -274,3 +274,53 @@ class ReportDataService:
             'total_expected': total_expected,
         }
         return {'rows': rows, 'summary': summary, 'year': year, 'month': month}
+
+    @staticmethod
+    def team_performance(year, month):
+        import calendar
+        today = date.today()
+        data = ReportDataService.calculate_report(year, month)
+        rows = data['rows']
+        dept_map = {}
+        for r in rows:
+            dept_name = r.get('department', 'بدون قسم')
+            if dept_name not in dept_map:
+                dept_map[dept_name] = {
+                    'department': dept_name,
+                    'employee_count': 0,
+                    'present_days': 0,
+                    'expected_days': 0,
+                    'late_minutes': 0,
+                    'absent_days': 0,
+                    'work_hours': 0.0,
+                    'overtime_hours': 0.0,
+                    'deductions': 0.0,
+                }
+            d = dept_map[dept_name]
+            d['employee_count'] += 1
+            d['present_days'] += r['present_days']
+            d['expected_days'] += r['expected_days']
+            d['late_minutes'] += r['late_minutes']
+            d['absent_days'] += r['absent_days']
+            d['work_hours'] += r.get('work_hours', 0)
+            d['overtime_hours'] += r.get('overtime_hours', 0)
+            d['deductions'] += r.get('total_deduction', 0)
+        result = []
+        for dept in dept_map.values():
+            att_pct = round((dept['present_days'] / dept['expected_days']) * 100, 1) if dept['expected_days'] > 0 else 0
+            avg_late = round(dept['late_minutes'] / dept['employee_count'], 1) if dept['employee_count'] > 0 else 0
+            result.append({
+                'department': dept['department'],
+                'employee_count': dept['employee_count'],
+                'present_days': dept['present_days'],
+                'expected_days': dept['expected_days'],
+                'attendance_pct': att_pct,
+                'late_minutes': dept['late_minutes'],
+                'avg_late_per_emp': avg_late,
+                'absent_days': dept['absent_days'],
+                'work_hours': round(dept['work_hours'], 1),
+                'overtime_hours': round(dept['overtime_hours'], 1),
+                'deductions': round(dept['deductions'], 2),
+            })
+        result.sort(key=lambda x: x['attendance_pct'], reverse=True)
+        return {'departments': result, 'year': year, 'month': month}
