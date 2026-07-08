@@ -69,7 +69,9 @@ def register_middleware(app, PRODUCTION):
             return
         if request.path.startswith(('/static/', '/manifest.json', '/sw.js',
                                     '/uploads/', '/api/health', '/login',
-                                    '/company/', '/api/device/')):
+                                    '/company/', '/api/device/',
+                                    '/api/v1/auth/login', '/api/v1/auth/refresh',
+                                    '/api/v1/auth/logout')):
             return
         if request.is_json:
             token = request.headers.get('X-CSRFToken')
