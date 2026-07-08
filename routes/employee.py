@@ -126,6 +126,28 @@ def employee_reports():
 
     deduction, _ = monthly_deduction(emp.id, year, month)
 
+    ytd_start = date(year, 1, 1)
+    ytd_logs = AttendanceLog.query.filter(
+        AttendanceLog.employee_id == emp.id,
+        AttendanceLog.log_date >= ytd_start,
+        AttendanceLog.log_date <= today,
+    ).all() if month != today.month or year != today.year else month_logs
+
+    ytd_present = sum(1 for l in ytd_logs if l.status in ('present', 'late'))
+    ytd_late_mins = sum(l.late_minutes or 0 for l in ytd_logs)
+    ytd_work_sec = sum((l.clock_out - l.clock_in).total_seconds() for l in ytd_logs if l.clock_in and l.clock_out)
+    ytd_work_hours = round(ytd_work_sec / 3600, 1)
+    ytd_working_days = sum(1 for d in range((today - ytd_start).days + 1) if (ytd_start + timedelta(days=d)).weekday() < 5)
+    ytd_pct = round((ytd_present / ytd_working_days) * 100, 1) if ytd_working_days > 0 else 0
+    ytd_overtime_sec = 0
+    for l in ytd_logs:
+        if l.clock_in and l.clock_out:
+            gross = (l.clock_out - l.clock_in).total_seconds() / 3600
+            net = gross - (break_minutes / 60)
+            if net > 8:
+                ytd_overtime_sec += (net - 8) * 3600
+    ytd_overtime_hours = round(ytd_overtime_sec / 3600, 1)
+
     balances = EmployeeLeaveBalance.query.filter(
         EmployeeLeaveBalance.employee_id == emp.id,
         EmployeeLeaveBalance.year == year
@@ -153,7 +175,10 @@ def employee_reports():
         balances=balances,
         total_opening=total_opening, total_allocated=total_allocated,
         total_used=total_used, total_pending=total_pending,
-        total_remaining=total_remaining
+        total_remaining=total_remaining,
+        ytd_present=ytd_present, ytd_late_mins=ytd_late_mins,
+        ytd_work_hours=ytd_work_hours, ytd_pct=ytd_pct,
+        ytd_working_days=ytd_working_days, ytd_overtime_hours=ytd_overtime_hours
     )
 
 

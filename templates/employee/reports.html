@@ -43,8 +43,28 @@
       </div>
     </div>
 
+    <div class="card animate-fade-in" style="--i:4;margin-bottom:14px;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
+        <i class="ti ti-calendar-stats" style="color:var(--accent);margin-left:6px"></i>الأداء التراكمي منذ بداية العام
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px">
+        <div style="text-align:center">
+          <div style="font-size:11px;color:var(--muted)">نسبة الحضور</div>
+          <div style="font-size:20px;font-weight:800;color:var(--green)">{{ ytd_pct }}%</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:11px;color:var(--muted)">ساعات العمل</div>
+          <div style="font-size:20px;font-weight:800;color:var(--text)">{{ ytd_work_hours }}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:11px;color:var(--muted)">ساعات إضافية</div>
+          <div style="font-size:20px;font-weight:800;color:var(--purple)">{{ ytd_overtime_hours }}</div>
+        </div>
+      </div>
+    </div>
+
     {% if deduction > 0 %}
-    <div class="card animate-fade-in" style="--i:4;padding:14px;margin-bottom:14px;background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.2)">
+    <div class="card animate-fade-in" style="--i:5;padding:14px;margin-bottom:14px;background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.2)">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:13px;color:var(--text)"><i class="ti ti-coin"></i> خصم التأخير</span>
         <span style="font-size:16px;font-weight:800;color:var(--red)">{{ deduction }} د.ل</span>
@@ -52,7 +72,7 @@
     </div>
     {% endif %}
 
-    <div class="card animate-fade-in" style="--i:5;margin-bottom:14px;overflow:hidden">
+    <div class="card animate-fade-in" style="--i:6;margin-bottom:14px;overflow:hidden">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
         <i class="ti ti-ledger" style="color:var(--accent);margin-left:6px"></i>سجل رصيد الإجازات — {{ today.year }}
       </div>
@@ -102,7 +122,7 @@
     </div>
 
     {% if month_logs %}
-    <div class="card animate-fade-in" style="--i:6;overflow:hidden;margin-bottom:14px">
+    <div class="card animate-fade-in" style="--i:7;overflow:hidden;margin-bottom:14px">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">
         <i class="ti ti-calendar-stats" style="color:var(--accent);margin-left:6px"></i>سجل الحضور اليومي
       </div>
@@ -137,7 +157,7 @@
       </div>
     </div>
     {% else %}
-    <div class="card animate-fade-in" style="--i:6;padding:28px 16px;text-align:center;margin-bottom:14px">
+    <div class="card animate-fade-in" style="--i:7;padding:28px 16px;text-align:center;margin-bottom:14px">
       <i class="ti ti-calendar-off" style="font-size:36px;color:var(--muted);margin-bottom:8px;display:block"></i>
       <div style="font-size:14px;color:var(--muted)">لا توجد سجلات حضور لهذا الشهر</div>
     </div>
