@@ -997,8 +997,14 @@ class AIForecastingEngine:
             if not emp:
                 return {'error': 'الموظف غير موجود'}
             detail = AIForecastingEngine.get_employee_turnover_detail(emp_id)
+            dept_counts = dict(
+                db.session.query(Employee.department, db.func.count(Employee.id))
+                .filter(Employee.is_active == True)
+                .group_by(Employee.department)
+                .all()
+            )
             dept = emp.department
-            dept_total = Employee.query.filter_by(department=dept, is_active=True).count()
+            dept_total = dept_counts.get(dept, 0)
             new_total = dept_total - 1
             coverage_loss = round((1 / dept_total) * 100, 1) if dept_total > 0 else 0
             avg_project_delay_days = int(coverage_loss * 0.7)
