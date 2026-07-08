@@ -89,11 +89,13 @@ def employee_reports():
     import calendar as _cal
     emp = Employee.query.get(session['user_id'])
     today = date.today()
+    month = request.args.get('month', today.month, type=int)
+    year  = request.args.get('year',  today.year,  type=int)
 
     month_logs = AttendanceLog.query.filter(
         AttendanceLog.employee_id == emp.id,
-        extract('month', AttendanceLog.log_date) == today.month,
-        extract('year',  AttendanceLog.log_date) == today.year
+        extract('month', AttendanceLog.log_date) == month,
+        extract('year',  AttendanceLog.log_date) == year
     ).order_by(AttendanceLog.log_date.asc()).all()
 
     present_days = sum(1 for l in month_logs if l.status in ('present', 'late'))
@@ -107,8 +109,8 @@ def employee_reports():
             worked_seconds += (l.clock_out - l.clock_in).total_seconds()
     total_worked_hours = round(worked_seconds / 3600, 1)
 
-    working_days = sum(1 for d in range(1, _cal.monthrange(today.year, today.month)[1] + 1)
-                       if date(today.year, today.month, d).weekday() < 5)
+    working_days = sum(1 for d in range(1, _cal.monthrange(year, month)[1] + 1)
+                       if date(year, month, d).weekday() < 5)
     expected_hours = working_days * 8
 
     attendance_pct = round((present_days / working_days) * 100, 1) if working_days > 0 else 0
@@ -122,11 +124,11 @@ def employee_reports():
             if net > 8:
                 overtime_minutes += (net - 8) * 60
 
-    deduction, _ = monthly_deduction(emp.id, today.year, today.month)
+    deduction, _ = monthly_deduction(emp.id, year, month)
 
     balances = EmployeeLeaveBalance.query.filter(
         EmployeeLeaveBalance.employee_id == emp.id,
-        EmployeeLeaveBalance.year == today.year
+        EmployeeLeaveBalance.year == year
     ).all()
 
     total_opening = sum(b.opening_balance for b in balances)
@@ -136,8 +138,9 @@ def employee_reports():
     total_remaining = sum(b.remaining_days for b in balances)
 
     return render_template('employee/reports.html',
-        emp=emp, today=today,
-        month_name=MONTH_NAMES[today.month - 1],
+        emp=emp, today=today, month=month, year=year,
+        month_name=MONTH_NAMES[month - 1],
+        months=MONTH_NAMES,
         month_logs=month_logs,
         present_days=present_days, late_days=late_days,
         absent_days=absent_days,
