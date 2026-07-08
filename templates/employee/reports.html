@@ -135,6 +135,7 @@
               <th>الانصراف</th>
               <th>الساعات</th>
               <th>الحالة</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -150,6 +151,7 @@
                   {% if l.status=='present' %}حاضر{% elif l.status=='late' %}متأخر{% else %}غائب{% endif %}
                 </span>
               </td>
+              <td><button class="btn btn-xs btn-ghost" onclick="openCorrection('{{ l.log_date.isoformat() }}','{{ l.clock_in.strftime('%H:%M') if l.clock_in else '' }}','{{ l.clock_out.strftime('%H:%M') if l.clock_out else '' }}')" title="طلب تصحيح" style="font-size:14px"><i class="ti ti-edit"></i></button></td>
             </tr>
             {% endfor %}
           </tbody>
@@ -175,6 +177,40 @@
         <div style="font-size:10px;color:var(--muted2)">{{ absent_days }} غياب</div>
       </div>
     </div>
+  <div id="correctionModal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);padding:20px" onclick="if(event.target===this)closeCorrection()">
+    <div style="max-width:380px;margin:10vh auto;background:var(--card);border-radius:16px;overflow:hidden">
+      <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;font-size:15px"><i class="ti ti-edit" style="color:var(--accent);margin-left:6px"></i>طلب تصحيح</span>
+        <button class="btn btn-sm btn-ghost" onclick="closeCorrection()" style="font-size:18px">&times;</button>
+      </div>
+      <form onsubmit="submitCorrection(event)" style="padding:16px">
+        <input type="hidden" id="corrDate">
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">التاريخ</label>
+          <div style="font-weight:600" id="corrDateDisplay"></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">نوع التصحيح</label>
+          <select id="corrType" class="form-control" required style="width:100%">
+            <option value="">اختر</option>
+            <option value="clock_in">وقت الحضور</option>
+            <option value="clock_out">وقت الانصراف</option>
+          </select>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">القيمة الجديدة (اختياري)</label>
+          <input type="time" id="corrValue" class="form-control" style="width:100%">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-size:12px;margin-bottom:4px;color:var(--muted)">سبب التصحيح</label>
+          <textarea id="corrReason" class="form-control" rows="3" required style="width:100%" placeholder="اذكر سبب طلب التصحيح"></textarea>
+        </div>
+        <button type="submit" class="btn btn-indigo" style="width:100%"><i class="ti ti-send"></i> إرسال الطلب</button>
+        <div id="corrMsg" style="margin-top:8px;font-size:13px"></div>
+      </form>
+    </div>
+  </div>
+
   </main>
 
   <nav class="bottom-nav" style="display:flex">
@@ -205,6 +241,40 @@ function exportCSV(){
   const m=u.searchParams.get('month')||'{{ month }}';
   const y=u.searchParams.get('year')||'{{ year }}';
   window.open('/employee/reports/export?month='+m+'&year='+y, '_blank');
+}
+function openCorrection(date, ci, co){
+  document.getElementById('corrDate').value=date;
+  document.getElementById('corrDateDisplay').textContent=date;
+  document.getElementById('corrValue').value='';
+  document.getElementById('corrReason').value='';
+  document.getElementById('corrMsg').textContent='';
+  document.getElementById('correctionModal').style.display='block';
+}
+function closeCorrection(){
+  document.getElementById('correctionModal').style.display='none';
+}
+function submitCorrection(e){
+  e.preventDefault();
+  const msg=document.getElementById('corrMsg');
+  msg.innerHTML='<i class="ti ti-loader ti-spin"></i> جاري الإرسال...';
+  fetch('/employee/reports/correction-request', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      log_date:document.getElementById('corrDate').value,
+      correction_type:document.getElementById('corrType').value,
+      corrected_value:document.getElementById('corrValue').value,
+      reason:document.getElementById('corrReason').value,
+    })
+  }).then(r=>r.json()).then(d=>{
+    if(d.error){msg.style.color='var(--red)';msg.textContent=d.error;return;}
+    msg.style.color='var(--green)';
+    msg.innerHTML='<i class="ti ti-check-circle"></i> تم إرسال طلب التصحيح بنجاح';
+    document.getElementById('corrType').value='';
+    document.getElementById('corrValue').value='';
+    document.getElementById('corrReason').value='';
+    setTimeout(closeCorrection,2000);
+  }).catch(()=>{msg.style.color='var(--red)';msg.textContent='حدث خطأ في الإرسال';});
 }
 </script>
 {% endblock %}

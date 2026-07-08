@@ -9,6 +9,7 @@ from models import db, Employee, AttendanceLog, LeaveRequest, OutingRequest, \
     ShiftSchedule, ShiftSwapRequest, BiometricCredential, GPSLog, ShiftType, \
     Notification, EmployeeDocument, Department, QRToken
 from models.employee_enhanced import EmployeeLeaveBalance
+from models.attendance_report import ReportCorrection
 from utils.decorators import login_required
 from utils.helpers import validate_coordinates, work_hours_str, monthly_deduction
 from utils.rate_limit import check_rate_limit, rate_limit_headers
@@ -225,6 +226,42 @@ def employee_reports_export():
         as_attachment=True,
         download_name=f'attendance_{year}_{month:02d}.csv',
     )
+
+
+@employee_bp.route('/employee/reports/correction-request', methods=['POST'])
+@login_required
+@safe_api
+def submit_correction_request():
+    data = request.get_json() or {}
+    log_date_str = data.get('log_date')
+    corr_type = data.get('correction_type', '')
+    corrected_value = data.get('corrected_value', '').strip()
+    reason = data.get('reason', '').strip()
+    if not log_date_str or not corr_type or not reason:
+        return jsonify({'error': 'التاريخ ونوع التصحيح والسبب مطلوبون'}), 400
+    try:
+        log_date = date.fromisoformat(log_date_str)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'تاريخ غير صحيح'}), 400
+    original_log = AttendanceLog.query.filter_by(employee_id=session['user_id'], log_date=log_date).first()
+    original_value = None
+    if original_log:
+        if corr_type == 'clock_in':
+            original_value = original_log.clock_in.strftime('%H:%M') if original_log.clock_in else None
+        elif corr_type == 'clock_out':
+            original_value = original_log.clock_out.strftime('%H:%M') if original_log.clock_out else None
+    c = ReportCorrection(
+        employee_id=session['user_id'],
+        log_date=log_date,
+        correction_type=corr_type,
+        original_value=original_value,
+        corrected_value=corrected_value or None,
+        reason=reason,
+        created_by=session['user_id'],
+    )
+    db.session.add(c)
+    db.session.commit()
+    return jsonify({'success': True, 'correction': c.to_dict()})
 
 
 @employee_bp.route('/employee/clockin', methods=['POST'])
