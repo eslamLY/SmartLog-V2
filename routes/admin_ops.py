@@ -72,7 +72,7 @@ def ai_predictor():
             Employee.department_id.in_(dept_ids),
             Employee.role == 'employee',
             Employee.is_active == True,
-        ).all()
+        ).options(db.joinedload(Employee.department_ref)).yield_per(200).all()
         for emp in employees:
             emp_ids_by_dept[emp.department_id].append(emp.id)
 

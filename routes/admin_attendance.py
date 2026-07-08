@@ -5,7 +5,7 @@ from io import BytesIO
 
 from flask import (Blueprint, render_template, request, session,
                    jsonify, send_file, make_response)
-from sqlalchemy import extract
+from sqlalchemy import extract, or_
 
 from models import db, Employee, AttendanceLog, Notification
 from utils.decorators import admin_required
@@ -132,13 +132,18 @@ def export_excel():
     alt_fill = PatternFill("solid", fgColor='FEF2F2')
 
     employees = Employee.query.filter_by(role='employee', is_active=True)\
-                    .order_by(Employee.department, Employee.full_name).all()
+                    .order_by(Employee.department, Employee.full_name)\
+                    .options(db.joinedload(Employee.department_ref)).all()
+    logs_all = AttendanceLog.query.filter(
+        AttendanceLog.employee_id.in_([e.id for e in employees]),
+        extract('month', AttendanceLog.log_date) == month,
+        extract('year',  AttendanceLog.log_date) == year
+    ).all()
+    logs_by_emp = defaultdict(list)
+    for l in logs_all:
+        logs_by_emp[l.employee_id].append(l)
     for ri, emp in enumerate(employees, 3):
-        logs = AttendanceLog.query.filter(
-            AttendanceLog.employee_id == emp.id,
-            extract('month', AttendanceLog.log_date) == month,
-            extract('year',  AttendanceLog.log_date) == year
-        ).all()
+        logs = logs_by_emp.get(emp.id, [])
         p = sum(1 for l in logs if l.status in ('present','late'))
         lt= sum(1 for l in logs if l.status == 'late')
         ab= sum(1 for l in logs if l.status == 'absent')
@@ -158,8 +163,10 @@ def export_excel():
     from openpyxl.utils import get_column_letter
     for ci in range(1, len(hdrs)+1):
         try:
-            cells = [ws.cell(row=r, column=ci) for r in range(1, len(employees)+4)]
-            mx = max((len(str(c.value or '')) for c in cells), default=10)
+            mx = 10
+            for r in range(1, min(len(employees)+4, 100)):
+                v = str(ws.cell(row=r, column=ci).value or '')
+                mx = max(mx, len(v))
             ws.column_dimensions[get_column_letter(ci)].width = max(12, min(30, mx+4))
         except Exception:
             pass
@@ -181,15 +188,21 @@ def export_pdf():
 
     qry = Employee.query.filter_by(role='employee', is_active=True)
     if dept: qry = qry.filter_by(department=dept)
-    employees = qry.order_by(Employee.department, Employee.full_name).all()
+    employees = qry.order_by(Employee.department, Employee.full_name).options(
+        db.joinedload(Employee.department_ref)).all()
+    emp_ids = [e.id for e in employees]
+    logs_all = AttendanceLog.query.filter(
+        AttendanceLog.employee_id.in_(emp_ids),
+        extract('month', AttendanceLog.log_date) == month,
+        extract('year',  AttendanceLog.log_date) == year
+    ).all() if emp_ids else []
+    logs_by_emp = defaultdict(list)
+    for l in logs_all:
+        logs_by_emp[l.employee_id].append(l)
 
     rows = []
     for emp in employees:
-        logs = AttendanceLog.query.filter(
-            AttendanceLog.employee_id == emp.id,
-            extract('month', AttendanceLog.log_date) == month,
-            extract('year',  AttendanceLog.log_date) == year
-        ).all()
+        logs = logs_by_emp.get(emp.id, [])
         p   = sum(1 for l in logs if l.status in ('present','late'))
         lt  = sum(1 for l in logs if l.status == 'late')
         ab  = sum(1 for l in logs if l.status == 'absent')
@@ -223,15 +236,18 @@ def export_pdf():
 @admin_required
 def admin_section_report():
     today = date.today()
-    departments = Department.query.filter_by(is_active=True).all()
+    departments = Department.query.filter_by(is_active=True).options(
+        db.joinedload(Department.employees)).all()
     dept_emp_ids = defaultdict(list)
     emp_dept_map = {}
-    for e in Employee.query.with_entities(Employee.id, Employee.department).filter_by(is_active=True).all():
+    emp_ids = []
+    for e in Employee.query.with_entities(Employee.id, Employee.department).filter_by(is_active=True).yield_per(500):
         dept_emp_ids[e.department].append(e.id)
         emp_dept_map[e.id] = e.department
+        emp_ids.append(e.id)
     today_logs = AttendanceLog.query.filter(
         AttendanceLog.log_date == today,
-        AttendanceLog.employee_id.in_(list(emp_dept_map.keys()))
+        AttendanceLog.employee_id.in_(emp_ids)
     ).with_entities(AttendanceLog.employee_id, AttendanceLog.status).all()
     dept_present = defaultdict(int)
     dept_late = defaultdict(int)

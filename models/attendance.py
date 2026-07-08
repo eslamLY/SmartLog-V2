@@ -50,12 +50,16 @@ class AttendancePolicy(db.Model):
 class AttendanceLog(db.Model):
     __tablename__ = 'attendance_logs'
     id                  = db.Column(db.Integer, primary_key=True)
-    employee_id         = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    employee_id         = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False, index=True)
     company_id          = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True)
     device_id           = db.Column(db.Integer, db.ForeignKey('biometric_devices.id'), nullable=True)
-    log_date            = db.Column(db.Date, nullable=False, default=date.today)
+    log_date            = db.Column(db.Date, nullable=False, default=date.today, index=True)
     clock_in            = db.Column(db.DateTime, nullable=True)
     clock_out           = db.Column(db.DateTime, nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_attendance_logs_employee_date', 'employee_id', 'log_date'),
+    )
     lat_in              = db.Column(db.Float, nullable=True)
     lat_in_enc          = db.Column(db.Text, nullable=True)
     lng_in              = db.Column(db.Float, nullable=True)
@@ -65,7 +69,7 @@ class AttendanceLog(db.Model):
     lng_out             = db.Column(db.Float, nullable=True)
     lng_out_enc         = db.Column(db.Text, nullable=True)
     distance_in         = db.Column(db.Integer, default=0)
-    status              = db.Column(db.String(20), default='absent')
+    status              = db.Column(db.String(20), default='absent', index=True)
     selfie_data         = db.Column(db.Text, nullable=True)
     late_minutes        = db.Column(db.Integer, default=0)
     early_leave_minutes = db.Column(db.Integer, default=0)
