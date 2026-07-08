@@ -304,20 +304,34 @@ var OfflineSync = (function () {
     }
   }
 
+  var _sessionMemory = null;
+
   function getSession() {
+    if (_sessionMemory) return _sessionMemory;
     try {
       var raw = localStorage.getItem('attendance_session');
       if (!raw) return null;
       if (typeof decryptData === 'function') {
         var decrypted = decryptData(raw);
-        if (decrypted) return JSON.parse(decrypted);
+        if (decrypted) {
+          _sessionMemory = JSON.parse(decrypted);
+          return _sessionMemory;
+        }
       }
       var parsed = JSON.parse(raw);
       if (parsed.iv || parsed.ciphertext) return null;
-      return parsed;
+      _sessionMemory = parsed;
+      return _sessionMemory;
     } catch (e) {
+      console.warn('Session parse failed:', e);
+      localStorage.removeItem('attendance_session');
       return null;
     }
+  }
+
+  function clearSession() {
+    _sessionMemory = null;
+    localStorage.removeItem('attendance_session');
   }
 
   function on(event, callback) {
@@ -358,6 +372,7 @@ var OfflineSync = (function () {
     isOnline: isOnline,
     checkServerConnectivity: checkServerConnectivity,
     getSession: getSession,
+    clearSession: clearSession,
     getSyncStatus: getSyncStatus,
     on: on,
     startHeartbeat: startHeartbeat,
