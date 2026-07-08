@@ -173,6 +173,7 @@ def to_dt(tpl):
     try:
         if isinstance(tpl, (tuple, list)) and len(tpl) == 3:
             return date(int(tpl[0]), int(tpl[1]), int(tpl[2]))
-    except Exception:
-        pass
+    except (ValueError, TypeError, IndexError) as exc:
+        import logging
+        logging.getLogger(__name__).debug('to_dt conversion failed: %s', exc)
     return None
