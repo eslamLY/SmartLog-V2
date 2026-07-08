@@ -15,7 +15,7 @@ class LeaveService:
         if existing:
             return False
         extended = Employee.query.get(employee_id).extended if Employee.query.get(employee_id) else None
-        leave_types = LeaveType.query.filter_by(is_active=True, is_recurring=True).all()
+        leave_types = LeaveType.query.filter_by(is_active=True, is_recurring=True).limit(50).all()
         for lt in leave_types:
             default = lt.default_days
             if lt.code == 'annual' and extended:
@@ -174,4 +174,4 @@ class LeaveService:
 
     @staticmethod
     def get_leave_types():
-        return LeaveType.query.filter_by(is_active=True).all()
+        return LeaveType.query.filter_by(is_active=True).limit(50).all()
