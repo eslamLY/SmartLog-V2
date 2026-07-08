@@ -1,3 +1,46 @@
+function saveFilterState() {
+  const state = {
+    preset: document.querySelector('.preset-btn.active')?.dataset?.preset || 'current_month',
+    month: document.getElementById('filterMonth')?.value || '',
+    year: document.getElementById('filterYear')?.value || '',
+    scope: document.querySelector('input[name="scope"]:checked')?.value || 'all',
+    department: document.getElementById('filterDepartment')?.value || '',
+    employee: document.getElementById('filterEmployee')?.value || '',
+    startDate: document.getElementById('filterStartDate')?.value || '',
+    endDate: document.getElementById('filterEndDate')?.value || '',
+    statuses: Array.from(document.querySelectorAll('#statusChips .chip.active input:checked')).map(c => c.value),
+  };
+  sessionStorage.setItem('reportsFilterState', JSON.stringify(state));
+}
+
+function restoreFilterState() {
+  try {
+    const raw = sessionStorage.getItem('reportsFilterState');
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    const btn = document.querySelector(`.preset-btn[data-preset="${state.preset}"]`);
+    if (btn) setPreset(state.preset, btn);
+    if (state.month) document.getElementById('filterMonth').value = state.month;
+    if (state.year) document.getElementById('filterYear').value = state.year;
+    if (state.scope) {
+      const radio = document.querySelector(`input[name="scope"][value="${state.scope}"]`);
+      if (radio) { radio.checked = true; toggleScope(); }
+    }
+    if (state.department) document.getElementById('filterDepartment').value = state.department;
+    if (state.employee) document.getElementById('filterEmployee').value = state.employee;
+    if (state.startDate) document.getElementById('filterStartDate').value = state.startDate;
+    if (state.endDate) document.getElementById('filterEndDate').value = state.endDate;
+    if (state.statuses && state.statuses.length) {
+      document.querySelectorAll('#statusChips .chip').forEach(c => {
+        const cb = c.querySelector('input');
+        const match = state.statuses.includes(cb.value);
+        cb.checked = match;
+        c.classList.toggle('active', match);
+      });
+    }
+  } catch(e) {}
+}
+
 function getFilterParams() {
   const params = new URLSearchParams();
   const preset = document.querySelector('.preset-btn.active');
@@ -32,6 +75,7 @@ function getFilterParams() {
 }
 
 function onFilterChange() {
+  saveFilterState();
   loadReports();
 }
 
