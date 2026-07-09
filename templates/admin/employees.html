@@ -6,20 +6,44 @@
 <header style="background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px)">
   <h1 style="font-size:16px;font-weight:700">الموظفون</h1>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <form method="GET" action="/admin/employees" style="display:flex;gap:8px;flex-wrap:wrap">
-      <input name="q" placeholder="بحث بالاسم أو الرقم الوظيفي أو رقم وطني" value="{{ q }}" style="width:220px;font-size:13px;padding:7px 12px!important">
-      <select name="dept" class="btn-sm" style="width:130px">
-        <option value="">كل الأقسام</option>
-        {% for d in departments %}<option value="{{ d }}" {% if d==dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
-      </select>
-      <button class="btn btn-ghost btn-sm" type="submit"><i class="ti ti-search"></i></button>
-    </form>
+    <div class="search-bar">
+      <input id="searchInput" placeholder="بحث بالاسم أو الرقم الوظيفي أو رقم وطني" value="{{ q }}" style="width:220px;font-size:13px;padding:7px 12px!important" autocomplete="off">
+      <button class="btn btn-ghost btn-sm" onclick="toggleAdvancedSearch()" type="button" title="بحث متقدم"><i class="ti ti-filter"></i></button>
+    </div>
     <button class="btn btn-red btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> موظف جديد</button>
+  </div>
+  <div id="advancedSearchPanel" style="display:none;padding-top:8px;gap:8px;flex-wrap:wrap;width:100%">
+    <select id="searchDept" class="btn-sm" style="width:130px">
+      <option value="">كل الأقسام</option>
+      {% for d in departments %}<option value="{{ d }}" {% if d==dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+    </select>
+    <select id="searchStatus" class="btn-sm" style="width:130px">
+      <option value="">كل الحالات</option>
+      <option value="present">حاضر</option>
+      <option value="absent">غائب</option>
+      <option value="active">نشط</option>
+      <option value="inactive">موقوف</option>
+    </select>
+    <select id="searchWorkType" class="btn-sm" style="width:130px">
+      <option value="">كل أنواع العمل</option>
+      <option value="full_time">دوام كامل</option>
+      <option value="part_time">دوام جزئي</option>
+      <option value="contract">عقد</option>
+    </select>
   </div>
 </header>
 <div style="padding:20px;overflow-y:auto;max-height:calc(100vh - 65px)">
+  <!-- Skeleton grid shown while page/async data loads -->
+  <div id="empSkeletonGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
+    <div class="emp-skeleton"></div>
+    <div class="emp-skeleton"></div>
+    <div class="emp-skeleton"></div>
+    <div class="emp-skeleton"></div>
+    <div class="emp-skeleton"></div>
+    <div class="emp-skeleton"></div>
+  </div>
   {% if employees %}
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
+  <div id="empCardGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
     {% for emp in employees %}
     <div class="card emp-card" data-id="{{ emp.id }}">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -50,25 +74,19 @@
         <div>{{ emp.job_title or '—' }}</div>
         <div>{{ emp.employment_type|replace('_',' ')|title if emp.employment_type else 'دوام كامل' }}</div>
       </div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <a href="/admin/employees/{{ emp.id }}/profile" class="btn btn-ghost btn-xs" title="الملف الشخصي" aria-label="الملف الشخصي {{ emp.full_name }}" aria-describedby="profile-desc-{{ emp.id }}"><i class="ti ti-user" style="color:var(--accent)" aria-hidden="true"></i></a>
-        <span id="profile-desc-{{ emp.id }}" class="sr-only">يفتح صفحة الملف الشخصي الكامل للموظف.</span>
-        <button class="btn btn-ghost btn-xs" onclick="openViewModal({{ emp.id }})" title="عرض" aria-label="عرض بيانات {{ emp.full_name }}" aria-describedby="view-desc-{{ emp.id }}"><i class="ti ti-eye" aria-hidden="true"></i></button>
-        <span id="view-desc-{{ emp.id }}" class="sr-only">يفتح نافذة منبثقة لعرض بيانات الموظف مع معلومات الحضور.</span>
-        <button class="btn btn-ghost btn-xs" onclick="openEditModal({{ emp.id }})" title="تعديل" aria-label="تعديل بيانات {{ emp.full_name }}" aria-describedby="edit-desc-{{ emp.id }}"><i class="ti ti-edit" style="color:var(--amber)" aria-hidden="true"></i></button>
-        <span id="edit-desc-{{ emp.id }}" class="sr-only">يفتح نافذة تعديل المعلومات الشخصية، المسمى الوظيفي، وبيانات الاتصال الخاصة بالموظف.</span>
-        <button class="btn btn-ghost btn-xs" onclick="biotimeSync({{ emp.id }})" title="مزامنة" aria-label="مزامنة {{ emp.full_name }}" aria-describedby="sync-desc-{{ emp.id }}"><i class="ti ti-device-mobile" style="color:var(--accent)" aria-hidden="true"></i></button>
-        <span id="sync-desc-{{ emp.id }}" class="sr-only">يرسل بيانات الموظف إلى أجهزة البصمة المتصلة.</span>
-        <a href="/admin/documents?emp={{ emp.id }}" class="btn btn-ghost btn-xs" title="مستندات" aria-label="مستندات {{ emp.full_name }}" aria-describedby="docs-desc-{{ emp.id }}"><i class="ti ti-files" style="color:#8b5cf6" aria-hidden="true"></i></a>
-        <span id="docs-desc-{{ emp.id }}" class="sr-only">يفتح صفحة المستندات والملفات الخاصة بالموظف.</span>
-        <button class="btn btn-ghost btn-xs" onclick="openResetPass({{ emp.id }})" title="إعادة تعيين كلمة المرور" aria-label="إعادة تعيين كلمة مرور {{ emp.full_name }}" aria-describedby="resetpass-desc-{{ emp.id }}"><i class="ti ti-key" style="color:#f59e0b" aria-hidden="true"></i></button>
-        <span id="resetpass-desc-{{ emp.id }}" class="sr-only">يفتح نافذة إعادة تعيين كلمة المرور مع إمكانية فرض تغييرها عند أول دخول.</span>
-        <button class="btn btn-ghost btn-xs" onclick="toggleEmp({{ emp.id }})" title="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %}" aria-label="{% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %} {{ emp.full_name }}" aria-describedby="toggle-desc-{{ emp.id }}">
-          {% if emp.is_active %}<i class="ti ti-pause" style="color:#f59e0b" aria-hidden="true"></i>{% else %}<i class="ti ti-player-play" style="color:#22c55e" aria-hidden="true"></i>{% endif %}
-        </button>
-        <span id="toggle-desc-{{ emp.id }}" class="sr-only">{% if emp.is_active %}يوقف حساب الموظف مؤقتاً ويمنع دخوله للنظام.{% else %}يعيد تفعيل حساب الموظف بعد الإيقاف المؤقت.{% endif %}</span>
-        <button class="btn btn-ghost btn-xs" onclick="deleteEmp({{ emp.id }})" title="حذف" aria-label="حذف {{ emp.full_name }}" aria-describedby="delete-desc-{{ emp.id }}"><i class="ti ti-trash" style="color:#ef4444" aria-hidden="true"></i></button>
-        <span id="delete-desc-{{ emp.id }}" class="sr-only">تحذير: سيؤدي هذا الإجراء إلى حذف الموظف بشكل نهائي وسجلات الحضور الخاصة به من قاعدة البيانات دون إمكانية التراجع.</span>
+      <div class="ctx-wrapper">
+        <button class="btn btn-ghost btn-xs ctx-trigger" onclick="toggleCtxMenu(this)" aria-label="قائمة الإجراءات" aria-haspopup="true" aria-expanded="false"><i class="ti ti-dots-vertical"></i></button>
+        <div class="actions-menu" role="menu">
+          <a href="/admin/employees/{{ emp.id }}/profile" class="ctx-item" role="menuitem"><i class="ti ti-user" style="color:var(--accent)"></i> الملف الشخصي</a>
+          <button class="ctx-item" onclick="openViewModal({{ emp.id }});closeCtx(this)" role="menuitem"><i class="ti ti-eye"></i> عرض</button>
+          <button class="ctx-item" onclick="openEditModal({{ emp.id }});closeCtx(this)" role="menuitem"><i class="ti ti-edit" style="color:var(--amber)"></i> تعديل</button>
+          <button class="ctx-item" onclick="biotimeSync({{ emp.id }});closeCtx(this)" role="menuitem"><i class="ti ti-device-mobile" style="color:var(--accent)"></i> مزامنة</button>
+          <a href="/admin/documents?emp={{ emp.id }}" class="ctx-item" role="menuitem"><i class="ti ti-files" style="color:#8b5cf6"></i> مستندات</a>
+          <button class="ctx-item" onclick="openResetPass({{ emp.id }});closeCtx(this)" role="menuitem"><i class="ti ti-key" style="color:#f59e0b"></i> إعادة كلمة المرور</button>
+          <button class="ctx-item" onclick="toggleEmp({{ emp.id }});closeCtx(this)" role="menuitem"><i class="ti ti-player-pause" style="color:#f59e0b"></i> {% if emp.is_active %}إيقاف{% else %}تفعيل{% endif %}</button>
+          <div class="ctx-divider"></div>
+          <button class="ctx-item ctx-danger" onclick="deleteEmp({{ emp.id }});closeCtx(this)" role="menuitem"><i class="ti ti-trash" style="color:#ef4444"></i> حذف</button>
+        </div>
       </div>
     </div>
     {% endfor %}
@@ -95,12 +113,12 @@
 </div>
 
 <!-- ===== ADD EMPLOYEE MODAL ===== -->
-<div class="modal-overlay" id="addEmpModal">
+<div class="modal-overlay" id="addEmpModal" onclick="if(event.target===this)closeAddModal()">
   <div class="modal-sheet" style="max-width:800px">
     <div class="modal-handle"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h3 style="font-size:15px;font-weight:700"><i class="ti ti-user-plus" style="color:var(--accent)"></i> إضافة موظف جديد</h3>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('addEmpModal');clearAddForm()"><i class="ti ti-x"></i></button>
+      <button class="btn btn-ghost btn-sm" onclick="closeAddModal()"><i class="ti ti-x"></i></button>
     </div>
     <!-- Form Progress -->
     <div class="form-progress" aria-hidden="true">
@@ -445,7 +463,7 @@
     </div>
     <div class="modal-actions" style="display:flex;gap:10px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
       <button class="btn btn-red" onclick="doAddEmp()" id="aeSubmitBtn"><i class="ti ti-device-floppy"></i> حفظ</button>
-      <button class="btn btn-outline" onclick="closeModal('addEmpModal');clearAddForm()">إلغاء</button>
+      <button class="btn btn-outline" onclick="closeAddModal()">إلغاء</button>
       <div style="flex:1;text-align:left;font-size:11px;color:var(--muted2);display:flex;align-items:center;gap:6px">
         <span id="addTabProgress">0/6</span>
       </div>
@@ -462,7 +480,28 @@
       <button class="btn btn-ghost btn-sm" onclick="closeModal('viewEmpModal')"><i class="ti ti-x"></i></button>
     </div>
     <div id="veContent" style="max-height:65vh;overflow-y:auto">
-      <div style="text-align:center;padding:32px;color:var(--muted)"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px"></i>جاري التحميل...</div>
+      <!-- Skeleton shimmer while data loads -->
+      <div id="veSkeleton">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+          <div class="emp-skeleton" style="width:64px;height:64px;border-radius:50%;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div class="emp-skeleton" style="height:16px;width:60%;margin-bottom:8px"></div>
+            <div class="emp-skeleton" style="height:12px;width:40%"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+          <div class="emp-skeleton" style="height:14px"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

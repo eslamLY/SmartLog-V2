@@ -1,6 +1,8 @@
 /* ── Employee Card ── */
 .emp-card {
-  transition: all .2s;
+  position: relative;
+  overflow: visible;
+  transform: translateY(0);
 }
 .emp-card:hover {
   border-color: rgba(99,102,241,.3);
@@ -280,8 +282,177 @@
   padding: 12px 24px;
 }
 
+/* ── Context Menu Dropdown ── */
+.ctx-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+.ctx-trigger {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.ctx-trigger:hover {
+  background: rgba(99,102,241,.1);
+}
+.actions-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 0.2s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 30px rgba(0,0,0,.4);
+}
+.actions-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 0s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.ctx-item:hover {
+  background: rgba(99,102,241,.1);
+}
+.ctx-item i {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+.ctx-danger:hover {
+  background: rgba(239,68,68,.12);
+  color: #ef4444;
+}
+.ctx-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ── Skeleton Shimmer System ── */
+.emp-skeleton {
+  height: 140px;
+  background: linear-gradient(90deg, var(--card2) 25%, var(--card) 50%, var(--card2) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite linear;
+  border-radius: 12px;
+  opacity: 0.7;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Smooth Card Transitions ── */
+.emp-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.emp-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+}
+
+/* ── Smooth Modal Transitions ── */
+.modal-overlay {
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: visibility 0s 0.35s, opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-overlay.open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition: visibility 0s 0s, opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-sheet {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-overlay:not(.open) .modal-sheet {
+  transform: scale(0.96) translateY(12px);
+  opacity: 0;
+}
+.modal-overlay.open .modal-sheet {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+.modal-overlay.closing {
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-overlay.closing .modal-sheet {
+  transform: scale(0.96) translateY(12px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Search Bar ── */
+.search-bar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
 /* ── Responsive ── */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .form-row { flex-direction: column; }
   .emp-tabs { overflow-x: auto; }
+  .emp-card { padding: 12px; }
+  .modal-sheet {
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 16px;
+  }
+  .ctx-wrapper {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  .ctx-wrapper .actions-menu {
+    left: 0;
+    top: 100%;
+    min-width: 180px;
+  }
+  #empCardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .emp-card { padding: 10px; }
+  .search-bar input { width: 140px !important; }
 }
