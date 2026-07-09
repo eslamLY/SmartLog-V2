@@ -1,3 +1,16 @@
+/* ── Password Visibility Toggle ── */
+document.addEventListener('DOMContentLoaded', function () {
+  var btn = document.getElementById('togglePassword');
+  var pw  = document.getElementById('password');
+  if (btn && pw) {
+    btn.addEventListener('click', function () {
+      var isPassword = pw.type === 'password';
+      pw.type = isPassword ? 'text' : 'password';
+      btn.querySelector('i').className = isPassword ? 'ti ti-eye-off' : 'ti ti-eye';
+    });
+  }
+});
+
 /* ── Login Error Handling (Issue #7) ── */
 function getCSRFToken() {
   var m = document.querySelector('meta[name="csrf-token"]');

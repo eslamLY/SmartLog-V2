@@ -1,5 +1,5 @@
 from datetime import datetime, UTC
-from models import db
+from models import db, get_fernet
 
 DEVICE_MODELS = [
     {'value': 'zkteco_k40', 'label': 'ZKTeco K40'},
@@ -56,9 +56,26 @@ class BioTimeDevice(db.Model):
     created_at        = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
     # Connection & Auth
-    port              = db.Column(db.Integer, default=4370)
-    comm_password     = db.Column(db.String(20), nullable=True)
-    protocol          = db.Column(db.String(10), default='tcp_ip')
+    port                  = db.Column(db.Integer, default=4370)
+    comm_password_encrypted = db.Column(db.Text, nullable=True)
+    protocol              = db.Column(db.String(10), default='tcp_ip')
+
+    @property
+    def comm_password(self):
+        raw = self.comm_password_encrypted
+        if not raw:
+            return None
+        try:
+            return get_fernet().decrypt(raw.encode()).decode()
+        except Exception:
+            return None
+
+    @comm_password.setter
+    def comm_password(self, value):
+        if value is None or (isinstance(value, str) and value.strip() == ''):
+            self.comm_password_encrypted = None
+            return
+        self.comm_password_encrypted = get_fernet().encrypt(str(value).encode()).decode()
 
     # Device Identity & Hardware
     device_model      = db.Column(db.String(30), nullable=True)

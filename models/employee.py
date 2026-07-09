@@ -72,6 +72,7 @@ class Employee(db.Model):
     permission_level        = db.Column(db.String(30), default='employee')
     force_password_change   = db.Column(db.Boolean, default=True)
     two_factor_enabled      = db.Column(db.Boolean, default=False)
+    otp_secret              = db.Column(db.String(32), nullable=True)
     password_changed_at     = db.Column(db.DateTime, nullable=True)
 
     # Emergency contact

@@ -40,6 +40,7 @@ log.info('=' * 60)
 log.info('SmartLog starting up')
 log.info('=' * 60)
 
+from datetime import timedelta
 from flask import Flask
 from itsdangerous import URLSafeTimedSerializer
 
@@ -102,7 +103,7 @@ def create_app():
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['REMEMBER_COOKIE_HTTPONLY'] = True
     app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
-    app.config['PERMANENT_SESSION_LIFETIME'] = 14400
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     if PRODUCTION:
         app.config['SESSION_COOKIE_SECURE'] = True
         app.config['REMEMBER_COOKIE_SECURE'] = True

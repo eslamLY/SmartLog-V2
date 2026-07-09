@@ -9,6 +9,7 @@ from functools import wraps
 from flask import Blueprint, request, jsonify, current_app
 from models import db, Company, BiometricDevice, DeviceSyncLog, Employee, AttendanceLog
 from services.company_service import set_company_context
+from utils.rate_limit import check_rate_limit, rate_limit_headers
 
 # ---------------------------------------------------------------------------
 # Blueprints — old (deprecated) and v1
@@ -85,7 +86,11 @@ def require_device_hmac(f):
 
         kwargs['device'] = device
         kwargs['company'] = company
-        return f(*args, **kwargs)
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            log.error('Device API error in %s: %s', f.__name__, e)
+            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي أثناء معالجة بيانات الجهاز. تم تسجيل العطل للمراجعة.'}), 500
     return deco
 
 
@@ -109,6 +114,9 @@ def log_sync(company_id, device_id, event_type, status='received', payload=None,
 # ---------------------------------------------------------------------------
 
 def view_device_handshake(**kwargs):
+    allowed, remaining = check_rate_limit('device_handshake', 60, 60)
+    if not allowed:
+        return jsonify({'ok': False, 'msg': 'طلبات كثيرة. حاول لاحقاً.'}), 429
     device = kwargs['device']
     company = kwargs['company']
     data = request.get_json() or {}
@@ -123,15 +131,20 @@ def view_device_handshake(**kwargs):
     log_sync(company.id, device.id, 'handshake', status='success')
     db.session.commit()
 
-    return jsonify({
+    resp = jsonify({
         'ok': True,
         'server_time': datetime.now(UTC).isoformat(),
         'sync_interval': 60,
         'company_name': company.name_ar,
     })
+    resp.headers.update(rate_limit_headers(60, remaining, 60))
+    return resp
 
 
 def view_device_sync_data(**kwargs):
+    allowed, remaining = check_rate_limit('device_sync_data', 30, 60)
+    if not allowed:
+        return jsonify({'ok': False, 'msg': 'طلبات كثيرة. حاول لاحقاً.'}), 429
     device = kwargs['device']
     company = kwargs['company']
     data = request.get_json() or {}
@@ -224,15 +237,20 @@ def view_device_sync_data(**kwargs):
 
     db.session.commit()
 
-    return jsonify({
+    resp = jsonify({
         'ok': True,
         'imported': imported,
         'total': len(records),
         'errors': errors[:20],
     })
+    resp.headers.update(rate_limit_headers(30, remaining, 60))
+    return resp
 
 
 def view_device_config_download(**kwargs):
+    allowed, remaining = check_rate_limit('device_config_download', 60, 60)
+    if not allowed:
+        return jsonify({'ok': False, 'msg': 'طلبات كثيرة. حاول لاحقاً.'}), 429
     device = kwargs['device']
     company = kwargs['company']
 
@@ -245,7 +263,7 @@ def view_device_config_download(**kwargs):
         is_active=True
     ).all()
 
-    return jsonify({
+    resp = jsonify({
         'ok': True,
         'config': {
             'company_name': company.name_ar,
@@ -258,9 +276,14 @@ def view_device_config_download(**kwargs):
             'employee_id': e.biotime_emp_id or e.id,
         } for e in employees],
     })
+    resp.headers.update(rate_limit_headers(60, remaining, 60))
+    return resp
 
 
 def view_device_command_execute(**kwargs):
+    allowed, remaining = check_rate_limit('device_command_execute', 30, 60)
+    if not allowed:
+        return jsonify({'ok': False, 'msg': 'طلبات كثيرة. حاول لاحقاً.'}), 429
     device = kwargs['device']
     company = kwargs['company']
     data = request.get_json() or {}
@@ -274,15 +297,20 @@ def view_device_command_execute(**kwargs):
              payload={'command': command})
     db.session.commit()
 
-    return jsonify({
+    resp = jsonify({
         'ok': True,
         'command': command,
         'status': 'queued',
         'message': f'Command {command} queued for device',
     })
+    resp.headers.update(rate_limit_headers(30, remaining, 60))
+    return resp
 
 
 def view_device_sync_status(**kwargs):
+    allowed, remaining = check_rate_limit('device_sync_status', 60, 60)
+    if not allowed:
+        return jsonify({'ok': False, 'msg': 'طلبات كثيرة. حاول لاحقاً.'}), 429
     device = kwargs['device']
     company = kwargs['company']
 
@@ -291,7 +319,7 @@ def view_device_sync_status(**kwargs):
         device_id=device.id
     ).order_by(DeviceSyncLog.created_at.desc()).limit(20).all()
 
-    return jsonify({
+    resp = jsonify({
         'ok': True,
         'device_id': device.id,
         'serial_no': device.serial_no,
@@ -301,6 +329,8 @@ def view_device_sync_status(**kwargs):
         'records_pulled': device.records_pulled or 0,
         'events': [s.to_dict() for s in recent],
     })
+    resp.headers.update(rate_limit_headers(60, remaining, 60))
+    return resp
 
 
 # ---------------------------------------------------------------------------

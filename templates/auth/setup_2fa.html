@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>إعداد التحقق بخطوتين — SMARTLOG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Cairo', Arial, sans-serif; background: #080c18; color: #f0f4f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #0f172a; border: 1px solid #1e2a45; border-radius: 16px; padding: 32px; width: 100%; max-width: 460px; margin: 16px; }
+    .logo { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; border: 2px solid; }
+    .enabled .logo { background: #22c55e20; border-color: #22c55e; }
+    .enabled .logo i { color: #22c55e; }
+    .disabled .logo { background: #64748b20; border-color: #64748b; }
+    .disabled .logo i { color: #64748b; }
+    h1 { font-size: 18px; text-align: center; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #8899b4; text-align: center; margin-bottom: 20px; }
+    .section { background: #141d33; border: 1px solid #1e2a45; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+    .section-title { font-size: 13px; font-weight: 700; color: #f0f4f9; margin-bottom: 8px; }
+    .section p { font-size: 12px; color: #8899b4; margin-bottom: 10px; line-height: 1.6; }
+    .secret-box { background: #0a0f22; border: 1px solid #1e2a45; border-radius: 8px; padding: 10px; text-align: center; font-family: monospace; font-size: 14px; color: #f0f4f9; letter-spacing: 2px; margin-bottom: 10px; word-break: break-all; }
+    .qr-placeholder { width: 160px; height: 160px; background: #0a0f22; border: 1px solid #1e2a45; border-radius: 10px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .qr-placeholder img { width: 100%; height: 100%; object-fit: contain; }
+    .input-group { margin-bottom: 10px; }
+    label { display: block; font-size: 12px; color: #8899b4; margin-bottom: 4px; }
+    input { width: 100%; padding: 10px 12px; background: #0a0f22; border: 1px solid #1e2a45; border-radius: 10px; color: #f0f4f9; font-size: 20px; font-family: inherit; text-align: center; letter-spacing: 8px; direction: ltr; }
+    input:focus { outline: none; border-color: #6366f1; }
+    .btn { padding: 10px 20px; border: none; border-radius: 10px; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: #6366f1; }
+    .btn-primary:hover { background: #818cf8; }
+    .btn-success { background: #22c55e; }
+    .btn-success:hover { background: #16a34a; }
+    .btn-danger { background: #dc2626; }
+    .btn-danger:hover { background: #ef4444; }
+    .btn-secondary { background: #475569; }
+    .btn-secondary:hover { background: #64748b; }
+    .error { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
+    .success { color: #22c55e; font-size: 12px; margin-top: 4px; display: none; }
+    .flex { display: flex; gap: 8px; flex-wrap: wrap; }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .status-on { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e; }
+    .status-off { background: #64748b20; color: #64748b; border: 1px solid #64748b; }
+    .hidden { display: none; }
+    .back-link { display: block; text-align: center; margin-top: 16px; font-size: 13px; }
+    .back-link a { color: #8899b4; text-decoration: none; }
+    .back-link a:hover { color: #f0f4f9; }
+  </style>
+</head>
+<body>
+  <div class="card {{ 'enabled' if is_enabled else 'disabled' }}">
+    <div class="logo"><i class="ti ti-shield-check"></i></div>
+    <h1>التحقق بخطوتين (2FA)</h1>
+    <p class="sub">أضف طبقة أمان إضافية لحسابك</p>
+
+    <div style="text-align:center;margin-bottom:16px">
+      <span class="status-badge {{ 'status-on' if is_enabled else 'status-off' }}">
+        {{ 'مفعل' if is_enabled else 'غير مفعل' }}
+      </span>
+    </div>
+
+    <div class="error" id="errorMsg" role="alert"></div>
+    <div class="success" id="successMsg"></div>
+
+    {% if not is_enabled %}
+    <div class="section" id="step1">
+      <div class="section-title">الخطوة 1: إنشاء المفتاح</div>
+      <p>اضغط على الزر أدناه لإنشاء مفتاح سري جديد لتطبيق المصادقة.</p>
+      <button class="btn btn-primary" id="generateBtn" onclick="generateSecret()">إنشاء مفتاح جديد</button>
+    </div>
+
+    <div class="section hidden" id="step2">
+      <div class="section-title">الخطوة 2: امسح الرمز أو أدخل المفتاح</div>
+      <p>استخدم تطبيق Google Authenticator أو Authy لمسح رمز QR أو إدخال المفتاح يدوياً.</p>
+      <div class="qr-placeholder" id="qrContainer"></div>
+      <div class="secret-box" id="secretDisplay"></div>
+    </div>
+
+    <div class="section hidden" id="step3">
+      <div class="section-title">الخطوة 3: تحقق من الإعداد</div>
+      <p>أدخل الرقم المكون من 6 أرقام من تطبيق المصادقة لتأكيد الإعداد.</p>
+      <div class="input-group">
+        <input type="text" id="verifyToken" placeholder="000000" inputmode="numeric" maxlength="6">
+      </div>
+      <button class="btn btn-success" id="enableBtn" onclick="verifyAndEnable()">تفعيل</button>
+    </div>
+    {% else %}
+    <div class="section">
+      <div class="section-title">تعطيل التحقق بخطوتين</div>
+      <p>التحقق بخطوتين مفعل حالياً. لتعطيله، أدخل كلمة المرور الخاصة بك.</p>
+      <div class="input-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="disablePw" placeholder="أدخل كلمة المرور">
+      </div>
+      <button class="btn btn-danger" id="disableBtn" onclick="disable2fa(this)">تعطيل</button>
+    </div>
+    {% endif %}
+
+    <div class="back-link"><a href="{{ dashboard_url }}"><i class="ti ti-arrow-right"></i> العودة إلى لوحة التحكم</a></div>
+  </div>
+  <script>
+    var currentSecret = '';
+
+    function generateSecret() {
+      var btn = document.getElementById('generateBtn');
+      btn.disabled = true; btn.textContent = 'جاري الإنشاء...';
+      var csrf = document.querySelector('meta[name="csrf-token"]');
+      fetch('/setup-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf ? csrf.content : '' },
+        body: JSON.stringify({ action: 'generate' })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) {
+          currentSecret = data.secret;
+          document.getElementById('step1').classList.add('hidden');
+          document.getElementById('secretDisplay').textContent = data.secret;
+          var qr = document.getElementById('qrContainer');
+          qr.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(data.uri) + '" alt="QR Code">';
+          document.getElementById('step2').classList.remove('hidden');
+          document.getElementById('step3').classList.remove('hidden');
+        } else {
+          showError(data.msg);
+        }
+        btn.disabled = false; btn.textContent = 'إنشاء مفتاح جديد';
+      }).catch(function() {
+        showError('فشل الاتصال بالخادم');
+        btn.disabled = false; btn.textContent = 'إنشاء مفتاح جديد';
+      });
+    }
+
+    function verifyAndEnable() {
+      var token = document.getElementById('verifyToken').value.trim();
+      if (!token || token.length < 6) { showError('أدخل الرقم المكون من 6 أرقام'); return; }
+      var btn = document.getElementById('enableBtn');
+      btn.disabled = true; btn.textContent = 'جاري التفعيل...';
+      var csrf = document.querySelector('meta[name="csrf-token"]');
+      fetch('/setup-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf ? csrf.content : '' },
+        body: JSON.stringify({ action: 'verify_and_enable', token: token })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) { showSuccess(data.msg); setTimeout(function() { location.reload(); }, 1500); }
+        else { showError(data.msg); btn.disabled = false; btn.textContent = 'تفعيل'; }
+      }).catch(function() {
+        showError('فشل الاتصال بالخادم');
+        btn.disabled = false; btn.textContent = 'تفعيل';
+      });
+    }
+
+    function disable2fa(btn) {
+      var pw = document.getElementById('disablePw').value.trim();
+      if (!pw) { showError('أدخل كلمة المرور'); return; }
+      if (!btn) btn = document.getElementById('disableBtn');
+      btn.disabled = true; btn.textContent = 'جاري التعطيل...';
+      var csrf = document.querySelector('meta[name="csrf-token"]');
+      fetch('/setup-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf ? csrf.content : '' },
+        body: JSON.stringify({ action: 'disable', password: pw })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) { showSuccess(data.msg); setTimeout(function() { location.reload(); }, 1500); }
+        else { showError(data.msg); btn.disabled = false; btn.textContent = 'تعطيل'; }
+      }).catch(function() {
+        showError('فشل الاتصال بالخادم');
+        btn.disabled = false; btn.textContent = 'تعطيل';
+      });
+    }
+
+    function showError(msg) {
+      var el = document.getElementById('errorMsg');
+      el.textContent = msg; el.style.display = 'block';
+      document.getElementById('successMsg').style.display = 'none';
+    }
+
+    function showSuccess(msg) {
+      var el = document.getElementById('successMsg');
+      el.textContent = msg; el.style.display = 'block';
+      document.getElementById('errorMsg').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

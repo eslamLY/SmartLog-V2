@@ -112,7 +112,7 @@ body.login-page {
 
 .input-wrapper input {
   width: 100%;
-  padding: 12px 46px 12px 14px;
+  padding: 12px 46px 12px 40px;
   background: #0a0f22;
   border: 1px solid #1e2642;
   border-radius: 10px;
@@ -139,6 +139,26 @@ body.login-page {
   -webkit-text-fill-color: #e2e8f0;
   caret-color: #e2e8f0;
 }
+
+.toggle-password {
+  position: absolute;
+  left: 10px;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: color 0.2s;
+  z-index: 2;
+}
+
+.toggle-password:hover { color: #e2e8f0; }
+
+[dir="rtl"] .toggle-password { left: 10px; right: auto; }
 
 .form-options {
   display: flex;

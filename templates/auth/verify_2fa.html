@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>التحقق بخطوتين — SMARTLOG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Cairo', Arial, sans-serif; background: #080c18; color: #f0f4f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #0f172a; border: 1px solid #1e2a45; border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; margin: 16px; }
+    .logo { width: 48px; height: 48px; border-radius: 50%; background: #6366f120; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; border: 2px solid #6366f1; }
+    .logo i { font-size: 22px; color: #818cf8; }
+    h1 { font-size: 18px; text-align: center; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #8899b4; text-align: center; margin-bottom: 20px; }
+    .user-badge { background: #141d33; border: 1px solid #1e2a45; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; text-align: center; }
+    .user-badge span { display: block; font-size: 12px; color: #8899b4; }
+    .user-badge strong { font-size: 14px; color: #f0f4f9; }
+    .input-group { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; color: #8899b4; margin-bottom: 4px; }
+    input { width: 100%; padding: 10px 12px; background: #141d33; border: 1px solid #1e2a45; border-radius: 10px; color: #f0f4f9; font-size: 20px; font-family: inherit; text-align: center; letter-spacing: 8px; direction: ltr; }
+    input:focus { outline: none; border-color: #6366f1; }
+    .btn { width: 100%; padding: 10px; background: #6366f1; border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 4px; }
+    .btn:hover { background: #818cf8; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .error { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; text-align: center; }
+    .back-link { display: block; text-align: center; margin-top: 16px; font-size: 13px; }
+    .back-link a { color: #8899b4; text-decoration: none; }
+    .back-link a:hover { color: #f0f4f9; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><i class="ti ti-shield-lock"></i></div>
+    <h1>التحقق بخطوتين</h1>
+    <p class="sub">أدخل الرقم المكون من 6 أرقام من تطبيق المصادقة</p>
+    <div class="user-badge">
+      <span>تسجيل الدخول كـ</span>
+      <strong>{{ full_name }} ({{ username }})</strong>
+    </div>
+    <div class="error" id="errorMsg" role="alert"></div>
+    <form id="verifyForm" onsubmit="return doVerify(event)">
+      <div class="input-group">
+        <label>رمز التحقق</label>
+        <input type="text" id="token" placeholder="000000" autocomplete="one-time-code" inputmode="numeric" maxlength="6" required>
+      </div>
+      <button type="submit" class="btn" id="submitBtn">تحقق</button>
+    </form>
+    <div class="back-link"><a href="{{ url_for('auth.logout') }}"><i class="ti ti-arrow-right"></i> إلغاء والعودة</a></div>
+  </div>
+  <script>
+    function doVerify(e) {
+      e.preventDefault();
+      var btn = document.getElementById('submitBtn');
+      var err = document.getElementById('errorMsg');
+      err.style.display = 'none';
+      btn.disabled = true; btn.textContent = 'جاري التحقق...';
+      var csrf = document.querySelector('meta[name="csrf-token"]');
+      fetch('/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf ? csrf.content : '' },
+        body: JSON.stringify({ token: document.getElementById('token').value })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) { window.location.href = data.redirect; }
+        else { err.textContent = data.msg || 'رمز غير صحيح'; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'تحقق'; }
+      }).catch(function() {
+        err.textContent = 'فشل الاتصال بالخادم'; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'تحقق';
+      });
+      return false;
+    }
+  </script>
+</body>
+</html>

@@ -1,6 +1,5 @@
-import json, re
+import json, re, secrets
 from datetime import datetime, UTC
-from uuid import uuid4
 
 from flask import Blueprint, render_template, request, session, jsonify, send_file
 
@@ -19,6 +18,8 @@ from functools import wraps
 LOGGER = logging.getLogger(__name__)
 
 
+GENERIC_ERROR_MSG = 'حدث خطأ داخلي أثناء معالجة بيانات الجهاز. تم تسجيل العطل للمراجعة.'
+
 def safe_api(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -26,7 +27,7 @@ def safe_api(f):
             return f(*args, **kwargs)
         except Exception as e:
             LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
+            return jsonify({'ok': False, 'msg': GENERIC_ERROR_MSG}), 500
     return wrapper
 
 
@@ -84,7 +85,7 @@ def _validate_ip(ip):
 @admin_devices_bp.route('/admin/devices')
 @admin_required
 def admin_devices():
-    devices = BioTimeDevice.query.order_by(BioTimeDevice.created_at.desc()).all()
+    devices = BioTimeDevice.query.order_by(BioTimeDevice.created_at.desc()).limit(50).all()
     depts = Department.query.filter_by(is_active=True).all()
     branches = Branch.query.filter_by(is_active=True).all()
     employees = Employee.query.filter_by(is_active=True, deleted_at=None).order_by(Employee.full_name).all()
@@ -210,7 +211,7 @@ def add_device():
         sync_interval=int(d.get('sync_interval', 5)),
         sync_window_start=d.get('sync_window_start'),
         sync_window_end=d.get('sync_window_end'),
-        api_key=d.get('api_key') or uuid4().hex[:16],
+        api_key=d.get('api_key') or secrets.token_hex(16),
     )
     assigned_depts = d.get('assigned_departments', [])
     if assigned_depts:
@@ -260,7 +261,7 @@ def add_device_simple():
         protocol='tcp_ip',
         auto_sync_enabled=True,
         sync_interval=30,
-        api_key=uuid4().hex[:16],
+        api_key=secrets.token_hex(16),
     )
     db.session.add(dev)
     db.session.flush()
@@ -400,14 +401,16 @@ def sync_device(did):
         return jsonify({'ok': True, 'msg': f'تمت المزامنة. {imported} سجل جديد.', 'imported': imported, 'total': count})
     except Exception as e:
         dev.is_online = False
-        _add_device_event(dev.id, 'sync_failed', str(e), error_code='SYNC_ERR')
+        err_str = str(e)
+        LOGGER.error('Sync failed for device %d: %s', dev.id, err_str)
+        _add_device_event(dev.id, 'sync_failed', err_str[:200], error_code='SYNC_ERR')
         errors = dev.sync_error_list
-        errors.append({'time': datetime.now(UTC).isoformat(), 'error': str(e)[:200]})
+        errors.append({'time': datetime.now(UTC).isoformat(), 'error': err_str[:200]})
         if len(errors) > 5:
             errors = errors[-5:]
         dev.sync_error_list = errors
         db.session.commit()
-        return jsonify({'ok': False, 'msg': f'فشلت المزامنة: {str(e)}'})
+        return jsonify({'ok': False, 'msg': 'فشلت المزامنة. تم تسجيل العطل للمراجعة.'})
 
 
 # ─── API: BULK SYNC ALL DEVICES ──────────────────────────────
@@ -430,7 +433,8 @@ def bulk_sync_devices():
             results.append({'id': dev.id, 'name': dev.name, 'status': 'synced', 'count': len(logs)})
             dev.last_sync = datetime.now(UTC)
         except Exception as e:
-            _add_device_event(dev.id, 'sync_error', str(e))
+            LOGGER.error('Bulk-sync error for device %d: %s', dev.id, e)
+            _add_device_event(dev.id, 'sync_error', str(e)[:200])
             results.append({'id': dev.id, 'name': dev.name, 'status': 'error', 'msg': 'فشل المزامنة.'})
     db.session.commit()
     return jsonify({'ok': True, 'results': results})
@@ -512,7 +516,12 @@ def clear_device_logs_api(did):
 @admin_required
 def api_list_biometric_devices():
     from models.biometric_device import BiometricDevice
-    devices = BiometricDevice.query.filter_by(deleted_at=None).order_by(BiometricDevice.created_at.desc()).all()
+    devices = (
+        BiometricDevice.query.filter_by(deleted_at=None)
+        .order_by(BiometricDevice.created_at.desc())
+        .limit(50)
+        .all()
+    )
     result = []
     for dev in devices:
         d = dev.to_dict()
