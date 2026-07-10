@@ -68,7 +68,8 @@ def register_middleware(app, PRODUCTION):
         if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
             return
         if request.path.startswith(('/static/', '/manifest.json', '/sw.js',
-                                    '/uploads/', '/api/health', '/login',
+                                    '/uploads/', '/api/health',
+                                    '/login', '/api/login',
                                     '/company/', '/api/device/',
                                     '/api/v1/auth/login', '/api/v1/auth/refresh',
                                     '/api/v1/auth/logout')):
