@@ -99,8 +99,14 @@ def run_startup(app: Flask, db: SQLAlchemy):
     with app.app_context():
         log.info('Startup: schema handled by db.create_all() — skipping flask db upgrade')
 
-        for col, typ in [('otp_secret', 'VARCHAR(32)'),
-                         ('early_leave_minutes', 'INTEGER DEFAULT 0'),
+        try:
+            db.session.execute(db.text("ALTER TABLE employees ADD COLUMN otp_secret VARCHAR(32)"))
+            db.session.commit()
+            log.info('Startup: added column employees.otp_secret')
+        except Exception:
+            db.session.rollback()
+
+        for col, typ in [('early_leave_minutes', 'INTEGER DEFAULT 0'),
                          ('overtime_minutes', 'INTEGER DEFAULT 0'),
                          ('policy_id', 'INTEGER REFERENCES attendance_policies(id)')]:
             try:

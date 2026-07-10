@@ -170,8 +170,15 @@ def seed_enterprise():
                         device_type='biometric', location='المدخل الرئيسي', is_active=True))
     from models.biometric_device import BiometricDevice
     if not BiometricDevice.query.first():
+        _company = Company.query.first()
+        if not _company:
+            _company = Company(name_ar='الشركة الافتراضية', name_en='Default Company',
+                               plan='enterprise', is_active=True, is_verified=True,
+                               max_employees=99999, max_devices=100)
+            db.session.add(_company)
+            db.session.commit()
         db.session.add(BiometricDevice(
-            company_id=company.id,
+            company_id=_company.id,
             serial_no='BIO-001',
             name='جهاز البصمة الرئيسي',
             device_model='zkteco_mb360',
