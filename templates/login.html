@@ -46,20 +46,20 @@
         </div>
         <div class="field">
           <label>كلمة المرور</label>
-          <div class="input-wrapper">
+          <div class="input-wrapper" style="position:relative">
             <i class="ti ti-lock input-icon"></i>
-            <input type="password" id="password" placeholder="······" autocomplete="current-password">
-            <button type="button" id="togglePassword" class="toggle-password" aria-label="إظهار/إخفاء كلمة المرور" tabindex="-1">
-              <i class="ti ti-eye"></i>
+            <input type="password" id="password" placeholder="······" autocomplete="current-password" style="padding-left:44px">
+            <button type="button" id="togglePassword" class="toggle-password" aria-label="إظهار/إخفاء كلمة المرور" tabindex="-1" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;z-index:5;padding:8px;font-size:20px;display:flex;align-items:center;justify-content:center">
+              <i class="ti ti-eye" id="togglePasswordIcon"></i>
             </button>
           </div>
         </div>
-        <div class="form-options">
+        <div class="form-options" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div class="checkbox-wrapper">
             <input type="checkbox" id="remember">
             <label for="remember">تذكرني</label>
           </div>
-          <a href="{{ url_for('auth.forgot_password') }}" class="forgot-link">نسيت كلمة المرور؟</a>
+          <a href="{{ url_for('auth.forgot_password') }}" class="forgot-link" style="color:#94a3b8;font-size:0.875rem;text-decoration:none">نسيت كلمة المرور؟</a>
         </div>
         <button class="btn" id="loginBtn" type="submit">
           <span class="btn-text">تسجيل الدخول</span>

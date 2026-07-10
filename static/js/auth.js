@@ -2,11 +2,17 @@
 document.addEventListener('DOMContentLoaded', function () {
   var btn = document.getElementById('togglePassword');
   var pw  = document.getElementById('password');
+  var icon = document.getElementById('togglePasswordIcon');
   if (btn && pw) {
+    btn.style.display = 'flex';
     btn.addEventListener('click', function () {
       var isPassword = pw.type === 'password';
       pw.type = isPassword ? 'text' : 'password';
-      btn.querySelector('i').className = isPassword ? 'ti ti-eye-off' : 'ti ti-eye';
+      if (icon) {
+        icon.className = isPassword ? 'ti ti-eye-off' : 'ti ti-eye';
+      } else {
+        btn.querySelector('i').className = isPassword ? 'ti ti-eye-off' : 'ti ti-eye';
+      }
     });
   }
 });
