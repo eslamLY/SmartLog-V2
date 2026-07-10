@@ -32,11 +32,18 @@ async function handleLogin(event) {
       throw { message: 'لا يوجد اتصال بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.', status: 0 };
     }
 
+    var csrfToken = getCSRFToken();
+    if (!csrfToken) {
+      errorDiv.textContent = 'خطأ في أمان الصفحة. أعد تحميل الصفحة وحاول مرة أخرى.';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
     const response = await fetch('/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken': getCSRFToken()
+        'X-CSRFToken': csrfToken
       },
       body: JSON.stringify({
         username: username.trim().toUpperCase(),
