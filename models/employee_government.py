@@ -303,45 +303,57 @@ class EmployeeGovernment(db.Model):
         self.assigned_devices = json.dumps(value, ensure_ascii=False)
 
     # ─── RELATIONSHIPS ──────────────────────────────────────────────────────────
-    attendance_logs     = db.relationship('AttendanceLog', backref='gov_employee', lazy=True,
+    attendance_logs     = db.relationship('AttendanceLog', backref=db.backref('gov_employee', overlaps='employee,attendance_logs'), lazy=True,
                                           foreign_keys='AttendanceLog.employee_id',
-                                          primaryjoin='EmployeeGovernment.id == AttendanceLog.employee_id')
-    leave_requests      = db.relationship('EmployeeLeaveRequest', backref='gov_employee', lazy=True,
+                                          primaryjoin='EmployeeGovernment.id == AttendanceLog.employee_id',
+                                          overlaps='employee,attendance_logs')
+    leave_requests      = db.relationship('EmployeeLeaveRequest', backref=db.backref('gov_employee', overlaps='employee,leave_requests'), lazy=True,
                                           foreign_keys='EmployeeLeaveRequest.employee_id',
-                                          primaryjoin='EmployeeGovernment.id == EmployeeLeaveRequest.employee_id')
-    children            = db.relationship('EmployeeChild', backref='gov_employee', lazy=True,
+                                          primaryjoin='EmployeeGovernment.id == EmployeeLeaveRequest.employee_id',
+                                          overlaps='employee,leave_requests')
+    children            = db.relationship('EmployeeChild', backref=db.backref('gov_employee', overlaps='employee,children'), lazy=True,
                                           cascade='all, delete-orphan',
                                           primaryjoin='EmployeeGovernment.id == EmployeeChild.employee_id',
-                                          foreign_keys='EmployeeChild.employee_id')
-    qualifications      = db.relationship('EmployeeQualification', backref='gov_employee', lazy=True,
+                                          foreign_keys='EmployeeChild.employee_id',
+                                          overlaps='employee,children')
+    qualifications      = db.relationship('EmployeeQualification', backref=db.backref('gov_employee', overlaps='employee,qualifications'), lazy=True,
                                           cascade='all, delete-orphan',
                                           primaryjoin='EmployeeGovernment.id == EmployeeQualification.employee_id',
-                                          foreign_keys='EmployeeQualification.employee_id')
-    certifications      = db.relationship('EmployeeCertification', backref='gov_employee', lazy=True,
+                                          foreign_keys='EmployeeQualification.employee_id',
+                                          overlaps='employee,qualifications')
+    certifications      = db.relationship('EmployeeCertification', backref=db.backref('gov_employee', overlaps='employee,certifications'), lazy=True,
                                           cascade='all, delete-orphan',
                                           primaryjoin='EmployeeGovernment.id == EmployeeCertification.employee_id',
-                                          foreign_keys='EmployeeCertification.employee_id')
-    promotions          = db.relationship('EmployeePromotion', backref='gov_employee', lazy=True,
+                                          foreign_keys='EmployeeCertification.employee_id',
+                                          overlaps='employee,certifications')
+    promotions          = db.relationship('EmployeePromotion', backref=db.backref('gov_employee', overlaps='employee,promotions'), lazy=True,
                                           foreign_keys='EmployeePromotion.employee_id',
-                                          primaryjoin='EmployeeGovernment.id == EmployeePromotion.employee_id')
-    promotion_eligibility = db.relationship('PromotionEligibility', backref='gov_employee', lazy=True,
-                                            foreign_keys='PromotionEligibility.employee_id',
-                                            primaryjoin='EmployeeGovernment.id == PromotionEligibility.employee_id')
-    leave_balances      = db.relationship('EmployeeLeaveBalance', backref='gov_employee', lazy=True,
+                                          primaryjoin='EmployeeGovernment.id == EmployeePromotion.employee_id',
+                                          overlaps='employee,promotions')
+    promotion_eligibility = db.relationship('PromotionEligibility', backref=db.backref('gov_employee', overlaps='employee,promotion_eligibility'), lazy=True,
+                                             foreign_keys='PromotionEligibility.employee_id',
+                                             primaryjoin='EmployeeGovernment.id == PromotionEligibility.employee_id',
+                                             overlaps='employee,promotion_eligibility')
+    leave_balances      = db.relationship('EmployeeLeaveBalance', backref=db.backref('gov_employee', overlaps='employee,leave_balances'), lazy=True,
                                           foreign_keys='EmployeeLeaveBalance.employee_id',
-                                          primaryjoin='EmployeeGovernment.id == EmployeeLeaveBalance.employee_id')
-    training_records    = db.relationship('EmployeeTraining', backref='gov_employee', lazy=True,
+                                          primaryjoin='EmployeeGovernment.id == EmployeeLeaveBalance.employee_id',
+                                          overlaps='employee,leave_balances')
+    training_records    = db.relationship('EmployeeTraining', backref=db.backref('gov_employee', overlaps='employee,training_records'), lazy=True,
                                           foreign_keys='EmployeeTraining.employee_id',
-                                          primaryjoin='EmployeeGovernment.id == EmployeeTraining.employee_id')
-    performance_evals   = db.relationship('EmployeePerformance', backref='gov_employee', lazy=True,
+                                          primaryjoin='EmployeeGovernment.id == EmployeeTraining.employee_id',
+                                          overlaps='employee,training_records')
+    performance_evals   = db.relationship('EmployeePerformance', backref=db.backref('gov_employee', overlaps='employee,performance_evals'), lazy=True,
                                           foreign_keys='EmployeePerformance.employee_id',
-                                          primaryjoin='EmployeeGovernment.id == EmployeePerformance.employee_id')
-    disciplinary_actions = db.relationship('EmployeeDisciplinaryAction', backref='gov_employee', lazy=True,
+                                          primaryjoin='EmployeeGovernment.id == EmployeePerformance.employee_id',
+                                          overlaps='employee,performance_evals')
+    disciplinary_actions = db.relationship('EmployeeDisciplinaryAction', backref=db.backref('gov_employee', overlaps='employee,disciplinary_actions'), lazy=True,
                                            foreign_keys='EmployeeDisciplinaryAction.employee_id',
-                                           primaryjoin='EmployeeGovernment.id == EmployeeDisciplinaryAction.employee_id')
-    delegations         = db.relationship('EmployeeDelegation', backref='gov_employee', lazy=True,
+                                           primaryjoin='EmployeeGovernment.id == EmployeeDisciplinaryAction.employee_id',
+                                           overlaps='employee,disciplinary_actions')
+    delegations         = db.relationship('EmployeeDelegation', backref=db.backref('gov_employee', overlaps='employee,delegations'), lazy=True,
                                           foreign_keys='EmployeeDelegation.employee_id',
-                                          primaryjoin='EmployeeGovernment.id == EmployeeDelegation.employee_id')
+                                          primaryjoin='EmployeeGovernment.id == EmployeeDelegation.employee_id',
+                                          overlaps='employee,delegations')
 
     # ─── CLAIMS EXPIRY ─────────────────────────────────────────────────────────
 

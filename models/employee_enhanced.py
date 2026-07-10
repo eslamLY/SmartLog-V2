@@ -177,7 +177,7 @@ class EmployeeChild(db.Model):
     is_disabled = db.Column(db.Boolean, default=False)
     created_at  = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee = db.relationship('Employee', backref='children')
+    employee = db.relationship('Employee', backref=db.backref('children', overlaps='gov_employee,children'), overlaps='gov_employee,children')
 
     def to_dict(self):
         return {
@@ -259,7 +259,7 @@ class EmployeeQualification(db.Model):
     is_verified      = db.Column(db.Boolean, default=False)
     created_at       = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee = db.relationship('Employee', backref='qualifications')
+    employee = db.relationship('Employee', backref=db.backref('qualifications', overlaps='gov_employee,qualifications'), overlaps='gov_employee,qualifications')
 
     def to_dict(self):
         return {
@@ -292,7 +292,7 @@ class EmployeeCertification(db.Model):
     cert_file        = db.Column(db.String(200), nullable=True)
     created_at       = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee = db.relationship('Employee', backref='certifications')
+    employee = db.relationship('Employee', backref=db.backref('certifications', overlaps='gov_employee,certifications'), overlaps='gov_employee,certifications')
 
     def days_until_expiry(self):
         if not self.expiry_date:
@@ -336,7 +336,7 @@ class EmployeePromotion(db.Model):
     notes            = db.Column(db.Text, nullable=True)
     created_at       = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee  = db.relationship('Employee', foreign_keys=[employee_id], backref='promotions')
+    employee  = db.relationship('Employee', foreign_keys=[employee_id], backref=db.backref('promotions', overlaps='gov_employee,promotions'), overlaps='gov_employee,promotions')
     approver  = db.relationship('Employee', foreign_keys=[approved_by])
     from_grade = db.relationship('EmployeeGrade', foreign_keys=[from_grade_id])
     to_grade   = db.relationship('EmployeeGrade', foreign_keys=[to_grade_id])
@@ -381,7 +381,7 @@ class PromotionEligibility(db.Model):
     created_at        = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     updated_at        = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
-    employee = db.relationship('Employee', backref='promotion_eligibility')
+    employee = db.relationship('Employee', backref=db.backref('promotion_eligibility', overlaps='gov_employee,promotion_eligibility'), overlaps='gov_employee,promotion_eligibility')
     current_grade = db.relationship('EmployeeGrade', foreign_keys=[current_grade_id])
     target_grade  = db.relationship('EmployeeGrade', foreign_keys=[target_grade_id])
 
@@ -447,7 +447,7 @@ class EmployeeLeaveBalance(db.Model):
     carry_expiry_date = db.Column(db.Date, nullable=True)
     updated_at        = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
-    employee  = db.relationship('Employee', backref='leave_balances_new')
+    employee  = db.relationship('Employee', backref=db.backref('leave_balances_new', overlaps='gov_employee,leave_balances'), overlaps='gov_employee,leave_balances')
     leave_type = db.relationship('LeaveType')
 
     __table_args__ = (
@@ -496,7 +496,7 @@ class EmployeeLeaveRequest(db.Model):
     attachment        = db.Column(db.String(200), nullable=True)
     created_at        = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee   = db.relationship('Employee', foreign_keys=[employee_id], backref='leave_requests_new')
+    employee   = db.relationship('Employee', foreign_keys=[employee_id], backref=db.backref('leave_requests_new', overlaps='gov_employee,leave_requests'), overlaps='gov_employee,leave_requests')
     reviewer   = db.relationship('Employee', foreign_keys=[reviewed_by])
     leave_type = db.relationship('LeaveType')
 
@@ -536,7 +536,7 @@ class EmployeeDelegation(db.Model):
     is_active       = db.Column(db.Boolean, default=True)
     created_at      = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee = db.relationship('Employee', backref='delegations')
+    employee = db.relationship('Employee', backref=db.backref('delegations', overlaps='gov_employee,delegations'), overlaps='gov_employee,delegations')
 
     def to_dict(self):
         return {
@@ -571,7 +571,7 @@ class EmployeeTraining(db.Model):
     notes           = db.Column(db.Text, nullable=True)
     created_at      = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee = db.relationship('Employee', backref='training_records')
+    employee = db.relationship('Employee', backref=db.backref('training_records', overlaps='gov_employee,training_records'), overlaps='gov_employee,training_records')
 
     def to_dict(self):
         return {
@@ -607,7 +607,7 @@ class EmployeePerformance(db.Model):
     completed_at      = db.Column(db.DateTime, nullable=True)
     created_at        = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee   = db.relationship('Employee', foreign_keys=[employee_id], backref='performance_evaluations')
+    employee   = db.relationship('Employee', foreign_keys=[employee_id], backref=db.backref('performance_evaluations', overlaps='gov_employee,performance_evals'), overlaps='gov_employee,performance_evals')
     evaluator  = db.relationship('Employee', foreign_keys=[evaluated_by])
 
     __table_args__ = (
@@ -647,7 +647,7 @@ class EmployeeDisciplinaryAction(db.Model):
     closed_at        = db.Column(db.DateTime, nullable=True)
     created_at       = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
-    employee = db.relationship('Employee', foreign_keys=[employee_id], backref='disciplinary_actions')
+    employee = db.relationship('Employee', foreign_keys=[employee_id], backref=db.backref('disciplinary_actions', overlaps='gov_employee,disciplinary_actions'), overlaps='gov_employee,disciplinary_actions')
     issuer   = db.relationship('Employee', foreign_keys=[issued_by])
 
     def to_dict(self):

@@ -23,8 +23,8 @@ class Employee(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
     department_ref = db.relationship('Department', foreign_keys=[department_id], backref='employees')
 
-    attendance_logs = db.relationship('AttendanceLog', backref='employee',
-                                      lazy=True, foreign_keys='AttendanceLog.employee_id')
+    attendance_logs = db.relationship('AttendanceLog', backref=db.backref('employee', overlaps='gov_employee,attendance_logs'),
+                                      lazy=True, foreign_keys='AttendanceLog.employee_id', overlaps='gov_employee,attendance_logs')
     leave_requests  = db.relationship('LeaveRequest', backref='employee',
                                       lazy=True, foreign_keys='LeaveRequest.employee_id')
 

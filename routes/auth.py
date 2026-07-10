@@ -71,8 +71,13 @@ def service_worker():
 
 @auth_bp.route('/')
 def index():
-    if 'user_id' in session:
-        return redirect(url_for('admin_ops_bp.admin_dashboard') if session.get('role') == 'admin' else url_for('employee.employee_dashboard'))
+    try:
+        if 'user_id' in session:
+            role = session.get('role', 'employee')
+            redir = url_for('admin_ops_bp.admin_dashboard') if role == 'admin' else url_for('employee.employee_dashboard')
+            return redirect(redir)
+    except Exception as e:
+        current_app.logger.error('Root route redirect failed: %s', e)
     return redirect(url_for('auth.login'))
 
 
