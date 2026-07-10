@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
-  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}?v={{ static_version }}"></script>
 </head>
 <body class="login-page">
   <div class="login-background" style="background-image: url('{{ url_for('static', filename='images/tobruk-map.png') }}')"></div>
