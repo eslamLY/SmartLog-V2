@@ -1,7 +1,7 @@
 """Tests for api_operations endpoints."""
 import json
 import pytest
-from datetime import date
+from datetime import date, datetime, UTC
 
 from models import db, Employee, AttendanceLog, LeaveRequest, Department
 
@@ -174,9 +174,19 @@ def test_devices_list(client):
     assert resp.status_code == 200
 
 
-# ─── GET /api/system/health (public) ───────────────────────────────
+# ─── GET /api/system/health (requires login) ──────────────────────
+
+def test_system_health_no_auth(client):
+    resp = client.get('/api/system/health')
+    assert resp.status_code == 401
+    data = resp.get_json()
+    assert data.get('ok') is False
 
 def test_system_health(client):
+    with client.session_transaction() as sess:
+        sess['user_id'] = 1
+        sess['role'] = 'admin'
+        sess['last_activity'] = datetime.now(UTC).isoformat()
     resp = client.get('/api/system/health')
     assert resp.status_code == 200
     data = resp.get_json()

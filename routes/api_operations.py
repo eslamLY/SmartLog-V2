@@ -976,6 +976,7 @@ def api_user_preferences():
 
 
 @api_ops_bp.route('/api/system/health', methods=['GET'])
+@login_required
 @safe_api
 def api_system_health():
     db_ok = False
