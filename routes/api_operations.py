@@ -752,7 +752,8 @@ def api_report_employees():
 @safe_api
 def api_report_departments():
     rows = []
-    for d in get_active_departments():
+    departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
+    for d in departments:
         emp_count = Employee.query.filter_by(department_id=d.id, is_active=True, role='employee').count()
         rows.append({
             'id': d.id,
