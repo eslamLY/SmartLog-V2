@@ -29,6 +29,16 @@ LOGGER = logging.getLogger(__name__)
 api_ops_bp = Blueprint('api_operations', __name__)
 
 
+def _require_admin():
+    uid = session.get('user_id')
+    if not uid:
+        return jsonify({'ok': False, 'msg': 'يجب تسجيل الدخول أولاً.'}), 401
+    emp = Employee.query.get(uid)
+    if not emp or not emp.is_active or emp.role != 'admin':
+        return jsonify({'ok': False, 'msg': 'ليس لديك صلاحية.'}), 403
+    return None
+
+
 def safe_api(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -257,6 +267,9 @@ def api_leave_request():
 @admin_required
 @safe_api
 def api_leave_approve(rid):
+    auth = _require_admin()
+    if auth:
+        return auth
     result = LeaveService.approve_leave(rid, session['user_id'],
                                         (request.get_json() or {}).get('comment'))
     if not result.get('success'):
@@ -268,6 +281,9 @@ def api_leave_approve(rid):
 @admin_required
 @safe_api
 def api_leave_reject(rid):
+    auth = _require_admin()
+    if auth:
+        return auth
     result = LeaveService.reject_leave(rid, session['user_id'],
                                        (request.get_json() or {}).get('comment'))
     if not result.get('success'):
@@ -279,6 +295,9 @@ def api_leave_reject(rid):
 @admin_required
 @safe_api
 def api_leave_approve_json():
+    auth = _require_admin()
+    if auth:
+        return auth
     data = request.get_json() or {}
     rid = data.get('leave_id')
     if not rid:
@@ -293,6 +312,9 @@ def api_leave_approve_json():
 @admin_required
 @safe_api
 def api_leave_reject_json():
+    auth = _require_admin()
+    if auth:
+        return auth
     data = request.get_json() or {}
     rid = data.get('leave_id')
     if not rid:
