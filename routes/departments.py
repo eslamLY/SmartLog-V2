@@ -26,6 +26,7 @@ from models.documents import ArchivedDocument
 from models.notifications import Notification
 from models.biotime_device import BioTimeDevice
 from models.shifts import ShiftType
+from services.cached_queries import invalidate_department_cache
 from models.attendance import AttendanceLog
 
 admin_departments_bp = Blueprint('admin_departments', __name__, url_prefix='/admin/departments')
@@ -228,6 +229,7 @@ def add_department():
         recipients = Employee.query.filter(Employee.id.in_(recipient_ids)).all()
         d.alert_recipients = recipients
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'success': True, 'department': serialize_department(d)})
 
 @admin_departments_bp.route('/api/<int:dept_id>/edit', methods=['POST'])
@@ -303,6 +305,7 @@ def edit_department(dept_id):
         d.alert_recipients = Employee.query.filter(Employee.id.in_(recipient_ids)).all() if recipient_ids else []
     d.updated_at = datetime.now(UTC)
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'success': True, 'department': serialize_department(d)})
 
 @admin_departments_bp.route('/api/<int:dept_id>/delete', methods=['POST'])
@@ -323,6 +326,7 @@ def delete_department(dept_id):
     DepartmentTransfer.query.filter_by(to_department_id=dept_id).update({'to_department_id': None})
     db.session.delete(d)
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'success': True})
 
 @admin_departments_bp.route('/api/<int:dept_id>/toggle', methods=['POST'])
@@ -339,6 +343,7 @@ def toggle_department(dept_id):
         d.inactive_reason = None
     d.updated_at = datetime.now(UTC)
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'success': True, 'is_active': d.is_active})
 
 @admin_departments_bp.route('/api/bulk-toggle', methods=['POST'])
@@ -359,6 +364,7 @@ def bulk_toggle():
             d.updated_at = datetime.now(UTC)
             count += 1
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'success': True, 'updated': count})
 
 @admin_departments_bp.route('/api/<int:dept_id>/clone', methods=['POST'])
@@ -409,6 +415,7 @@ def clone_department(dept_id):
     d.allowed_devices = list(source.allowed_devices)
     d.alert_recipients = list(source.alert_recipients)
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'success': True, 'department': serialize_department(d)})
 
 @admin_departments_bp.route('/api/<int:dept_id>/dashboard')
@@ -770,6 +777,7 @@ def import_departments():
         db.session.add(d)
         imported += 1
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'success': True, 'imported': imported, 'errors': errors})
 
 @admin_departments_bp.route('/api/<int:dept_id>/employees')

@@ -16,6 +16,7 @@ from functools import wraps
 import logging
 from utils.decorators import admin_required
 from services.performance import batch_attendance_stats, batch_work_days
+from services.cached_queries import get_active_departments
 from services.report_service import YTDService, ComplianceService
 
 LOGGER = logging.getLogger(__name__)
@@ -235,13 +236,12 @@ def calc_attendance_stats(employee, start, end, status_filters=None):
 @admin_required
 def reports_page():
     today = date.today()
-    departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     shifts = ShiftType.query.filter_by(is_active=True).all()
     employees = Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
     months = [{'value': i, 'label': f'{i:02d}', 'selected': i == today.month} for i in range(1, 13)]
     years = list(range(today.year - 2, today.year + 3))
     return render_template('admin/reports_attendance.html',
-        departments=departments,
+        departments=get_active_departments(),
         shifts=shifts,
         employees=employees,
         months=months,
@@ -253,11 +253,10 @@ def reports_page():
 @admin_required
 @safe_api
 def api_filters():
-    departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     employees = Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
     shifts = ShiftType.query.filter_by(is_active=True).all()
     return jsonify({
-        'departments': [{'id': d.id, 'name': d.name_ar or d.name_en} for d in departments],
+        'departments': [{'id': d.id, 'name': d.name_ar or d.name_en} for d in get_active_departments()],
         'employees': [{'id': e.id, 'name': e.full_name, 'username': e.username, 'department': e.department} for e in employees],
         'shifts': [{'id': s.id, 'name': s.name} for s in shifts],
         'months': [{'value': i, 'label': f'{i:02d}'} for i in range(1, 13)],

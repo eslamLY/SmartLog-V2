@@ -12,6 +12,7 @@ from services.permission_service import (
     get_employee_roles, create_permission_request, review_permission_request,
     create_delegation, revoke_delegation, auto_revoke_expired_delegations
 )
+from services.cached_queries import get_all_departments_by_name
 from services.audit_service import (
     log_role_creation, log_role_update, log_role_delete,
     log_assignment, log_revocation, log_bulk_assign,
@@ -370,8 +371,7 @@ def api_employees_list():
 @login_required
 @safe_api
 def api_departments_list():
-    from models.department import Department
-    depts = Department.query.order_by(Department.name_ar).all()
+    depts = get_all_departments_by_name()
     return jsonify({
         'ok': True,
         'departments': [{'id': d.id, 'name_ar': d.name_ar, 'code': d.code} for d in depts]

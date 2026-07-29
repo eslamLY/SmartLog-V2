@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, session, jsonify
 from functools import wraps
 from models import db, AttendancePolicy, Department, ShiftType
 from utils.decorators import admin_required
+from services.cached_queries import get_active_departments
 
 attendance_policies_bp = Blueprint('attendance_policies_bp', __name__)
 
@@ -26,7 +27,7 @@ def safe_api(f):
 @admin_required
 def admin_attendance_policies():
     policies = AttendancePolicy.query.order_by(AttendancePolicy.is_active.desc(), AttendancePolicy.id.desc()).all()
-    departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
+    departments = get_active_departments()
     shift_types = ShiftType.query.filter_by(is_active=True).order_by(ShiftType.name).all()
     return render_template('admin/attendance_policies.html',
                            policies=policies, departments=departments, shift_types=shift_types)

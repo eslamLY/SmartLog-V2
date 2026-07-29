@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, session, jsonify, send_fi
 from models import db, BioTimeDevice, DeviceEventLog, DeviceHealthSnapshot, \
     Employee, Department, AttendanceLog, Branch
 from utils.decorators import admin_required
+from services.cached_queries import get_active_departments
 from services.biotime_service import (
     test_connection, get_device_info, push_employee, restart_device,
     clear_device_logs, pull_attendance_logs, scan_network
@@ -86,7 +87,7 @@ def _validate_ip(ip):
 @admin_required
 def admin_devices():
     devices = BioTimeDevice.query.order_by(BioTimeDevice.created_at.desc()).limit(50).all()
-    depts = Department.query.filter_by(is_active=True).all()
+    depts = get_active_departments()
     branches = Branch.query.filter_by(is_active=True).all()
     employees = Employee.query.filter_by(is_active=True, deleted_at=None).order_by(Employee.full_name).all()
     return render_template('admin/devices.html',
@@ -442,7 +443,7 @@ def bulk_sync_devices():
 
 # ─── API: DEVICE HEALTH / STATUS ────────────────────────────
 
-@admin_devices_bp.route('/admin/devices/<int:did>/health')
+@admin_devices_bp.route('/admin/devices/<int:did>/health', methods=['GET', 'POST'])
 @admin_required
 def device_health(did):
     dev = BioTimeDevice.query.get_or_404(did)

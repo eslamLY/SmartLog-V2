@@ -10,6 +10,7 @@ from models import db
 from models.employee import Employee
 from models.department import Department
 from models.attendance import AttendanceLog
+from services.cached_queries import get_active_departments, get_active_departments_json
 from models.misc import LeaveRequest, EmployeeDocument
 from models.misc import EmployeeDocument
 from models.biotime_device import BioTimeDevice
@@ -179,7 +180,7 @@ def api_charts_donut():
 @admin_required
 def api_charts_heatmap():
     today = date.today()
-    depts = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
+    depts = get_active_departments()
     days = [today - timedelta(days=i) for i in range(6, -1, -1)]
     day_labels = [DAY_NAMES[d.weekday()] for d in days]
     dept_map = {d.id: d for d in depts}
@@ -357,9 +358,8 @@ def api_dashboard_records():
 @safe_json_response
 @admin_required
 def api_dashboard_filters():
-    depts = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     return jsonify({
-        'departments': [{'id': d.id, 'name_ar': d.name_ar} for d in depts],
+        'departments': get_active_departments_json(),
         'statuses': [
             {'value': 'present', 'label': 'حاضر'},
             {'value': 'late', 'label': 'متأخر'},
@@ -428,7 +428,7 @@ def api_dashboard_alerts():
     dept_counts = dict(db.session.query(Employee.department_id, db.func.count(Employee.id)).filter(
         Employee.deleted_at.is_(None), Employee.is_active.is_(True)
     ).group_by(Employee.department_id).all())
-    depts = Department.query.filter_by(is_active=True).all()
+    depts = get_active_departments()
     for d in depts:
         if d.min_staff_required and d.min_staff_required > 0:
             emp_count = dept_counts.get(d.id, 0)
@@ -590,6 +590,31 @@ def api_dashboard_live():
         'total': total,
         'on_leave': on_leave,
         'no_clockout': no_clockout,
+    })
+
+
+@admin_dashboard_bp.route('/api/dashboard/live')
+@safe_json_response
+@admin_required
+def api_dashboard_live_stats():
+    today = date.today()
+    active_employees = Employee.query.filter_by(deleted_at=None, is_active=True).count()
+    active_devices = BioTimeDevice.query.filter_by(is_active=True).count()
+    t_logs = AttendanceLog.query.filter_by(log_date=today).all()
+    present = sum(1 for l in t_logs if l.status in ('present', 'late'))
+    absent = active_employees - present
+    on_leave = LeaveRequest.query.filter(
+        LeaveRequest.status == 'approved',
+        LeaveRequest.start_date <= today,
+        LeaveRequest.end_date >= today,
+    ).count()
+    return jsonify({
+        'active_employees': active_employees,
+        'active_devices': active_devices,
+        'present_today': present,
+        'absent_today': absent,
+        'on_leave_today': on_leave,
+        'timestamp': datetime.now(UTC).isoformat(),
     })
 
 

@@ -13,6 +13,7 @@ from models.misc import LeaveRequest
 from models.shifts import ShiftType
 from models.department import Department
 from services.payroll_service import PayrollService
+from services.cached_queries import get_active_departments, get_active_departments_json
 from functools import wraps
 import logging
 from utils.decorators import admin_required
@@ -40,14 +41,13 @@ MONTH_NAMES = ['','يناير','فبراير','مارس','أبريل','مايو'
 @admin_required
 def reports_page():
     today = date.today()
-    departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     shifts = ShiftType.query.filter_by(is_active=True).all()
     month = request.args.get('month', today.month, type=int)
     year = request.args.get('year', today.year, type=int)
     months = [{'value': i, 'label': f'{i:02d}', 'selected': i == month} for i in range(1, 13)]
     years = list(range(today.year - 2, today.year + 3))
     return render_template('admin/reports.html',
-        departments=departments,
+        departments=get_active_departments(),
         shifts=shifts,
         months=months,
         years=years,
@@ -135,10 +135,9 @@ def api_report_data():
 @admin_required
 @safe_api
 def api_report_filters():
-    departments = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     shifts = ShiftType.query.filter_by(is_active=True).all()
     return jsonify({
-        'departments': [{'id': d.id, 'name_ar': d.name_ar} for d in departments],
+        'departments': get_active_departments_json(),
         'shifts': [{'id': s.id, 'name_ar': s.name_ar} for s in shifts],
         'employment_types': [
             {'value': 'full_time', 'label': 'دوام كامل'},
@@ -218,12 +217,11 @@ def api_report_charts():
     emp_logs_map = defaultdict(list)
     for l in all_logs:
         emp_logs_map[l.employee_id].append(l)
-    depts = Department.query.filter_by(is_active=True).all()
     dept_emp_ids = defaultdict(list)
     for e in employees:
         dept_emp_ids[e.department_id].append(e.id)
     dept_comparison = []
-    for dept in depts:
+    for dept in get_active_departments():
         ids = dept_emp_ids.get(dept.id, [])
         total_possible = len(ids) * month_days
         if total_possible == 0:

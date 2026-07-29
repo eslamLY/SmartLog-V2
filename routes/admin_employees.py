@@ -11,6 +11,7 @@ from models import db, Employee, Department, AttendanceLog, AuditLog, \
 from utils.decorators import admin_required
 from utils.helpers import validate_password_strength
 from utils.constants import DEPARTMENTS
+from services.cached_queries import get_active_departments, get_all_departments_by_name, invalidate_department_cache
 
 admin_employees_bp = Blueprint('admin_employees', __name__)
 
@@ -43,7 +44,7 @@ def admin_employees():
         emp.today_status = log.status if log else 'absent'
         emp.today_log    = log
         emp.clocked_in   = bool(log and log.clock_in)
-    depts_db = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
+    depts_db = get_active_departments()
     return render_template('admin/employees.html',
         employees=employees, q=q, dept=dept, departments=DEPARTMENTS, depts_db=depts_db,
         page_obj=pagination)
@@ -150,7 +151,7 @@ def grant_exit_permission(eid):
 @admin_employees_bp.route('/admin/departments')
 @admin_required
 def admin_departments():
-    depts = Department.query.order_by(Department.name_ar).all()
+    depts = get_all_departments_by_name()
     return render_template('admin/departments.html', depts=depts)
 
 
@@ -165,6 +166,7 @@ def add_department():
         return jsonify({'ok': False, 'msg': 'القسم موجود مسبقاً.'})
     dept = Department(name_ar=name, name_en=d.get('name_en', '').strip() or None)
     db.session.add(dept); db.session.commit()
+    invalidate_department_cache()
     return jsonify({'ok': True, 'msg': f'تم إضافة القسم "{name}".'})
 
 
@@ -174,6 +176,7 @@ def toggle_department(did):
     dept = Department.query.get_or_404(did)
     dept.is_active = not dept.is_active
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'ok': True, 'msg': f'تم {"تفعيل" if dept.is_active else "تعطيل"} القسم.'})
 
 
@@ -184,6 +187,7 @@ def delete_department(did):
     if Employee.query.filter_by(department_id=did).first():
         return jsonify({'ok': False, 'msg': 'لا يمكن حذف قسم لديه موظفين.'})
     db.session.delete(dept); db.session.commit()
+    invalidate_department_cache()
     return jsonify({'ok': True, 'msg': 'تم حذف القسم.'})
 
 

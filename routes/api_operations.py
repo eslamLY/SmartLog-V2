@@ -19,6 +19,7 @@ from utils.rate_limit import check_rate_limit, rate_limit_headers
 from utils.constants import MONTH_NAMES
 from services.clock_service import ClockService
 from services.leave_service import LeaveService
+from services.cached_queries import get_active_departments
 from services.biotime_service import pull_attendance_logs
 from services.payroll_service import PayrollService
 from services.tax_calculator import TaxCalculator
@@ -269,6 +270,34 @@ def api_leave_approve(rid):
 def api_leave_reject(rid):
     result = LeaveService.reject_leave(rid, session['user_id'],
                                        (request.get_json() or {}).get('comment'))
+    if not result.get('success'):
+        return jsonify({'ok': False, 'msg': result.get('error', 'فشل الرفض')}), 400
+    return jsonify({'ok': True, 'msg': 'تم رفض طلب الإجازة', 'request': result['request']})
+
+
+@api_ops_bp.route('/api/leaves/approve', methods=['POST'])
+@admin_required
+@safe_api
+def api_leave_approve_json():
+    data = request.get_json() or {}
+    rid = data.get('leave_id')
+    if not rid:
+        return jsonify({'ok': False, 'msg': 'leave_id مطلوب'}), 400
+    result = LeaveService.approve_leave(int(rid), session['user_id'], data.get('comment'))
+    if not result.get('success'):
+        return jsonify({'ok': False, 'msg': result.get('error', 'فشل الموافقة')}), 400
+    return jsonify({'ok': True, 'msg': 'تمت الموافقة على طلب الإجازة', 'request': result['request']})
+
+
+@api_ops_bp.route('/api/leaves/reject', methods=['POST'])
+@admin_required
+@safe_api
+def api_leave_reject_json():
+    data = request.get_json() or {}
+    rid = data.get('leave_id')
+    if not rid:
+        return jsonify({'ok': False, 'msg': 'leave_id مطلوب'}), 400
+    result = LeaveService.reject_leave(int(rid), session['user_id'], data.get('comment'))
     if not result.get('success'):
         return jsonify({'ok': False, 'msg': result.get('error', 'فشل الرفض')}), 400
     return jsonify({'ok': True, 'msg': 'تم رفض طلب الإجازة', 'request': result['request']})
@@ -700,9 +729,8 @@ def api_report_employees():
 @admin_required
 @safe_api
 def api_report_departments():
-    depts = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
     rows = []
-    for d in depts:
+    for d in get_active_departments():
         emp_count = Employee.query.filter_by(department_id=d.id, is_active=True, role='employee').count()
         rows.append({
             'id': d.id,
@@ -877,8 +905,7 @@ def api_backup_restore():
 @login_required
 @safe_api
 def api_departments_simple():
-    depts = Department.query.filter_by(is_active=True).order_by(Department.name_ar).all()
-    return jsonify([{'id': d.id, 'name': d.name_ar} for d in depts])
+    return jsonify([{'id': d.id, 'name': d.name_ar} for d in get_active_departments()])
 
 
 @api_ops_bp.route('/api/user/preferences', methods=['GET', 'POST'])

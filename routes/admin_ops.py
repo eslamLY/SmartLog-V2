@@ -19,6 +19,7 @@ from utils.rate_limit import check_rate_limit, rate_limit_headers
 from sqlalchemy import func, extract
 from services.payroll_service import PayrollService
 from services.notification_service import NotificationService
+from services.cached_queries import get_active_departments
 
 admin_ops_bp = Blueprint('admin_ops_bp', __name__)
 logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ def admin_dashboard():
 @safe_api
 def ai_predictor():
     today = date.today()
-    depts = Department.query.filter_by(is_active=True).all()
+    depts = get_active_departments()
     dept_ids = [d.id for d in depts]
     dept_map = {d.id: d for d in depts}
 

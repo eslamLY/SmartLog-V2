@@ -12,6 +12,7 @@ from models.employee_enhanced import EmployeeLeaveBalance
 from models.attendance_report import ReportCorrection
 from utils.decorators import login_required
 from utils.helpers import validate_coordinates, work_hours_str, monthly_deduction
+from services.cached_queries import get_active_departments
 from utils.rate_limit import check_rate_limit, rate_limit_headers
 from utils.constants import (MONTH_NAMES, WORK_START_HOUR, WORK_START_MINUTE,
                               LATE_GRACE_MINUTES)
@@ -389,7 +390,7 @@ def geofence_check():
     return jsonify({'inside': inside, 'dist': dist})
 
 
-@employee_bp.route('/api/qr-token')
+@employee_bp.route('/api/qr-token', methods=['POST'])
 @login_required
 @safe_api
 def qr_token():
@@ -741,7 +742,7 @@ def get_notifications():
         for e in Employee.query.filter_by(role='employee', is_active=True).with_entities(Employee.id, Employee.department_id).all():
             dept_emp_map.setdefault(e.department_id, []).append(e.id)
         shift_type_ids = [s.id for s in ShiftType.query.filter_by(is_active=True).with_entities(ShiftType.id).all()]
-        dept_min = {d.id: d.min_staff_required for d in Department.query.filter_by(is_active=True).all() if d.min_staff_required}
+        dept_min = {d.id: d.min_staff_required for d in get_active_departments() if d.min_staff_required}
         if dept_emp_map and shift_type_ids:
             sched_counts = dict(
                 ShiftSchedule.query.with_entities(

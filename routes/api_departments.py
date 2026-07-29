@@ -9,6 +9,7 @@ from models.department import Department, DepartmentCertification
 from models.shifts import ShiftType
 from models.biotime_device import BioTimeDevice
 from utils.decorators import admin_required
+from services.cached_queries import invalidate_department_cache
 
 departments_api_bp = Blueprint('departments_api', __name__)
 LOGGER = logging.getLogger(__name__)
@@ -120,6 +121,7 @@ def add_department():
         d.allowed_devices = devices
 
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'ok': True, 'department': _serialize(d)}), 201
 
 
@@ -196,4 +198,5 @@ def update_department():
 
     d.updated_at = datetime.now(UTC)
     db.session.commit()
+    invalidate_department_cache()
     return jsonify({'ok': True, 'department': _serialize(d)})

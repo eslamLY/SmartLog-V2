@@ -1,4 +1,4 @@
-import os
+import os, json
 import logging
 
 from flask import (Blueprint, render_template, request, session,
@@ -10,6 +10,7 @@ from services.branding import BrandingService
 from services.backup import BackupService
 from services.audit import AuditService
 from services.health import HealthService
+from models.admin import AuditLog
 
 admin_system_bp = Blueprint('admin_system_bp', __name__)
 
@@ -178,3 +179,20 @@ def api_audit_logs():
         request.args.get('date'),
         request.args.get('action')
     ))
+
+
+@admin_system_bp.route('/api/system/logs')
+@admin_required
+@safe_api
+def api_system_logs():
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(200).all()
+    return jsonify([{
+        'id': l.id,
+        'user_name': l.user_name,
+        'action': l.action,
+        'entity_type': l.entity_type,
+        'entity_id': l.entity_id,
+        'changes': json.loads(l.changes) if l.changes else None,
+        'ip_address': l.ip_address,
+        'timestamp': l.timestamp.isoformat() if l.timestamp else None,
+    } for l in logs])

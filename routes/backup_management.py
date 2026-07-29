@@ -243,7 +243,7 @@ def preview_backup(backup_id):
     return jsonify({'ok': True, 'content': content})
 
 
-@backup_bp.route('/api/verify/<int:backup_id>')
+@backup_bp.route('/api/verify/<int:backup_id>', methods=['POST'])
 @admin_required
 @safe_api
 def verify_backup(backup_id):
