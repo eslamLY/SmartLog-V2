@@ -1,0 +1,242 @@
+[
+  {
+    "name": "Dashboard Stats",
+    "path": "/api/dashboard/stats",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Weekly Charts",
+    "path": "/api/dashboard/charts/weekly",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Donut Charts",
+    "path": "/api/dashboard/charts/donut",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Heatmap Charts",
+    "path": "/api/dashboard/charts/heatmap",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Punctuality Charts",
+    "path": "/api/dashboard/charts/punctuality",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Hourly Charts",
+    "path": "/api/dashboard/charts/hourly",
+    "status": "Status 500",
+    "error": null
+  },
+  {
+    "name": "Dashboard Records",
+    "path": "/api/dashboard/records",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Dashboard Alerts",
+    "path": "/api/dashboard/alerts",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Dashboard Schedule",
+    "path": "/api/dashboard/schedule",
+    "status": "Status 500",
+    "error": null
+  },
+  {
+    "name": "Dashboard Search",
+    "path": "/api/dashboard/search",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Dashboard Notifications",
+    "path": "/api/dashboard/notifications",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Dashboard Live",
+    "path": "/api/dashboard/live",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Dashboard Map",
+    "path": "/api/dashboard/map",
+    "status": "Status 500",
+    "error": null
+  },
+  {
+    "name": "Employees List",
+    "path": "/api/employees/list",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Add Employee",
+    "path": "/api/employees/add",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Update Employee",
+    "path": "/api/employees/update",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Delete Employee",
+    "path": "/api/employees/delete",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Departments List",
+    "path": "/api/departments/list",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Add Department",
+    "path": "/api/departments/add",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Update Department",
+    "path": "/api/departments/update",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Attendance Logs",
+    "path": "/api/attendance/logs",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Check In",
+    "path": "/api/attendance/check-in",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Check Out",
+    "path": "/api/attendance/check-out",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Leave Request",
+    "path": "/api/leaves/request",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Approve Leave",
+    "path": "/api/leaves/approve",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Reject Leave",
+    "path": "/api/leaves/reject",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Devices List",
+    "path": "/api/devices/list",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Sync Devices",
+    "path": "/api/devices/sync",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Device Status",
+    "path": "/api/devices/status",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Calculate Payroll",
+    "path": "/api/payroll/calculate",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Generate Payroll",
+    "path": "/api/payroll/generate",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Export Payroll",
+    "path": "/api/payroll/export",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Attendance Report",
+    "path": "/api/reports/attendance",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Employees Report",
+    "path": "/api/reports/employees",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Departments Report",
+    "path": "/api/reports/departments",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Create Backup",
+    "path": "/api/backups/create",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "List Backups",
+    "path": "/api/backups/list",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Restore Backup",
+    "path": "/api/backups/restore",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "System Health",
+    "path": "/api/system/health",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "System Logs",
+    "path": "/api/system/logs",
+    "status": "Not Found",
+    "error": null
+  }
+]

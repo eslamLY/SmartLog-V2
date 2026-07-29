@@ -38,6 +38,7 @@ MONTH_NAMES = ['','يناير','فبراير','مارس','أبريل','مايو'
 
 
 @admin_dashboard_bp.route('/admin')
+@admin_dashboard_bp.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
     today = date.today()
@@ -287,7 +288,7 @@ def api_charts_hourly():
     ).filter(
         AttendanceLog.log_date == today,
         AttendanceLog.clock_in.isnot(None),
-    ).group_by(text('hour')).order_by(text('hour')).all()
+    ).group_by(db.text('hour')).order_by(db.text('hour')).all()
     hourly_counts = {int(r[0]): r[1] for r in rows}
     data = [{'hour': f'{h:02d}:00', 'count': hourly_counts.get(h, 0)} for h in range(6, 23)]
     peak_hour = max(hourly_counts, key=hourly_counts.get) if hourly_counts else 8
@@ -468,7 +469,7 @@ def api_dashboard_schedule():
             in_range = sd['start'] <= current_hour < sd['end']
         else:
             in_range = current_hour >= sd['start'] or current_hour < sd['end']
-        st = ShiftType.query.filter_by(name_ar=sd['label']).first()
+        st = ShiftType.query.filter_by(name=sd['label']).first()
         scheduled_count = Employee.query.filter_by(deleted_at=None, is_active=True,
             shift_type_id=st.id if st else None
         ).count()
@@ -600,11 +601,16 @@ def api_dashboard_map():
     devices = BioTimeDevice.query.filter_by(is_active=True).all()
     markers = []
     for dev in devices:
-        if not dev.latitude or not dev.longitude:
+        lat = getattr(dev, 'latitude', None) or getattr(dev, 'lat', None)
+        lng = getattr(dev, 'longitude', None) or getattr(dev, 'lng', None)
+        if not lat or not lng:
+            continue
+        dev_serial = getattr(dev, 'serial_no', None) or getattr(dev, 'serial_number', None)
+        if not dev_serial:
             continue
         emp_count = AttendanceLog.query.filter(
             AttendanceLog.log_date == today,
-            AttendanceLog.device_serial == dev.serial_number,
+            AttendanceLog.device_serial == dev_serial,
             AttendanceLog.clock_in.isnot(None),
         ).count()
         status = 'online' if dev.is_online else 'offline'
@@ -612,10 +618,10 @@ def api_dashboard_map():
             status = 'idle'
         markers.append({
             'id': dev.id,
-            'name': dev.name or dev.serial_number,
-            'serial': dev.serial_number,
-            'lat': dev.latitude,
-            'lng': dev.longitude,
+            'name': dev.name or dev_serial,
+            'serial': dev_serial,
+            'lat': lat,
+            'lng': lng,
             'ip_address': dev.ip_address,
             'is_online': dev.is_online,
             'last_online_at': dev.last_online_at.isoformat() if dev.last_online_at else None,

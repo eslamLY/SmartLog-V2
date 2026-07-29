@@ -790,3 +790,321 @@ def upload_photo(emp_id):
     emp.profile_photo = f'profiles/{fname}'
     db.session.commit()
     return jsonify({'ok': True, 'msg': 'تم رفع الصورة.', 'photo': emp.profile_photo})
+
+
+# ─── EMPLOYEE CRUD (add / update / delete aliases) ──────────────────────────
+
+@employees_bp.route('/api/employees/add', methods=['POST'])
+@admin_required
+@safe_api
+def add_employee():
+    d = request.get_json(force=True) or {}
+    errors = {}
+
+    first_name = (d.get('first_name') or '').strip()
+    second_name = (d.get('second_name') or '').strip()
+    family_name = (d.get('family_name') or '').strip()
+    national_id = (d.get('national_id') or '').strip()
+    gender = d.get('gender', '').strip()
+    department = (d.get('department') or '').strip()
+
+    if not first_name:
+        errors['first_name'] = 'الاسم الأول مطلوب'
+    if not second_name:
+        errors['second_name'] = 'الاسم الثاني مطلوب'
+    if not family_name:
+        errors['family_name'] = 'اسم العائلة مطلوب'
+    if not national_id:
+        errors['national_id'] = 'رقم الهوية الوطنية مطلوب'
+    elif not _validate_national_id(national_id):
+        errors['national_id'] = 'رقم هوية غير صالح'
+    elif EmployeeGovernment.query.filter_by(national_id=national_id).first():
+        errors['national_id'] = 'رقم الهوية موجود مسبقاً'
+    if not gender:
+        errors['gender'] = 'الجنس مطلوب'
+    if not department:
+        errors['department'] = 'القسم مطلوب'
+
+    phone = d.get('personal_phone', '').strip()
+    if phone and not _validate_phone(phone):
+        errors['personal_phone'] = 'رقم هاتف غير صالح'
+
+    dob_str = d.get('date_of_birth', '').strip()
+    date_of_birth = None
+    if dob_str:
+        try:
+            date_of_birth = date.fromisoformat(dob_str)
+        except ValueError:
+            errors['date_of_birth'] = 'تاريخ ميلاد غير صالح'
+    else:
+        errors['date_of_birth'] = 'تاريخ الميلاد مطلوب'
+
+    if errors:
+        return jsonify({'ok': False, 'errors': errors}), 400
+
+    username = d.get('username', '').strip() or _auto_username()
+    if EmployeeGovernment.query.filter_by(username=username).first():
+        username = _auto_username()
+
+    contact_email = (d.get('personal_email') or '').strip()
+    hire_str = d.get('hire_date', '').strip()
+    hire_date = None
+    if hire_str:
+        try:
+            hire_date = date.fromisoformat(hire_str)
+        except ValueError:
+            pass
+
+    password = d.get('password', '')
+    if not password:
+        password = national_id[-6:] if len(national_id) >= 6 else '123456'
+
+    emp = EmployeeGovernment(
+        username=username,
+        first_name=first_name,
+        second_name=second_name,
+        third_name=(d.get('third_name') or '').strip(),
+        fourth_name=(d.get('fourth_name') or '').strip(),
+        family_name=family_name,
+        national_id=national_id,
+        date_of_birth=date_of_birth,
+        gender=gender,
+        personal_phone=phone,
+        personal_email=contact_email,
+        department=department,
+        department_id=d.get('department_id'),
+        job_title=(d.get('job_title') or '').strip(),
+        employment_type=(d.get('employment_type') or 'full_time').strip(),
+        hire_date=hire_date,
+        marital_status=(d.get('marital_status') or '').strip(),
+        password_hash=generate_password_hash(password),
+        role=(d.get('role') or 'employee').strip(),
+        is_active=True,
+        permission_level=(d.get('permission_level') or 'employee').strip(),
+        grade_id=d.get('grade_id'),
+        manager_id=d.get('manager_id'),
+        branch_id=d.get('branch_id'),
+        biotime_emp_id=d.get('biotime_emp_id'),
+        housing_allowance=float(d.get('housing_allowance', 0)),
+        transport_allowance=float(d.get('transport_allowance', 0)),
+        payment_method=(d.get('payment_method') or 'bank_transfer').strip(),
+        bank_name=(d.get('bank_name') or '').strip(),
+        bank_account_number=(d.get('bank_account_number') or '').strip(),
+        base_salary=float(d.get('base_salary', 0)),
+        force_password_change=True,
+        permanent_address=(d.get('permanent_address') or d.get('address') or '').strip(),
+        emergency_name=(d.get('emergency_name') or '').strip(),
+        emergency_phone=(d.get('emergency_phone') or '').strip(),
+        emergency_relation=(d.get('emergency_relation') or '').strip(),
+    )
+    db.session.add(emp)
+    db.session.flush()
+
+    if d.get('children'):
+        for child_data in d['children']:
+            birth = child_data.get('birth_date')
+            db.session.add(EmployeeChild(
+                employee_id=emp.id,
+                full_name=child_data.get('full_name', ''),
+                birth_date=date.fromisoformat(birth) if birth else None,
+                relation=child_data.get('relation', 'child'),
+                is_student=child_data.get('is_student', False),
+                is_disabled=child_data.get('is_disabled', False),
+            ))
+
+    if d.get('qualifications'):
+        for q in d['qualifications']:
+            db.session.add(EmployeeQualification(
+                employee_id=emp.id,
+                level=q.get('level', 'bachelor'),
+                specialization=q.get('specialization', ''),
+                institution=q.get('institution', ''),
+                graduation_year=q.get('graduation_year', date.today().year),
+                grade=q.get('grade', ''),
+                is_foreign=q.get('is_foreign', False),
+            ))
+
+    if d.get('certifications'):
+        for c in d['certifications']:
+            issue = c.get('issue_date')
+            expiry = c.get('expiry_date')
+            db.session.add(EmployeeCertification(
+                employee_id=emp.id,
+                cert_type=c.get('cert_type', ''),
+                cert_number=c.get('cert_number', ''),
+                issuing_body=c.get('issuing_body', ''),
+                issue_date=date.fromisoformat(issue) if issue else date.today(),
+                expiry_date=date.fromisoformat(expiry) if expiry else None,
+            ))
+
+    db.session.commit()
+    return jsonify({'ok': True, 'employee': _employee_to_dict(emp)}), 201
+
+
+@employees_bp.route('/api/employees/update', methods=['POST'])
+@admin_required
+@safe_api
+def update_employee_by_body():
+    d = request.get_json(force=True) or {}
+    emp_id = d.get('employee_id') or d.get('id')
+    if not emp_id:
+        return jsonify({'ok': False, 'msg': 'employee_id مطلوب'}), 400
+    emp = EmployeeGovernment.query.get(int(emp_id))
+    if not emp:
+        return jsonify({'ok': False, 'msg': 'الموظف غير موجود'}), 404
+
+    phone = d.get('personal_phone', '').strip()
+    if phone and not _validate_phone(phone):
+        return jsonify({'ok': False, 'errors': {'personal_phone': 'رقم هاتف غير صالح'}}), 400
+
+    national_id = (d.get('national_id') or '').strip()
+    if national_id and national_id != emp.national_id:
+        if not _validate_national_id(national_id):
+            return jsonify({'ok': False, 'errors': {'national_id': 'رقم هوية غير صالح'}}), 400
+        elif EmployeeGovernment.query.filter(
+            EmployeeGovernment.national_id == national_id,
+            EmployeeGovernment.id != emp.id,
+        ).first():
+            return jsonify({'ok': False, 'errors': {'national_id': 'رقم الهوية موجود مسبقاً'}}), 400
+
+    scalar_fields = [
+        'first_name', 'second_name', 'third_name', 'fourth_name', 'family_name',
+        'national_id', 'gender', 'marital_status', 'passport_number',
+        'personal_phone', 'work_phone', 'personal_email', 'work_email',
+        'permanent_address', 'current_address', 'residence_province',
+        'emergency_name', 'emergency_phone', 'emergency_relation',
+        'department', 'job_title', 'employment_type', 'contract_type',
+        'job_classification', 'career_path', 'category',
+        'payment_method', 'bank_name', 'bank_account_name', 'bank_account_number',
+        'iban', 'bank_account_type', 'bank_branch',
+        'spouse_name',
+        'gov_file_number', 'gov_central_emp_id', 'gov_region', 'gov_sector',
+        'gov_parent_institution', 'gov_supervisory_body',
+        'administrative_region', 'work_region',
+        'clearance_level', 'clearance_authority',
+        'social_security_number',
+        'health_insurance_level', 'life_insurance_beneficiary',
+        'permission_level',
+    ]
+    for field in scalar_fields:
+        if field in d:
+            setattr(emp, field, d[field])
+
+    if 'full_name' in d:
+        emp.full_name = d['full_name'].strip()
+
+    boolean_fields = [
+        'national_id_verified', 'no_end_date', 'bank_account_verified',
+        'is_active', 'force_password_change', 'two_factor_enabled',
+        'fp_enrolled', 'face_enrolled',
+    ]
+    for field in boolean_fields:
+        if field in d:
+            setattr(emp, field, bool(d[field]))
+
+    float_fields = [
+        'base_salary', 'housing_allowance', 'transport_allowance',
+        'responsibility_allowance', 'hazard_allowance',
+        'social_security_rate', 'accumulated_contributions',
+        'health_insurance_premium', 'life_insurance_coverage',
+        'life_insurance_premium', 'injury_insurance_coverage',
+        'pension_rate', 'years_of_service', 'expected_pension',
+        'carried_over_days', 'used_leave_days', 'remaining_leave_days',
+        'annual_leave_days', 'sick_leave_days', 'maternity_leave_days',
+        'paternity_leave_days', 'marriage_leave_days', 'hajj_leave_days',
+        'unpaid_leave_days',
+    ]
+    for field in float_fields:
+        if field in d:
+            setattr(emp, field, float(d[field]) if d[field] is not None else 0.0)
+
+    int_fields = ['grade_id', 'manager_id', 'branch_id', 'department_id', 'biotime_emp_id']
+    for field in int_fields:
+        if field in d:
+            val = d[field]
+            setattr(emp, field, int(val) if val is not None else None)
+
+    date_fields = ['date_of_birth', 'passport_expiry', 'id_expiry_date',
+                   'hire_date', 'contract_end_date', 'clearance_date', 'clearance_expiry']
+    for key in date_fields:
+        if key in d:
+            val = d[key]
+            if val:
+                try:
+                    setattr(emp, key, date.fromisoformat(val))
+                except (ValueError, TypeError):
+                    pass
+            else:
+                setattr(emp, key, None)
+
+    if 'password' in d and d['password']:
+        emp.password_hash = generate_password_hash(d['password'])
+
+    if 'other_allowances' in d:
+        emp.other_allowances_list = d['other_allowances']
+
+    if 'assigned_devices' in d:
+        emp.assigned_device_ids = d['assigned_devices']
+
+    if 'children' in d:
+        EmployeeChild.query.filter_by(employee_id=emp.id).delete()
+        for child_data in d['children']:
+            birth = child_data.get('birth_date')
+            db.session.add(EmployeeChild(
+                employee_id=emp.id,
+                full_name=child_data.get('full_name', ''),
+                birth_date=date.fromisoformat(birth) if birth else None,
+                relation=child_data.get('relation', 'child'),
+                is_student=child_data.get('is_student', False),
+                is_disabled=child_data.get('is_disabled', False),
+            ))
+
+    if 'qualifications' in d:
+        EmployeeQualification.query.filter_by(employee_id=emp.id).delete()
+        for q in d['qualifications']:
+            db.session.add(EmployeeQualification(
+                employee_id=emp.id,
+                level=q.get('level', 'bachelor'),
+                specialization=q.get('specialization', ''),
+                institution=q.get('institution', ''),
+                graduation_year=q.get('graduation_year', date.today().year),
+                grade=q.get('grade', ''),
+                is_foreign=q.get('is_foreign', False),
+            ))
+
+    if 'certifications' in d:
+        EmployeeCertification.query.filter_by(employee_id=emp.id).delete()
+        for c in d['certifications']:
+            issue = c.get('issue_date')
+            expiry = c.get('expiry_date')
+            db.session.add(EmployeeCertification(
+                employee_id=emp.id,
+                cert_type=c.get('cert_type', ''),
+                cert_number=c.get('cert_number', ''),
+                issuing_body=c.get('issuing_body', ''),
+                issue_date=date.fromisoformat(issue) if issue else date.today(),
+                expiry_date=date.fromisoformat(expiry) if expiry else None,
+            ))
+
+    db.session.commit()
+    return jsonify({'ok': True, 'employee': _employee_to_dict(emp)})
+
+
+@employees_bp.route('/api/employees/delete', methods=['POST'])
+@admin_required
+@safe_api
+def delete_employee_by_body():
+    d = request.get_json(force=True) or {}
+    emp_id = d.get('employee_id') or d.get('id')
+    if not emp_id:
+        return jsonify({'ok': False, 'msg': 'employee_id مطلوب'}), 400
+    emp = EmployeeGovernment.query.get(int(emp_id))
+    if not emp:
+        return jsonify({'ok': False, 'msg': 'الموظف غير موجود'}), 404
+    reason = d.get('reason', '')
+    emp.deleted_at = datetime.now(UTC)
+    emp.deleted_by = session.get('user_id')
+    emp.delete_reason = reason
+    emp.is_active = False
+    db.session.commit()
+    return jsonify({'ok': True, 'message': 'تم حذف الموظف'})

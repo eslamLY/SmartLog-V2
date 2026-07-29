@@ -77,6 +77,7 @@ def employee_delegations_page(eid):
 # ─── EMPLOYEE SELF-SERVICE ────────────────────────────────────────────────
 
 @employee_mgmt_bp.route('/employee/my-profile')
+@employee_mgmt_bp.route('/employee/my_profile')
 @login_required
 def my_profile():
     emp = Employee.query.get_or_404(session['user_id'])

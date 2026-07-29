@@ -4,8 +4,12 @@ core/env.py — Environment detection, secrets, and safe logging.
 import os
 import sys
 import logging
+from dotenv import load_dotenv
 
 log = logging.getLogger('app')
+
+# Load .env file if it exists
+load_dotenv()
 
 
 def detect_environment():

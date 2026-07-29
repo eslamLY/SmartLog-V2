@@ -45,6 +45,8 @@ from models.company import Company, CompanyAdmin
 from models.biometric_device import BiometricDevice
 from models.device_sync_log import DeviceSyncLog
 from models.refresh_token import RefreshToken
+from models.misc import UserPreference
+from models.attendance_report import ReportDataService, ReportCorrection, ScheduledReport
 
 __all__ = [
     'db', 'get_fernet', 'set_fernet',
@@ -70,5 +72,7 @@ __all__ = [
     'EmployeeDelegation', 'EmployeeTraining', 'EmployeePerformance',
     'EmployeeDisciplinaryAction',
     # Multi-tenant models
-    'Company', 'CompanyAdmin', 'BiometricDevice', 'DeviceSyncLog',
+    'Company', 'CompanyAdmin',     'BiometricDevice', 'DeviceSyncLog',
+    # User preferences
+    'UserPreference',
 ]

@@ -82,7 +82,7 @@ def generate_random_password(length=12):
     return ''.join(random.choice(chars) for _ in range(length))
 
 
-# ─── PAGE: EMPLOYEE LIST (redirect to consolidated) ────────────
+# ─── PAGE: EMPLOYEE LIST (delegates to consolidated) ────────────
 
 @admin_employees_bp.route('/admin/employees-legacy')
 @admin_required

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Employee Dashboard",
+    "path": "/employee",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Employee Shifts",
+    "path": "/employee/shifts",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Employee Documents",
+    "path": "/employee/documents",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Employee History",
+    "path": "/employee/history",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Employee Leaves",
+    "path": "/employee/leaves",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Employee Reports",
+    "path": "/employee/reports",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Employee Profile",
+    "path": "/employee/my_profile",
+    "status": "Not Found",
+    "error": null
+  }
+]

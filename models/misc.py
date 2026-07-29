@@ -119,3 +119,18 @@ class EmployeeDocument(db.Model):
             'سارية': 'badge-present',
             'غير محدد': 'badge-info'
         }.get(self.status, 'badge-info')
+
+
+class UserPreference(db.Model):
+    __tablename__ = 'user_preferences'
+    id                  = db.Column(db.Integer, primary_key=True)
+    employee_id         = db.Column(db.Integer, db.ForeignKey('employees.id'), unique=True, nullable=False)
+    theme               = db.Column(db.String(10), default='dark')
+    language            = db.Column(db.String(5), default='ar')
+    notifications_enabled = db.Column(db.Boolean, default=True)
+    email_notifications  = db.Column(db.Boolean, default=True)
+    sms_notifications    = db.Column(db.Boolean, default=False)
+    share_location       = db.Column(db.Boolean, default=True)
+    allow_biometric      = db.Column(db.Boolean, default=True)
+    created_at          = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at          = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))

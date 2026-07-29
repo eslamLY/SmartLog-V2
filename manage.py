@@ -7,6 +7,10 @@ Usage:
   python manage.py reset-sequence   # Reset auto-increment sequences
 """
 import os, sys, json, re
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 _IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 

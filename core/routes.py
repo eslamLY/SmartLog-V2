@@ -56,6 +56,8 @@ def register_blueprints(app: Flask):
     from routes.company_employees import company_employees_bp
     from routes.company_devices import company_devices_bp
     from routes.admin_companies import admin_companies_bp
+    from routes.api_departments import departments_api_bp
+    from routes.api_operations import api_ops_bp
 
     for bp in [admin_attendance_bp, attendance_policies_bp, admin_employees_bp,
                employees_bp, admin_devices_bp, admin_system_bp, admin_shifts_bp,
@@ -64,7 +66,8 @@ def register_blueprints(app: Flask):
                api_offline_sync_bp, gps_bp, gps_api_bp, backup_bp, rbac_bp,
                employee_mgmt_bp, ai_forecast_bp, forecast_bp, scenarios_bp,
                company_auth_bp, company_dashboard_bp, device_api_bp, api_v1_bp,
-               api_auth_bp, company_employees_bp, company_devices_bp, admin_companies_bp]:
+               api_auth_bp, company_employees_bp, company_devices_bp, admin_companies_bp,
+               departments_api_bp, api_ops_bp]:
         app.register_blueprint(bp)
 
 

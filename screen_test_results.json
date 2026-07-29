@@ -1,0 +1,242 @@
+[
+  {
+    "name": "Login Page",
+    "path": "/login",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Logout",
+    "path": "/logout",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Admin Dashboard",
+    "path": "/admin",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Dashboard Main",
+    "path": "/admin/dashboard",
+    "status": "Not Found",
+    "error": null
+  },
+  {
+    "name": "Employees List",
+    "path": "/admin/employees",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Add Employee Form",
+    "path": "/admin/employees/add-form",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Grades",
+    "path": "/admin/grades",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Promotions",
+    "path": "/admin/promotions",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Departments",
+    "path": "/admin/departments",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Attendance",
+    "path": "/admin/attendance",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Leave Management",
+    "path": "/admin/leave-mgmt",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Shifts",
+    "path": "/admin/shifts",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Shift Types",
+    "path": "/admin/shifts/types",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Shift Swaps",
+    "path": "/admin/shifts/swaps",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Shift Coverage",
+    "path": "/admin/shifts/coverage",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Requests Review",
+    "path": "/admin/requests/review",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Analytics",
+    "path": "/admin/analytics",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Employee Analytics",
+    "path": "/admin/employee-analytics",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Attendance Reports",
+    "path": "/admin/reports/attendance",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Payroll",
+    "path": "/admin/payroll",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Notifications",
+    "path": "/admin/notifications",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "GPS Tracking",
+    "path": "/admin/gps",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Devices",
+    "path": "/admin/devices",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Device Security",
+    "path": "/admin/devices/security",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Devices Management",
+    "path": "/admin/devices-management",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Biometrics",
+    "path": "/admin/biometrics",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Documents",
+    "path": "/admin/documents",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Document Vault",
+    "path": "/admin/document-vault",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Branding",
+    "path": "/admin/branding",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "QR Generator",
+    "path": "/admin/qr-generator",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "AI Predictor",
+    "path": "/admin/ai-predictor",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Forecasting",
+    "path": "/admin/forecasting",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Companies",
+    "path": "/admin/companies",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Backups",
+    "path": "/admin/backups",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Audit Logs",
+    "path": "/admin/audit-logs",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Permissions",
+    "path": "/admin/permissions",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "RBAC",
+    "path": "/admin/rbac",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "Email Notifications",
+    "path": "/admin/email-notifications",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "SMS Notifications",
+    "path": "/admin/sms-notifications",
+    "status": "OK",
+    "error": null
+  },
+  {
+    "name": "System Health",
+    "path": "/admin/system-health",
+    "status": "OK",
+    "error": null
+  }
+]
