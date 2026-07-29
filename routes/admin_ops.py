@@ -144,40 +144,50 @@ def admin_leaves():
 @admin_ops_bp.route('/admin/leaves/<int:lid>/action', methods=['POST'])
 @admin_required
 def leave_action(lid):
-    lv  = LeaveRequest.query.get_or_404(lid)
-    act = (request.get_json() or {}).get('action')
-    lv.status      = 'approved' if act == 'approve' else 'rejected'
-    lv.approved_by = session['user_id']
-    lv.approved_at = datetime.now(UTC)
-    db.session.commit()
-    emp = Employee.query.get(lv.employee_id)
-    n = Notification(employee_id=lv.employee_id, title='طلب إجازة',
-        message=f'تم {"اعتماد" if act == "approve" else "رفض"} طلب إجازتك ({lv.request_type})',
-        ntype='success' if act == 'approve' else 'danger', url='/employee/leaves')
-    db.session.add(n); db.session.commit()
-    return jsonify({'ok': True, 'msg': f'تم تحديث الطلب: {"اعتُمد" if act == "approve" else "رُفض"}.'})
+    try:
+        lv  = LeaveRequest.query.get_or_404(lid)
+        act = (request.get_json() or {}).get('action')
+        lv.status      = 'approved' if act == 'approve' else 'rejected'
+        lv.approved_by = session['user_id']
+        lv.approved_at = datetime.now(UTC)
+        db.session.commit()
+        emp = Employee.query.get(lv.employee_id)
+        n = Notification(employee_id=lv.employee_id, title='طلب إجازة',
+            message=f'تم {"اعتماد" if act == "approve" else "رفض"} طلب إجازتك ({lv.request_type})',
+            ntype='success' if act == 'approve' else 'danger', url='/employee/leaves')
+        db.session.add(n); db.session.commit()
+        return jsonify({'ok': True, 'msg': f'تم تحديث الطلب: {"اعتُمد" if act == "approve" else "رُفض"}.'})
+    except Exception:
+        db.session.rollback()
+        logger.exception('leave_action failed')
+        return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
 
 
 @admin_ops_bp.route('/admin/outings/<int:oid>/action', methods=['POST'])
 @admin_required
 def outing_action(oid):
-    oreq = OutingRequest.query.get_or_404(oid)
-    act  = (request.get_json() or {}).get('action')
-    oreq.status      = 'approved' if act == 'approve' else 'rejected'
-    oreq.approved_by = session['user_id']
-    oreq.approved_at = datetime.now(UTC)
-    db.session.commit()
-    if act == 'approve':
-        log = AttendanceLog.query.filter_by(
-            employee_id=oreq.employee_id, log_date=oreq.outing_date).first()
-        if log:
-            log.has_exit_permission = True
-            log.is_inside_geofence  = True
-    n = Notification(employee_id=oreq.employee_id, title='طلب إذن خروج',
-        message=f'تم {"اعتماد" if act == "approve" else "رفض"} طلب إذن الخروج',
-        ntype='success' if act == 'approve' else 'danger', url='/employee')
-    db.session.add(n); db.session.commit()
-    return jsonify({'ok': True, 'msg': f'تم تحديث طلب الخروج: {"اعتُمد" if act == "approve" else "رُفض"}.'})
+    try:
+        oreq = OutingRequest.query.get_or_404(oid)
+        act  = (request.get_json() or {}).get('action')
+        oreq.status      = 'approved' if act == 'approve' else 'rejected'
+        oreq.approved_by = session['user_id']
+        oreq.approved_at = datetime.now(UTC)
+        db.session.commit()
+        if act == 'approve':
+            log = AttendanceLog.query.filter_by(
+                employee_id=oreq.employee_id, log_date=oreq.outing_date).first()
+            if log:
+                log.has_exit_permission = True
+                log.is_inside_geofence  = True
+        n = Notification(employee_id=oreq.employee_id, title='طلب إذن خروج',
+            message=f'تم {"اعتماد" if act == "approve" else "رفض"} طلب إذن الخروج',
+            ntype='success' if act == 'approve' else 'danger', url='/employee')
+        db.session.add(n); db.session.commit()
+        return jsonify({'ok': True, 'msg': f'تم تحديث طلب الخروج: {"اعتُمد" if act == "approve" else "رُفض"}.'})
+    except Exception:
+        db.session.rollback()
+        logger.exception('outing_action failed')
+        return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
 
 
 @admin_ops_bp.route('/admin/requests/review')

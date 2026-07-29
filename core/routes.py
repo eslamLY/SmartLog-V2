@@ -93,8 +93,8 @@ def register_health_endpoints(app: Flask, _DB_CONFIGURED, FLASK_ENV, ON_RENDER):
                 with db.engine.connect() as conn:
                     conn.execute(db.text('SELECT 1'))
                 result['database'] = 'connected'
-            except Exception as exc:
-                result['database'] = 'retrying: ' + str(exc)
+            except Exception:
+                result['database'] = 'retrying'
         result['uptime_seconds'] = int(time.time() - _start_time)
         return jsonify(result), 200
 
@@ -119,6 +119,8 @@ def register_health_endpoints(app: Flask, _DB_CONFIGURED, FLASK_ENV, ON_RENDER):
 
     @app.route('/api/performance/top-slow')
     def api_performance_top_slow():
+        if not session.get('user_id') or session.get('role') != 'admin':
+            return jsonify({'error': 'Unauthorized'}), 403
         from core.middleware import _request_times
         paths = []
         for path, times in _request_times.items():

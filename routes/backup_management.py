@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from models import db
 from models.backup import BackupMetadata, BackupSchedule, BackupAuditLog, BackupConfig, BackupRestoreLog
+from utils.decorators import admin_required
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,13 @@ def safe_api(f):
 
 
 @backup_bp.route('')
+@admin_required
 def backup_dashboard():
     return render_template('admin/backup_management.html')
 
 
 @backup_bp.route('/api/stats')
+@admin_required
 @safe_api
 def get_stats():
     from services.backup_service import get_backup_stats, _get_backup_dir, _read_manifest
@@ -72,6 +75,7 @@ def get_stats():
 
 
 @backup_bp.route('/api/list')
+@admin_required
 @safe_api
 def list_backups():
     backup_type = request.args.get('type')
@@ -107,6 +111,7 @@ def list_backups():
 
 
 @backup_bp.route('/api/upload', methods=['POST'])
+@admin_required
 @safe_api
 def upload_backup():
     if 'file' not in request.files:
@@ -145,6 +150,7 @@ def upload_backup():
 
 
 @backup_bp.route('/api/create', methods=['POST'])
+@admin_required
 @safe_api
 def create_backup():
     data = request.get_json(silent=True) or {}
@@ -177,6 +183,7 @@ def create_backup():
 
 
 @backup_bp.route('/api/delete/<int:backup_id>', methods=['DELETE'])
+@admin_required
 @safe_api
 def delete_backup(backup_id):
     meta = BackupMetadata.query.get(backup_id)
@@ -191,6 +198,7 @@ def delete_backup(backup_id):
 
 
 @backup_bp.route('/api/restore', methods=['POST'])
+@admin_required
 @safe_api
 def restore_backup():
     data = request.get_json(silent=True) or {}
@@ -222,6 +230,7 @@ def restore_backup():
 
 
 @backup_bp.route('/api/preview/<int:backup_id>')
+@admin_required
 @safe_api
 def preview_backup(backup_id):
     meta = BackupMetadata.query.get(backup_id)
@@ -235,6 +244,7 @@ def preview_backup(backup_id):
 
 
 @backup_bp.route('/api/verify/<int:backup_id>')
+@admin_required
 @safe_api
 def verify_backup(backup_id):
     meta = BackupMetadata.query.get(backup_id)
@@ -250,6 +260,7 @@ def verify_backup(backup_id):
 
 
 @backup_bp.route('/api/verify-all', methods=['POST'])
+@admin_required
 @safe_api
 def verify_all_backups():
     backups = BackupMetadata.query.filter(
@@ -271,6 +282,7 @@ def verify_all_backups():
 
 
 @backup_bp.route('/api/schedules')
+@admin_required
 @safe_api
 def list_schedules():
     from services.backup_scheduler import list_schedules
@@ -278,6 +290,7 @@ def list_schedules():
 
 
 @backup_bp.route('/api/schedules/create', methods=['POST'])
+@admin_required
 @safe_api
 def create_schedule():
     data = request.get_json(silent=True) or {}
@@ -299,6 +312,7 @@ def create_schedule():
 
 
 @backup_bp.route('/api/schedules/update/<int:schedule_id>', methods=['PUT'])
+@admin_required
 @safe_api
 def update_schedule(schedule_id):
     data = request.get_json(silent=True) or {}
@@ -308,6 +322,7 @@ def update_schedule(schedule_id):
 
 
 @backup_bp.route('/api/schedules/delete/<int:schedule_id>', methods=['DELETE'])
+@admin_required
 @safe_api
 def delete_schedule(schedule_id):
     from services.backup_scheduler import delete_schedule
@@ -316,6 +331,7 @@ def delete_schedule(schedule_id):
 
 
 @backup_bp.route('/api/schedules/run/<int:schedule_id>', methods=['POST'])
+@admin_required
 @safe_api
 def run_schedule(schedule_id):
     from services.backup_scheduler import run_scheduled_backup
@@ -324,6 +340,7 @@ def run_schedule(schedule_id):
 
 
 @backup_bp.route('/api/schedules/status')
+@admin_required
 @safe_api
 def scheduler_status():
     from services.backup_scheduler import get_scheduler_status
@@ -331,6 +348,7 @@ def scheduler_status():
 
 
 @backup_bp.route('/api/schedules/toggle/<int:schedule_id>', methods=['POST'])
+@admin_required
 @safe_api
 def toggle_schedule(schedule_id):
     schedule = BackupSchedule.query.get(schedule_id)
@@ -342,6 +360,7 @@ def toggle_schedule(schedule_id):
 
 
 @backup_bp.route('/api/audit')
+@admin_required
 @safe_api
 def list_audit_logs():
     page = request.args.get('page', 1, type=int)
@@ -368,6 +387,7 @@ def list_audit_logs():
 
 
 @backup_bp.route('/api/config', methods=['GET', 'PUT'])
+@admin_required
 @safe_api
 def backup_config():
     if request.method == 'PUT':
@@ -406,6 +426,7 @@ def backup_config():
 
 
 @backup_bp.route('/api/restore-logs')
+@admin_required
 @safe_api
 def restore_logs():
     page = request.args.get('page', 1, type=int)
@@ -433,6 +454,7 @@ def restore_logs():
 
 
 @backup_bp.route('/api/export-sql', methods=['POST'])
+@admin_required
 @safe_api
 def export_backup_sql():
     from services.backup_service import export_backup_to_sql
@@ -441,6 +463,7 @@ def export_backup_sql():
 
 
 @backup_bp.route('/api/delete-old', methods=['POST'])
+@admin_required
 @safe_api
 def delete_old_backups():
     data = request.get_json(silent=True) or {}
@@ -451,6 +474,7 @@ def delete_old_backups():
 
 
 @backup_bp.route('/api/archived')
+@admin_required
 @safe_api
 def list_archived():
     meta_backups = BackupMetadata.query.filter(

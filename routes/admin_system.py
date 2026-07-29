@@ -69,6 +69,7 @@ def uploaded_file(filename):
 
 
 @admin_system_bp.route('/api/branding')
+@admin_required
 @safe_api
 def api_branding():
     return jsonify(BrandingService.to_dict(BrandingService.get_or_create()))
