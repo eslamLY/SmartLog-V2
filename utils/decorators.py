@@ -11,12 +11,16 @@ def login_required(f):
     @wraps(f)
     def deco(*a, **kw):
         if 'user_id' not in session:
+            if request.path.startswith('/api/'):
+                return jsonify({'ok': False, 'msg': 'يجب تسجيل الدخول أولاً.'}), 401
             return redirect(url_for('auth.login'))
         la = session.get('last_activity')
         if la:
             elapsed = (datetime.now(UTC) - datetime.fromisoformat(la)).total_seconds()
             if elapsed > SESSION_TIMEOUT_SECS:
                 session.clear()
+                if request.path.startswith('/api/'):
+                    return jsonify({'ok': False, 'msg': 'انتهت الجلسة. سجل دخول مجدداً.'}), 401
                 return redirect(url_for('auth.login', timeout=1))
         session['last_activity'] = datetime.now(UTC).isoformat()
         return f(*a, **kw)
@@ -26,12 +30,16 @@ def admin_required(f):
     @wraps(f)
     def deco(*a, **kw):
         if 'user_id' not in session or session.get('role') != 'admin':
+            if request.path.startswith('/api/'):
+                return jsonify({'ok': False, 'msg': 'ليس لديك صلاحية.'}), 403
             return redirect(url_for('auth.login'))
         la = session.get('last_activity')
         if la:
             elapsed = (datetime.now(UTC) - datetime.fromisoformat(la)).total_seconds()
             if elapsed > SESSION_TIMEOUT_SECS:
                 session.clear()
+                if request.path.startswith('/api/'):
+                    return jsonify({'ok': False, 'msg': 'انتهت الجلسة. سجل دخول مجدداً.'}), 401
                 return redirect(url_for('auth.login', timeout=1))
         session['last_activity'] = datetime.now(UTC).isoformat()
         return f(*a, **kw)

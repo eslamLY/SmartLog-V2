@@ -72,7 +72,8 @@ def register_middleware(app, PRODUCTION):
                                     '/login', '/api/login',
                                     '/company/', '/api/device/',
                                     '/api/v1/auth/login', '/api/v1/auth/refresh',
-                                    '/api/v1/auth/logout')):
+                                    '/api/v1/auth/logout',
+                                    '/api/leaves/')):
             return
         if request.is_json:
             token = request.headers.get('X-CSRFToken')
