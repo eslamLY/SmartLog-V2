@@ -2,7 +2,7 @@
 core/database.py — SQLAlchemy init, connection pool, pre-flight test, Alembic stamp.
 """
 import os
-import sys
+
 import time
 import logging
 
@@ -89,9 +89,6 @@ def auto_create_tables(app: Flask, db: SQLAlchemy, masked_url: str, PRODUCTION: 
             log.info('Alembic: stamped to head')
         except Exception as exc:
             log.warning('Alembic stamp skipped: %s', exc)
-            if PRODUCTION:
-                log.error('FATAL: db.create_all() failed: %s', exc)
-                sys.exit(1)
 
 
 def run_startup(app: Flask, db: SQLAlchemy):
