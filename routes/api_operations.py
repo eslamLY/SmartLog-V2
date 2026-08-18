@@ -53,7 +53,10 @@ def safe_api(f):
 def _resolve_employee_id(data):
     emp_id = data.get('employee_id')
     if emp_id and session.get('role') == 'admin':
-        return int(emp_id)
+        try:
+            return int(emp_id)
+        except (ValueError, TypeError):
+            return None
     return session['user_id']
 
 
@@ -228,6 +231,8 @@ def api_attendance_logs():
 def api_leave_request():
     data = request.get_json() or {}
     emp_id = _resolve_employee_id(data)
+    if not emp_id:
+        return jsonify({'ok': False, 'msg': 'employee_id غير صالح'}), 400
     emp = Employee.query.get(emp_id)
     if not emp:
         return jsonify({'ok': False, 'msg': 'الموظف غير موجود'}), 404
@@ -235,7 +240,7 @@ def api_leave_request():
     leave_type_id = data.get('leave_type_id')
     start_date_str = data.get('start_date')
     end_date_str = data.get('end_date')
-    reason = data.get('reason', '').strip()
+    reason = (data.get('reason') or '').strip()
 
     if not leave_type_id or not start_date_str or not end_date_str:
         return jsonify({'ok': False, 'msg': 'نوع الإجازة وتاريخ البداية والنهاية مطلوبون'}), 400
@@ -302,7 +307,11 @@ def api_leave_approve_json():
     rid = data.get('leave_id')
     if not rid:
         return jsonify({'ok': False, 'msg': 'leave_id مطلوب'}), 400
-    result = LeaveService.approve_leave(int(rid), session['user_id'], data.get('comment'))
+    try:
+        rid = int(rid)
+    except (ValueError, TypeError):
+        return jsonify({'ok': False, 'msg': 'leave_id يجب أن يكون رقمًا صحيحًا'}), 400
+    result = LeaveService.approve_leave(rid, session['user_id'], data.get('comment'))
     if not result.get('success'):
         return jsonify({'ok': False, 'msg': result.get('error', 'فشل الموافقة')}), 400
     return jsonify({'ok': True, 'msg': 'تمت الموافقة على طلب الإجازة', 'request': result['request']})
@@ -319,7 +328,11 @@ def api_leave_reject_json():
     rid = data.get('leave_id')
     if not rid:
         return jsonify({'ok': False, 'msg': 'leave_id مطلوب'}), 400
-    result = LeaveService.reject_leave(int(rid), session['user_id'], data.get('comment'))
+    try:
+        rid = int(rid)
+    except (ValueError, TypeError):
+        return jsonify({'ok': False, 'msg': 'leave_id يجب أن يكون رقمًا صحيحًا'}), 400
+    result = LeaveService.reject_leave(rid, session['user_id'], data.get('comment'))
     if not result.get('success'):
         return jsonify({'ok': False, 'msg': result.get('error', 'فشل الرفض')}), 400
     return jsonify({'ok': True, 'msg': 'تم رفض طلب الإجازة', 'request': result['request']})
