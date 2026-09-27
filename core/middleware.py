@@ -5,12 +5,12 @@ import time
 import logging
 import gzip
 from collections import defaultdict
-from datetime import datetime, UTC
 
-from flask import request, jsonify, render_template, session, redirect
+from flask import request, render_template, redirect
 from flask_wtf.csrf import validate_csrf, ValidationError
 
 from core._state import db_ready_event
+from utils.api_response import error_response
 
 log = logging.getLogger('app')
 
@@ -37,7 +37,7 @@ def register_middleware(app, PRODUCTION):
             log.info('Request waiting for DB: %s', request.path)
             if not db_ready_event.wait(timeout=120):
                 log.error('Request timed out waiting for DB: %s', request.path)
-                return jsonify({'ok': False, 'msg': 'Database not ready yet'}), 503
+                return error_response(code='DB_NOT_READY', status=503)
 
     @app.before_request
     def request_start_time():
@@ -54,6 +54,8 @@ def register_middleware(app, PRODUCTION):
         ip = request.remote_addr or 'unknown'
         result = check_ip_flood(ip, max_requests=266, window_seconds=60)
         if not result['ok']:
+            if request.path.startswith('/api/') or request.is_json:
+                return error_response(code='IP_BLOCKED', status=429)
             return render_template('blocked.html'), 429
 
     @app.before_request
@@ -67,22 +69,40 @@ def register_middleware(app, PRODUCTION):
             return
         if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
             return
+        # Exemptions are deliberately *exact* (or tightly scoped) paths.
+        # Broad prefixes previously covered /api/leaves/* (admin approve/reject
+        # mutations) — removed; session-authenticated admin actions must carry
+        # X-CSRFToken like every other JSON mutation.
         if request.path.startswith(('/static/', '/manifest.json', '/sw.js',
                                     '/uploads/', '/api/health',
                                     '/login', '/api/login',
-                                    '/company/', '/api/device/',
+                                    '/api/device/',
                                     '/api/v1/auth/login', '/api/v1/auth/refresh',
-                                    '/api/v1/auth/logout',
-                                    '/api/leaves/')):
+                                    '/api/v1/auth/logout')):
             return
-        if request.is_json:
-            token = request.headers.get('X-CSRFToken')
-            if not token:
-                return jsonify({'ok': False, 'msg': 'طلب غير مصرح به (CSRF). أعد تحميل الصفحة.'}), 403
-            try:
-                validate_csrf(token)
-            except ValidationError:
-                return jsonify({'ok': False, 'msg': 'طلب غير مصرح به (CSRF). أعد تحميل الصفحة.'}), 403
+        if request.path in ('/company/register', '/company/login'):
+            return
+        # Requests that authenticate with an explicit bearer token are not
+        # forgeable cross-site: a browser never attaches Authorization on its
+        # own, so CSRF does not apply. This is how the offline attendance sync
+        # in static/js/offline-sync.js, static/js/service-worker.js and
+        # templates/employee/attendance-offline.html authenticate.
+        if (request.headers.get('Authorization') or '').lower().startswith('bearer '):
+            return
+        # Every state-changing request must carry a token, including bodyless
+        # ones (POST/PUT/PATCH/DELETE with no payload). The check used to be
+        # gated on the request having a JSON body, form or files, so a bodyless
+        # mutation such as fetch(url, {method: 'DELETE'}) skipped validation
+        # entirely. The token is accepted from the X-CSRFToken header, or from
+        # the form field for native form submissions which cannot set a header.
+        token = (request.headers.get('X-CSRFToken')
+                 or (request.form.get('csrf_token') if request.form else None))
+        if not token:
+            return error_response(code='CSRF_FAILED', status=403)
+        try:
+            validate_csrf(token)
+        except ValidationError:
+            return error_response(code='CSRF_FAILED', status=403)
 
     # ── after_request ───────────────────────────────────────────────────
 

@@ -3,7 +3,6 @@ from datetime import datetime, UTC
 
 from models import db, BrandingConfig
 from utils.helpers import allowed_file
-from utils.constants import ALLOWED_EXTENSIONS
 
 
 class BrandingService:

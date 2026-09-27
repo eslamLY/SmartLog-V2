@@ -1,10 +1,8 @@
-from datetime import datetime, date, timedelta, UTC
-from models import db
+from datetime import date, timedelta
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.shifts import ShiftSchedule
 from models.misc import LeaveRequest
-from sqlalchemy import extract
 from collections import defaultdict
 
 

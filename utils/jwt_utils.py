@@ -1,5 +1,4 @@
 """JWT access-token helpers and @jwt_required decorator."""
-import os
 import time
 import hashlib
 import secrets

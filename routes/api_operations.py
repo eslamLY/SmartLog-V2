@@ -1,10 +1,8 @@
 import csv
 import io
 import logging
-import os
 from collections import defaultdict
 from datetime import date, datetime, timedelta, UTC
-from functools import wraps
 
 from flask import Blueprint, request, session, jsonify, send_file
 
@@ -23,6 +21,7 @@ from services.cached_queries import get_active_departments
 from services.biotime_service import pull_attendance_logs
 from services.payroll_service import PayrollService
 from services.tax_calculator import TaxCalculator
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,14 +39,7 @@ def _require_admin():
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 def _resolve_employee_id(data):
@@ -361,8 +353,12 @@ def api_device_sync():
     device_id = data.get('device_id')
     if not device_id:
         return jsonify({'ok': False, 'msg': 'device_id مطلوب'}), 400
+    try:
+        device_id = int(device_id)
+    except (TypeError, ValueError):
+        return jsonify({'ok': False, 'msg': 'device_id يجب أن يكون رقمًا صحيحًا'}), 400
 
-    dev = BiometricDevice.query.get(int(device_id))
+    dev = BiometricDevice.query.get(device_id)
     if not dev or dev.deleted_at:
         return jsonify({'ok': False, 'msg': 'الجهاز غير موجود'}), 404
 
@@ -1020,38 +1016,3 @@ def api_system_health():
 
     status_code = 200 if db_ok else 503
     return jsonify(info), status_code
-
-
-@api_ops_bp.route('/api/system/logs', methods=['GET'])
-@admin_required
-@safe_api
-def api_system_logs():
-    lines_count = request.args.get('lines', 100, type=int)
-    log_source = request.args.get('source', 'app')
-
-    logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
-    log_file = os.path.join(logs_dir, f'{log_source}.log')
-    if not os.path.exists(log_file):
-        alt = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), f'{log_source}.log')
-        if os.path.exists(alt):
-            log_file = alt
-        else:
-            return jsonify({'ok': False, 'msg': 'ملف السجلات غير موجود'}), 404
-
-    try:
-        with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
-            all_lines = f.readlines()
-        tail = all_lines[-lines_count:] if len(all_lines) > lines_count else all_lines
-        lines = [l.rstrip('\n\r') for l in tail]
-    except Exception as e:
-        LOGGER.error('Failed to read log file: %s', e)
-        return jsonify({'ok': False, 'msg': 'فشل قراءة ملف السجلات'}), 500
-
-    return jsonify({
-        'ok': True,
-        'source': log_source,
-        'file': log_file,
-        'total_lines': len(lines),
-        'available_lines': len(lines),
-        'lines': lines,
-    })

@@ -1,18 +1,22 @@
 import json
+import logging
 from datetime import datetime, UTC
 from functools import wraps
 
-from flask import session, request, redirect, url_for, jsonify
+from flask import session, request, redirect, url_for
 
 from models import db, AuditLog
+from utils.api_response import error_response
 from utils.constants import SESSION_TIMEOUT_SECS
+
+log = logging.getLogger('app')
 
 def login_required(f):
     @wraps(f)
     def deco(*a, **kw):
         if 'user_id' not in session:
             if request.path.startswith('/api/'):
-                return jsonify({'ok': False, 'msg': 'يجب تسجيل الدخول أولاً.'}), 401
+                return error_response('يجب تسجيل الدخول أولاً.', status=401, code='UNAUTHORIZED')
             return redirect(url_for('auth.login'))
         la = session.get('last_activity')
         if la:
@@ -20,7 +24,7 @@ def login_required(f):
             if elapsed > SESSION_TIMEOUT_SECS:
                 session.clear()
                 if request.path.startswith('/api/'):
-                    return jsonify({'ok': False, 'msg': 'انتهت الجلسة. سجل دخول مجدداً.'}), 401
+                    return error_response('انتهت الجلسة. سجل دخول مجدداً.', status=401, code='UNAUTHORIZED')
                 return redirect(url_for('auth.login', timeout=1))
         session['last_activity'] = datetime.now(UTC).isoformat()
         return f(*a, **kw)
@@ -31,7 +35,7 @@ def admin_required(f):
     def deco(*a, **kw):
         if 'user_id' not in session or session.get('role') != 'admin':
             if request.path.startswith('/api/'):
-                return jsonify({'ok': False, 'msg': 'ليس لديك صلاحية.'}), 403
+                return error_response('ليس لديك صلاحية.', status=403, code='FORBIDDEN')
             return redirect(url_for('auth.login'))
         la = session.get('last_activity')
         if la:
@@ -39,7 +43,7 @@ def admin_required(f):
             if elapsed > SESSION_TIMEOUT_SECS:
                 session.clear()
                 if request.path.startswith('/api/'):
-                    return jsonify({'ok': False, 'msg': 'انتهت الجلسة. سجل دخول مجدداً.'}), 401
+                    return error_response('انتهت الجلسة. سجل دخول مجدداً.', status=401, code='UNAUTHORIZED')
                 return redirect(url_for('auth.login', timeout=1))
         session['last_activity'] = datetime.now(UTC).isoformat()
         return f(*a, **kw)
@@ -95,7 +99,7 @@ def own_data_only(param_name='employee_id'):
             role = session.get('role')
             uid  = session.get('user_id')
             if role != 'admin' and target_id and target_id != uid:
-                return jsonify({'ok': False, 'msg': 'لا يمكنك الوصول إلى بيانات موظف آخر.'}), 403
+                return error_response('لا يمكنك الوصول إلى بيانات موظف آخر.', status=403, code='FORBIDDEN')
             return f(*args, **kwargs)
         return wrapper
     return decorator

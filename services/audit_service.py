@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, UTC
 from models import db
 from models.rbac import RbacAuditLog
 

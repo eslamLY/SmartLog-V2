@@ -7,27 +7,22 @@ and department-specific forecasts.
 import numpy as np
 from datetime import datetime, date, timedelta
 from collections import defaultdict
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 import json
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
-from models.employee_enhanced import (
-    EmployeeLeaveRequest, LeaveType, EmployeePerformance,
-    EmployeePromotion, EmployeeDisciplinaryAction,
-    EmployeeExtended,
-)
-from models.predictions import (
-    ModelRegistry, ModelPerformanceLog, PredictionResult,
-    CustomRule, HolidayCalendar, AnomalyLog,
-)
+from models.employee_enhanced import EmployeeLeaveRequest
+from models.predictions import PredictionResult, CustomRule
 from services.ml_models import (
-    MLModelRegistry, LeavePredictionModel, AbsencePredictionModel,
-    TurnoverPredictionModel, TimeSeriesForecastModel,
-    AnomalyDetectionModel, EmployeeSegmentationModel,
-    CorrelationAnalyzer, DepartmentSpecificModel, HolidayImpactModel,
-    get_model,
+    MLModelRegistry,
+    LeavePredictionModel,
+    AbsencePredictionModel,
+    EmployeeSegmentationModel,
+    CorrelationAnalyzer,
+    DepartmentSpecificModel,
+    HolidayImpactModel,
 )
 from services.data_preprocessing import DataPreprocessor
 from services.recommendation_engine import RecommendationEngine

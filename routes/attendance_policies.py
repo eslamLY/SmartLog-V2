@@ -1,11 +1,11 @@
 import html
 import logging
 from datetime import datetime, UTC
-from flask import Blueprint, render_template, request, session, jsonify
-from functools import wraps
-from models import db, AttendancePolicy, Department, ShiftType
+from flask import Blueprint, render_template, request, jsonify
+from models import db, AttendancePolicy, ShiftType
 from utils.decorators import admin_required
 from services.cached_queries import get_active_departments
+from utils.api_response import api_guard
 
 attendance_policies_bp = Blueprint('attendance_policies_bp', __name__)
 
@@ -13,14 +13,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 @attendance_policies_bp.route('/admin/attendance-policies')

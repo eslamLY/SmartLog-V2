@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, UTC
-from flask import session, g, request, current_app
+from flask import session, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, Company, CompanyAdmin
 

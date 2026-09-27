@@ -1,5 +1,4 @@
-import json
-from datetime import datetime, UTC
+from datetime import datetime
 
 from flask import Blueprint, request, session, jsonify
 from models import db, get_fernet
@@ -7,7 +6,6 @@ from models.hrms import EmployeeProfile, LeaveBalance, SalarySlipArchive
 from models.employee import Employee
 from utils.decorators import login_required, admin_required
 from utils.rate_limit import check_rate_limit, rate_limit_headers
-from services.payroll_service import PayrollService
 
 hrms_api_bp = Blueprint('hrms_api_bp', __name__, url_prefix='/api/hrms')
 

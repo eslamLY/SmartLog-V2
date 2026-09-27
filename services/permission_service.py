@@ -1,10 +1,12 @@
 from datetime import datetime, date, UTC
 from models import db
 from models.rbac import (
-    RbacRole, RbacPermission, RbacEmployeeRole,
-    RbacAuditLog, RbacPermissionRequest, RbacDelegation
+    RbacRole,
+    RbacPermission,
+    RbacEmployeeRole,
+    RbacPermissionRequest,
+    RbacDelegation,
 )
-from models.employee import Employee
 
 def get_employee_permissions(employee_id):
     roles = RbacEmployeeRole.query.filter_by(

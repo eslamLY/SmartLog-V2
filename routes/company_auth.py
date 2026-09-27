@@ -1,9 +1,7 @@
 import logging
-from datetime import datetime, UTC
 from functools import wraps
 
 from flask import Blueprint, render_template, request, session, jsonify, redirect, url_for
-from models import db, Company, CompanyAdmin
 from services.company_service import register_company, login_company, set_company_context
 from utils.rate_limit import check_rate_limit
 

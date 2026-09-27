@@ -1,4 +1,3 @@
-import math
 
 BLOOD_BANK_LAT       = 32.0755
 BLOOD_BANK_LNG       = 23.9752

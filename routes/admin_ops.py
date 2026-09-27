@@ -1,20 +1,44 @@
-import os, io, json, uuid, calendar, math, hmac, logging, re
+import os, json, uuid, calendar, hmac, logging, re
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
 
-from flask import (Blueprint, render_template, request, session,
-                   jsonify, send_file, send_from_directory, current_app,
-                   redirect, url_for)
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    session,
+    jsonify,
+    send_from_directory,
+    current_app,
+    make_response,
+)
 from werkzeug.utils import secure_filename
-from models import db, Employee, AttendanceLog, LeaveRequest, OutingRequest, \
-    GPSLog, BioTimeDevice, TrustedDevice, BiometricCredential, Notification, \
-    EmployeeDocument, AuditLog, ShiftSchedule, ShiftSwapRequest, ShiftType, \
-    EmailTemplate, EmailLog, SmsLog, Department, BrandingConfig, Permission, Role
+from models import (
+    db,
+    Employee,
+    AttendanceLog,
+    LeaveRequest,
+    OutingRequest,
+    GPSLog,
+    BioTimeDevice,
+    TrustedDevice,
+    BiometricCredential,
+    Notification,
+    EmployeeDocument,
+    ShiftSchedule,
+    EmailTemplate,
+    EmailLog,
+    SmsLog,
+)
 from utils.decorators import admin_required
-from utils.helpers import (safe_json, monthly_deduction, allowed_file, check_geofence,
-                            calculate_mean_and_std, get_analytics_data, to_dt)
-from utils.constants import (MONTH_NAMES, DAY_NAMES, BLOOD_BANK_LAT, BLOOD_BANK_LNG,
-                              WORK_START_HOUR, WORK_START_MINUTE, LATE_GRACE_MINUTES)
+from utils.helpers import (
+    safe_json,
+    monthly_deduction,
+    allowed_file,
+    calculate_mean_and_std,
+    get_analytics_data,
+)
+from utils.constants import MONTH_NAMES, DAY_NAMES, BLOOD_BANK_LAT, BLOOD_BANK_LNG
 from utils.rate_limit import check_rate_limit, rate_limit_headers
 from sqlalchemy import func, extract
 from services.payroll_service import PayrollService
@@ -24,17 +48,10 @@ from services.cached_queries import get_active_departments
 admin_ops_bp = Blueprint('admin_ops_bp', __name__)
 logger = logging.getLogger(__name__)
 
-from functools import wraps
+from utils.api_response import api_guard
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            logger.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, logger)
 
 
 # ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
@@ -152,7 +169,6 @@ def leave_action(lid):
         lv.approved_by = session['user_id']
         lv.approved_at = datetime.now(UTC)
         db.session.commit()
-        emp = Employee.query.get(lv.employee_id)
         n = Notification(employee_id=lv.employee_id, title='طلب إجازة',
             message=f'تم {"اعتماد" if act == "approve" else "رفض"} طلب إجازتك ({lv.request_type})',
             ntype='success' if act == 'approve' else 'danger', url='/employee/leaves')
@@ -239,45 +255,6 @@ def admin_gps_legacy():
 
 # ─── DEVICES ──────────────────────────────────────────────────────────────────
 
-
-@admin_ops_bp.route('/admin/devices')
-@admin_required
-def admin_devices():
-    devices = BioTimeDevice.query.order_by(BioTimeDevice.created_at.desc()).all()
-    return render_template('admin/devices.html', devices=devices)
-
-
-@admin_ops_bp.route('/admin/devices/add', methods=['POST'])
-@admin_required
-def add_device():
-    d = request.get_json() or {}
-    if BioTimeDevice.query.filter_by(serial_no=d['serial_no']).first():
-        return jsonify({'ok': False, 'msg': 'الجهاز موجود مسبقاً.'})
-    dev = BioTimeDevice(serial_no=d['serial_no'], name=d['name'],
-                        device_type=d.get('device_type', 'biometric'),
-                        location=d.get('location', ''),
-                        ip_address=d.get('ip_address', ''),
-                        mac_address=d.get('mac_address', ''))
-    db.session.add(dev); db.session.commit()
-    return jsonify({'ok': True, 'msg': f'تم إضافة الجهاز {dev.name}.'})
-
-
-@admin_ops_bp.route('/admin/devices/<int:did>/toggle', methods=['POST'])
-@admin_required
-def toggle_device(did):
-    d = BioTimeDevice.query.get_or_404(did)
-    d.is_active = not d.is_active
-    db.session.commit()
-    return jsonify({'ok': True, 'msg': f'تم {"تفعيل" if d.is_active else "تعطيل"} الجهاز.'})
-
-
-@admin_ops_bp.route('/admin/devices/<int:did>/sync', methods=['POST'])
-@admin_required
-def sync_device(did):
-    d = BioTimeDevice.query.get_or_404(did)
-    d.last_sync = datetime.now(UTC)
-    db.session.commit()
-    return jsonify({'ok': True, 'msg': 'تمت مزامنة الجهاز.', 'synced_at': d.last_sync.isoformat()})
 
 
 # ─── HARDWARE PUNCH ───────────────────────────────────────────────────────────

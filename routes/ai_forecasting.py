@@ -1,24 +1,15 @@
 from datetime import date, timedelta
-from flask import Blueprint, render_template, request, session, jsonify, Response
-from models import db, Employee
-from models.employee_enhanced import EmployeeLeaveRequest, EmployeePerformance, EmployeePromotion
+from flask import Blueprint, render_template, request, jsonify, Response
 from services.ai_forecasting import AIForecastingEngine
 from utils.decorators import admin_required
 import logging
-from functools import wraps
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 ai_forecast_bp = Blueprint('ai_forecast', __name__)
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 

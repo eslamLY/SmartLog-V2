@@ -1,31 +1,27 @@
-import json, io, csv, math, calendar
+import io, csv, math
 import logging
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict, OrderedDict
-from functools import wraps
 
 from flask import Blueprint, request, jsonify, render_template, session, send_file
-from sqlalchemy import func, extract, case, and_, desc
-from sqlalchemy.orm import joinedload
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
-from models.misc import LeaveRequest
-from models.shifts import ShiftType, ShiftSchedule
-from models.department import Department
+from models.shifts import ShiftSchedule
 from models.payroll import (
-    PayrollRecord, SalaryComponent, DeductionRecord,
-    SalaryAdvance, ApprovalWorkflow, ApprovalStep,
-    PayrollAuditLog, BankPaymentDetail
+    PayrollRecord,
+    SalaryAdvance,
+    ApprovalWorkflow,
+    ApprovalStep,
+    PayrollAuditLog,
+    BankPaymentDetail,
 )
 from utils.decorators import admin_required
 from utils.constants import MONTH_NAMES
 from services.payroll_service import PayrollService
-from services.salary_calculator import SalaryCalculator
 from services.tax_calculator import TaxCalculator
-from services.approval_workflow import ApprovalEngine
-from services.bank_export import BankExportService
+from utils.api_response import api_guard
 
 payroll_bp = Blueprint('payroll_bp', __name__, url_prefix='/admin/payroll')
 
@@ -240,14 +236,7 @@ def payroll_main():
 LOGGER = logging.getLogger(__name__)
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 @payroll_bp.route('/api/employee/<int:eid>')
 @safe_api

@@ -1,7 +1,6 @@
 import logging
-from datetime import datetime, UTC
 
-from flask import Blueprint, render_template, request, session, jsonify
+from flask import Blueprint, render_template, request, jsonify
 from models import db, Company, CompanyAdmin, BiometricDevice, Employee
 from utils.decorators import admin_required
 

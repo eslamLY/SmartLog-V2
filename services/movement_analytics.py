@@ -1,6 +1,5 @@
-import json
 import logging
-from datetime import datetime, timedelta, date, UTC
+from datetime import datetime, timedelta, UTC
 from collections import defaultdict
 
 from models import db

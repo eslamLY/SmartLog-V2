@@ -1,11 +1,24 @@
-import json, logging, requests, hmac, hashlib, time
+import json, logging, requests, hmac, hashlib
 from datetime import datetime, timedelta, UTC
-from urllib.parse import urlencode
 
 from models import db
-from models.notification_log import NotificationLog, NotificationTemplate, WhatsAppConfig
+
+try:
+    from models.notification_log import (
+        NotificationLog, NotificationTemplate, WhatsAppConfig,
+    )
+except ImportError:  # pragma: no cover - optional models module
+    NotificationLog = NotificationTemplate = WhatsAppConfig = None
 
 logger = logging.getLogger(__name__)
+
+
+def _require_models():
+    if WhatsAppConfig is None:
+        raise RuntimeError(
+            'WhatsApp integration is unavailable: models.notification_log '
+            'is not present in this build.'
+        )
 
 WHATSAPP_PROVIDERS = {
     'ultramsg': {
@@ -34,6 +47,7 @@ def is_quiet_hours():
 
 
 def load_config():
+    _require_models()
     cfg = WhatsAppConfig.query.first()
     if not cfg:
         cfg = WhatsAppConfig(
@@ -240,6 +254,7 @@ def check_device_offline_alerts():
 
 
 def get_message_log(page=1, per_page=50, notification_type=None, status=None):
+    _require_models()
     query = NotificationLog.query
     if notification_type:
         query = query.filter_by(notification_type=notification_type)
@@ -258,6 +273,7 @@ def get_message_log(page=1, per_page=50, notification_type=None, status=None):
 
 
 def save_template(template_type, subject, body):
+    _require_models()
     tmpl = NotificationTemplate.query.filter_by(template_type=template_type).first()
     if not tmpl:
         tmpl = NotificationTemplate(template_type=template_type)
@@ -270,6 +286,7 @@ def save_template(template_type, subject, body):
 
 
 def get_template(template_type):
+    _require_models()
     return NotificationTemplate.query.filter_by(template_type=template_type).first()
 
 

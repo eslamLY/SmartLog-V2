@@ -1,7 +1,6 @@
 import csv
 import io
 from datetime import date
-from models import db
 from models.employee import Employee
 from models.employee_enhanced import EmployeeExtended, EmployeeGrade
 

@@ -1,7 +1,6 @@
-from datetime import datetime, date, UTC
-from collections import defaultdict
+from datetime import datetime, UTC
 
-from models import db, Employee, ShiftType, ShiftSchedule, ShiftSwapRequest
+from models import db, Employee, ShiftType, ShiftSchedule
 from models import ShiftCoverageRule, ShiftException
 from models import LeaveRequest, OutingRequest
 from utils.helpers import coverage_status as simple_coverage_status

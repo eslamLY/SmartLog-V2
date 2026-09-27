@@ -1,35 +1,25 @@
 import json, io, calendar
-from datetime import datetime, date, timedelta, UTC
+from datetime import datetime, date, UTC
 from collections import defaultdict
 
 from flask import Blueprint, request, jsonify, render_template, session, send_file
-from sqlalchemy import func, extract
+from sqlalchemy import extract
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.attendance_report import ReportDataService, ReportCorrection, ScheduledReport
-from models.misc import LeaveRequest
 from models.shifts import ShiftType
-from models.department import Department
-from services.payroll_service import PayrollService
 from services.cached_queries import get_active_departments, get_active_departments_json
-from functools import wraps
 import logging
 from utils.decorators import admin_required
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 admin_reports_bp = Blueprint('admin_reports', __name__, url_prefix='/admin/reports')

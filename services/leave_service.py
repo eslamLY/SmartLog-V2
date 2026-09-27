@@ -1,5 +1,4 @@
-from datetime import datetime, date, timedelta, UTC
-from sqlalchemy import and_
+from datetime import datetime, date, UTC
 from models import db
 from models.employee import Employee
 from models.employee_enhanced import LeaveType, EmployeeLeaveBalance, EmployeeLeaveRequest

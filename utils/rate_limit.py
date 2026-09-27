@@ -1,9 +1,12 @@
 """IP-based adaptive rate limiter with 3‑tier escalating bans + DB persistence."""
 
 import time
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, UTC
 from threading import Lock
+
+log = logging.getLogger(__name__)
 
 # ─── In‑memory request tracking (fast path, no DB hit per request) ───────
 _ip_request_log = defaultdict(list)
@@ -170,7 +173,7 @@ def _check_db_ban(ip_address: str) -> dict | None:
             db.session.commit()
         return None
     except Exception as exc:
-        log.warning('check_auto_ban lookup failed for %s: %s', _get_ip(), exc)
+        log.warning('check_auto_ban lookup failed for %s: %s', ip_address, exc)
         return None
 
 def _apply_ban(ip_address: str) -> dict:

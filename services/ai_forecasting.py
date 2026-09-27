@@ -1,17 +1,19 @@
 import numpy as np
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
-from sqlalchemy import func, extract
+from sqlalchemy import func
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.employee_enhanced import (
-    EmployeeLeaveRequest, LeaveType, EmployeePerformance,
-    EmployeePromotion, EmployeeDisciplinaryAction,
-    EmployeeGrade, EmployeeExtended,
+    EmployeeLeaveRequest,
+    LeaveType,
+    EmployeePerformance,
+    EmployeePromotion,
+    EmployeeDisciplinaryAction,
+    EmployeeExtended,
 )
-from models.shifts import ShiftSchedule
 
 
 class AIForecastingEngine:
@@ -1415,13 +1417,13 @@ class AIForecastingEngine:
             else:
                 writer.writerow(['تقرير موظف', emp.full_name, str(now)])
                 writer.writerow([])
-                ld = AIForecastingEngine.get_employee_leave_detail(emp_id)
+                ld = AIForecastingEngine.get_employee_leave_detail(emp.id)
                 if ld:
                     writer.writerow(['احتمالية الإجازة', ld.get('leave_probability', 0)])
-                ad = AIForecastingEngine.get_employee_absence_detail(emp_id)
+                ad = AIForecastingEngine.get_employee_absence_detail(emp.id)
                 if ad:
                     writer.writerow(['احتمالية الغياب', ad.get('absence_risk', 0)])
-                td = AIForecastingEngine.get_employee_turnover_detail(emp_id)
+                td = AIForecastingEngine.get_employee_turnover_detail(emp.id)
                 if td:
                     writer.writerow(['احتمالية الرحيل', td.get('risk_score', 0)])
                     writer.writerow(['العوامل السلبية'])

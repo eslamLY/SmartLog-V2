@@ -1,24 +1,29 @@
-import json
 import logging
 from datetime import date, datetime, UTC
 from io import StringIO
 
 from flask import Blueprint, render_template, request, session, jsonify, send_file
 
-from functools import wraps
 from models import db, Employee
 from models.employee_enhanced import (
-    EmployeeExtended, EmployeeChild, EmployeeGrade,
-    EmployeeQualification, EmployeeCertification,
-    EmployeePromotion, PromotionEligibility, LeaveType,
-    EmployeeLeaveBalance, EmployeeLeaveRequest,
-    EmployeeDelegation, EmployeeTraining,
-    EmployeePerformance, EmployeeDisciplinaryAction,
+    EmployeeExtended,
+    EmployeeChild,
+    EmployeeGrade,
+    EmployeeQualification,
+    EmployeeCertification,
+    EmployeePromotion,
+    LeaveType,
+    EmployeeLeaveRequest,
+    EmployeeDelegation,
+    EmployeeTraining,
+    EmployeePerformance,
+    EmployeeDisciplinaryAction,
 )
 from services.promotion_service import PromotionService
 from services.leave_service import LeaveService
 from services.government_export import GovernmentExport
-from utils.decorators import admin_required, login_required, own_data_only
+from utils.decorators import admin_required, login_required
+from utils.api_response import api_guard
 
 employee_mgmt_bp = Blueprint('employee_mgmt', __name__)
 
@@ -26,14 +31,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 # ─── EMPLOYEE PROFILE & MANAGEMENT PAGES ──────────────────────────────────

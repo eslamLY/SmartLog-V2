@@ -1,13 +1,11 @@
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
-import json, math
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
-from models.misc import LeaveRequest, EmployeeDocument
-from models.shifts import ShiftType, ShiftSchedule
-from models.biotime_device import BioTimeDevice
+from models.misc import LeaveRequest
+from models.shifts import ShiftType
 
 
 class ReportCorrection(db.Model):

@@ -1,20 +1,31 @@
-import json, re, secrets
+import re, secrets
 from datetime import datetime, UTC
 
-from flask import Blueprint, render_template, request, session, jsonify, send_file
+from flask import Blueprint, render_template, request, jsonify, send_file
 
-from models import db, BioTimeDevice, DeviceEventLog, DeviceHealthSnapshot, \
-    Employee, Department, AttendanceLog, Branch
+from models import (
+    db,
+    BioTimeDevice,
+    DeviceEventLog,
+    DeviceHealthSnapshot,
+    Employee,
+    AttendanceLog,
+    Branch,
+)
 from utils.decorators import admin_required
 from services.cached_queries import get_active_departments
 from services.biotime_service import (
-    test_connection, get_device_info, push_employee, restart_device,
-    clear_device_logs, pull_attendance_logs, scan_network
+    test_connection,
+    get_device_info,
+    restart_device,
+    clear_device_logs,
+    pull_attendance_logs,
+    scan_network,
 )
 
 admin_devices_bp = Blueprint('admin_devices', __name__)
 import logging
-from functools import wraps
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,14 +33,7 @@ LOGGER = logging.getLogger(__name__)
 GENERIC_ERROR_MSG = 'حدث خطأ داخلي أثناء معالجة بيانات الجهاز. تم تسجيل العطل للمراجعة.'
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': GENERIC_ERROR_MSG}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 

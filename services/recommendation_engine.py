@@ -4,21 +4,15 @@ Generates smart, context-aware recommendations based on all prediction models,
 anomaly detection, custom rules, and historical trends.
 """
 
-import numpy as np
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 from collections import defaultdict
-from typing import List, Dict, Optional
-import json
+from typing import List, Dict
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
-from models.employee_enhanced import (
-    EmployeeLeaveRequest, LeaveType, EmployeePerformance,
-    EmployeePromotion, EmployeeDisciplinaryAction,
-    EmployeeExtended,
-)
-from models.predictions import PredictionResult, CustomRule, AnomalyLog
+from models.employee_enhanced import EmployeeLeaveRequest, EmployeePerformance, EmployeeExtended
+from models.predictions import PredictionResult, AnomalyLog
 
 
 class RecommendationEngine:

@@ -1,12 +1,10 @@
-import math, calendar
-from datetime import datetime, date, timedelta, UTC
-from collections import defaultdict, Counter, OrderedDict
+import math
+from datetime import datetime, date, timedelta
+from collections import defaultdict, Counter
 
-from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.misc import LeaveRequest
-from models.shifts import ShiftType, ShiftSchedule
 from models.department import Department
 
 MONTH_NAMES = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',

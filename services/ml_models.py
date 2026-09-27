@@ -10,21 +10,18 @@ import os
 import json
 from datetime import datetime, date, timedelta
 from collections import defaultdict
-from typing import Optional, List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.employee_enhanced import (
-    EmployeeLeaveRequest, LeaveType, EmployeePerformance,
-    EmployeePromotion, EmployeeDisciplinaryAction,
-    EmployeeGrade, EmployeeExtended,
+    EmployeeLeaveRequest,
+    EmployeePerformance,
+    EmployeePromotion,
+    EmployeeDisciplinaryAction,
 )
-from models.shifts import ShiftSchedule
-from models.predictions import (
-    ModelRegistry, ModelPerformanceLog, PredictionResult,
-    CustomRule, HolidayCalendar, AnomalyLog,
-)
+from models.predictions import ModelRegistry, HolidayCalendar
 from services.data_preprocessing import DataPreprocessor
 
 

@@ -5,7 +5,6 @@ Detects unusual employee behavior patterns, sudden changes, and potential issues
 
 import numpy as np
 from datetime import datetime, date, timedelta
-from collections import defaultdict
 from typing import List, Dict, Optional
 import json
 
@@ -13,13 +12,12 @@ from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.employee_enhanced import (
-    EmployeeLeaveRequest, LeaveType, EmployeePerformance,
-    EmployeePromotion, EmployeeDisciplinaryAction,
-    EmployeeExtended,
+    EmployeeLeaveRequest,
+    LeaveType,
+    EmployeePerformance,
+    EmployeePromotion,
 )
 from models.predictions import AnomalyLog
-from services.ml_models import AnomalyDetectionModel
-from services.data_preprocessing import DataPreprocessor
 
 
 class AnomalyDetector:

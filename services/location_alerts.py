@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, UTC
 from collections import defaultdict
 
 from models import db
-from models.gps import AlertLog, LocationAuditLog
+from models.gps import AlertLog
 from models.employee import Employee
 from utils.helpers import haversine
 

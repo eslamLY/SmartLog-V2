@@ -24,7 +24,11 @@ def test_metrics_endpoint(client):
 def test_metrics_requires_admin(client):
     login(client, 'EMP001', '123456')
     r = client.get('/api/admin/metrics')
-    assert r.status_code == 302
+    # An /api/ endpoint must answer with a status the caller can handle, not a
+    # 302 to the HTML login page. admin_required returns 403 for /api/*.
+    assert r.status_code == 403
+    assert r.get_json()['success'] is False
+    assert r.get_json()['code'] == 'FORBIDDEN'
 
 def test_system_health_page(client):
     login(client)

@@ -8,7 +8,6 @@ Provides:
   4. FastJSON — Optimized JSON serialization
   5. Query profiler — Log slow queries
 """
-import json
 import time
 import logging
 import functools
@@ -17,7 +16,7 @@ from datetime import datetime, timedelta, UTC
 from collections import defaultdict, OrderedDict
 
 from models import db
-from sqlalchemy import func, text, Integer
+from sqlalchemy import func, text
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,9 @@
-import csv, io, json, os, re
+import csv, io, os, re
 from datetime import date, datetime, UTC
 from uuid import uuid4
 from flask import Blueprint, render_template, request, session, jsonify, current_app
 from werkzeug.security import generate_password_hash
-from werkzeug.utils import secure_filename
-from models import db, AuditLog
+from models import db
 from models.employee_government import EmployeeGovernment
 from models.employee_enhanced import (
     EmployeeChild, EmployeeGrade, EmployeeQualification,
@@ -14,20 +13,13 @@ from models.employee_enhanced import (
 from utils.decorators import admin_required
 from utils.helpers import validate_password_strength
 import logging
-from functools import wraps
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 employees_bp = Blueprint('employees_unified', __name__)

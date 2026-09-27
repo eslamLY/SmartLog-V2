@@ -1,6 +1,6 @@
 import io, os, logging
-from datetime import datetime, date, UTC
-from sqlalchemy import func, text
+from datetime import datetime, UTC
+from sqlalchemy import func
 
 from models import db, DocumentReference, ArchivedDocument
 from fpdf import FPDF

@@ -1,22 +1,15 @@
 import json, csv, io, re, logging
 from datetime import datetime, date, UTC
-from functools import wraps
 
 from flask import Blueprint, request, jsonify, session, send_file
 from sqlalchemy import func
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_json(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 from models import db
 from models.employee import Employee

@@ -1,32 +1,25 @@
-import io, json, calendar, logging
+import io, calendar, logging
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
 
-from flask import (Blueprint, render_template, request, session,
-                   jsonify, send_file, current_app)
-from models import db, Employee, ShiftType, ShiftSchedule, ShiftSwapRequest, ShiftCoverageRule, ShiftException
+from flask import Blueprint, render_template, request, session, jsonify, send_file
+from models import db, Employee, ShiftType, ShiftSchedule, ShiftSwapRequest, ShiftException
 from utils.decorators import admin_required
-from utils.helpers import coverage_status, check_conflict, safe_json
-from utils.constants import MONTH_NAMES, DAY_NAMES
-from services.shift_service import (check_employee_availability, validate_coverage,
-                                     auto_find_substitute, resolve_conflicts_for_date,
-                                     apply_leave_conflicts)
-from sqlalchemy import extract
-from functools import wraps
+from utils.helpers import coverage_status, check_conflict
+from utils.constants import MONTH_NAMES
+from services.shift_service import (
+    check_employee_availability,
+    auto_find_substitute,
+    resolve_conflicts_for_date,
+)
 import logging
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 admin_shifts_bp = Blueprint('admin_shifts_bp', __name__)

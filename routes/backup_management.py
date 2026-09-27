@@ -1,6 +1,5 @@
-import os, json, logging
+import os, logging
 from datetime import datetime, UTC
-from io import StringIO
 
 from flask import Blueprint, request, jsonify, render_template
 from werkzeug.utils import secure_filename
@@ -10,20 +9,13 @@ from utils.decorators import admin_required
 
 logger = logging.getLogger(__name__)
 
-from functools import wraps
+from utils.api_response import api_guard
 
 backup_bp = Blueprint('backup_management', __name__, url_prefix='/admin/backup')
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            logger.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, logger)
 
 
 @backup_bp.route('')

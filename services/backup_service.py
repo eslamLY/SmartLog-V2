@@ -1,5 +1,5 @@
-import os, json, io, zlib, hashlib, shutil, struct, logging, sqlite3
-from datetime import datetime, timedelta, date, UTC
+import os, json, zlib, hashlib, struct, logging
+from datetime import datetime, date, UTC
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -464,6 +464,7 @@ def export_backup_to_sql(backup_id: int = None) -> dict:
         lines.append(f'-- Generated: {datetime.now(UTC).isoformat()}')
         lines.append('')
         engine = db.engine
+        is_pg = engine.dialect.name == 'postgresql'
         from sqlalchemy import inspect
         insp = inspect(engine)
         for table in insp.get_table_names():
@@ -483,14 +484,17 @@ def export_backup_to_sql(backup_id: int = None) -> dict:
                     v = row[c]
                     if v is None:
                         vals.append('NULL')
+                    elif isinstance(v, bool):
+                        vals.append(('TRUE' if v else 'FALSE') if is_pg
+                                     else ('1' if v else '0'))
                     elif isinstance(v, (int, float)):
                         vals.append(str(v))
                     elif isinstance(v, bytes):
-                        vals.append(f"X'{v.hex()}'")
+                        vals.append(f"'\\x{v.hex()}'" if is_pg else f"X'{v.hex()}'")
                     else:
                         escaped = str(v).replace("'", "''")
                         vals.append(f"'{escaped}'")
-                lines.append(f'INSERT OR REPLACE INTO "{table}" ({cols}) VALUES ({", ".join(vals)});')
+                lines.append(f'INSERT INTO "{table}" ({cols}) VALUES ({", ".join(vals)});')
             lines.append('')
         sql = '\n'.join(lines)
         export_dir = os.path.join(_get_backup_dir(), 'sql_exports')

@@ -4,24 +4,16 @@ from uuid import uuid4
 
 from flask import Blueprint, request, session, jsonify, send_file, current_app
 from sqlalchemy import or_
-from werkzeug.utils import secure_filename
 
 from models import db, ArchivedDocument, DocumentAuditLog, Notification
 from utils.decorators import admin_required, login_required
 from services.document_service import generate_unique_reference, generate_document_pdf
-from functools import wraps
+from utils.api_response import api_guard
 logger = logging.getLogger(__name__)
 api_documents_bp = Blueprint('api_documents_bp', __name__)
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            logger.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, logger)
 
 
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}

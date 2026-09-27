@@ -2,9 +2,8 @@ import os
 import logging
 from datetime import datetime, UTC
 from uuid import uuid4
-from functools import wraps
 
-from flask import Blueprint, render_template, request, session, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 
 from models import db, BiometricDevice
 from routes.company_auth import company_login_required

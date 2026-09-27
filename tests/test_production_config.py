@@ -2,13 +2,20 @@ import subprocess, sys, os
 
 _VALID_FERNET_KEY = 'vbbixqOsKysfSF0hsEuNjonVd5tXOksDoYG2dPdJ_Zg='
 
+# core/env.py calls load_dotenv() with no path, and python-dotenv walks up
+# from the calling file, so the repository's local (gitignored) .env is loaded
+# even when the child process gets a scrubbed environment. That masked the
+# production guard, making these tests depend on the developer's machine.
+# Neutralise discovery so they assert the guard, not the local file.
+_NEUTRALISE_DOTENV = 'import dotenv.main as _dm; _dm.find_dotenv = lambda *a, **k: ""; '
+
 def _run(code):
     """Run Python code in subprocess clearing inherited test env vars first."""
     env = os.environ.copy()
     for k in list(env.keys()):
-        if k in ('SECRET_KEY', 'DATABASE_URL', 'FIELD_ENCRYPTION_KEY', 'FLASK_ENV', 'PRODUCTION', 'RENDER', 'RATELIMIT_ENABLED'):
+        if k in ('SECRET_KEY', 'DATABASE_URL', 'FIELD_ENCRYPTION_KEY', 'BACKUP_ENCRYPTION_KEY', 'FLASK_ENV', 'PRODUCTION', 'RENDER', 'RATELIMIT_ENABLED'):
             del env[k]
-    return subprocess.run([sys.executable, '-c', code],
+    return subprocess.run([sys.executable, '-c', _NEUTRALISE_DOTENV + code],
         capture_output=True, text=True, timeout=10,
         cwd=os.path.join(os.path.dirname(__file__), '..'),
         env=env)

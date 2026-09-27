@@ -61,8 +61,58 @@ class TestNoStrELeak:
                 % (fname, '\n'.join(found_str_e))
 
     def test_server_logging_exists(self):
-        """Every safe_api file has server-side error logging."""
+        """Every safe_api file has server-side error logging.
+
+        Logging is centralised in ``utils.api_response.api_guard`` (which also
+        rolls the session back and sanitises the client payload), so a file that
+        delegates to ``api_guard`` satisfies this invariant just as one that logs
+        inline. ``test_api_guard_logs_exceptions`` covers the guard by behaviour.
+        """
+        missing = []
         for fname in self.ROUTE_FILES:
-            content = open(os.path.join(ROUTES_DIR, fname), encoding='utf-8').read()
-            assert 'LOGGER.error' in content or 'logger.error' in content, \
-                '%s missing server-side error logging' % fname
+            path = os.path.join(ROUTES_DIR, fname)
+            with open(path, encoding='utf-8') as f:
+                content = f.read()
+            direct = 'LOGGER.error' in content or 'logger.error' in content
+            delegated = 'api_guard(' in content
+            if not (direct or delegated):
+                missing.append(fname)
+        assert not missing, 'no server-side error logging in: %s' % ', '.join(missing)
+
+    def test_api_guard_logs_exceptions(self):
+        """api_guard must log the exception server-side but not leak it."""
+        import json
+        import logging
+
+        from utils.api_response import api_guard
+
+        records = []
+
+        class _Capture(logging.Handler):
+            def emit(self, record):
+                records.append(record)
+
+        def boom():
+            raise ValueError('kaboom-secret-token')
+
+        target = logging.getLogger('app.guard_contract_test')
+        guarded = api_guard(boom, target)
+
+        root = logging.getLogger()
+        handler = _Capture()
+        prev_level = target.level
+        target.addHandler(handler)
+        target.setLevel(logging.ERROR)
+        try:
+            response, status = guarded()
+        finally:
+            target.removeHandler(handler)
+            target.setLevel(prev_level)
+
+        assert status == 400, 'client input error should be 400, got %s' % status
+        assert any(r.levelno >= logging.ERROR for r in records), \
+            'api_guard did not log the exception server-side'
+        assert any('kaboom-secret-token' in r.getMessage() for r in records), \
+            'api_guard did not record the real exception in the log'
+        assert 'kaboom-secret-token' not in json.dumps(response.get_json()), \
+            'raw exception text leaked to the client'

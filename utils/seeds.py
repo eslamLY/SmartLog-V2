@@ -1,6 +1,8 @@
+import functools
 import logging
-from datetime import datetime, UTC, date
+import threading
 from sqlalchemy import text as sa_text
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 log = logging.getLogger(__name__)
 
@@ -9,7 +11,49 @@ from models import db, Employee, Department, AttendanceLog, \
     BioTimeDevice, ShiftType, Company, CompanyAdmin
 from utils.constants import DEPARTMENTS
 
+# Seeding is reachable from the app-startup thread (core/database.py) and from
+# the request handler in routes/auth.py, so two seeders can interleave. Every
+# "if not X.query.first(): add" is a non-atomic check-then-insert, and a pending
+# add() is flushed by the *next* query, which is how a duplicate row raises
+# "UNIQUE constraint failed" from an autoflush. The lock serialises seeders
+# inside one process; _add_once's SAVEPOINT keeps a lost race from discarding
+# the whole seed when it happens across processes (GUNICORN_WORKERS > 1).
+_SEED_LOCK = threading.RLock()
 
+
+def _idempotent(fn):
+    """Serialise a seed routine and treat a losing race as already-applied."""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with _SEED_LOCK:
+            try:
+                return fn(*args, **kwargs)
+            except IntegrityError as exc:
+                db.session.rollback()
+                log.warning('seed %s already applied by a concurrent seeder: %s',
+                            fn.__name__, exc.orig)
+                return None
+    return wrapper
+
+
+def _add_once(model, lookup, **values):
+    """Insert one row only when absent, immune to a concurrent identical insert.
+
+    Runs inside a SAVEPOINT so a UNIQUE collision rolls back just this row
+    instead of the caller's whole transaction.
+    """
+    if model.query.filter_by(**lookup).first() is not None:
+        return None
+    try:
+        with db.session.begin_nested():
+            obj = model(**values)
+            db.session.add(obj)
+        return obj
+    except IntegrityError:
+        return None
+
+
+@_idempotent
 def seed_db():
     if not Company.query.first():
         company = Company(
@@ -48,11 +92,13 @@ def seed_db():
         db.session.commit()
     if not Employee.query.filter_by(username='ADM001').first():
         dept = Department.query.filter_by(name_ar='الإدارة').first()
-        db.session.add(Employee(username='ADM001', full_name='مدير النظام',
-                                department='الإدارة', department_id=dept.id if dept else None,
-                                company_id=company.id,
-                                password_hash=generate_password_hash('admin123'),
-                                role='admin', base_salary=6000))
+        _add_once(Employee, {'username': 'ADM001'},
+                  username='ADM001', full_name='مدير النظام',
+                  department='الإدارة', department_id=dept.id if dept else None,
+                  company_id=company.id,
+                  password_hash=generate_password_hash('admin123'),
+                  role='admin', base_salary=6000)
+        db.session.commit()
     samples = [
         ('EMP001', 'أحمد محمد الورفلي', 'مختبر التحليل', 3500),
         ('EMP002', 'فاطمة علي الزاوي', 'بنك الدم', 3200),
@@ -66,11 +112,13 @@ def seed_db():
     for u, n, d, s in samples:
         if not Employee.query.filter_by(username=u).first():
             dept = Department.query.filter_by(name_ar=d).first()
-            db.session.add(Employee(username=u, full_name=n, department=d,
-                                    department_id=dept.id if dept else None,
-                                    company_id=company.id,
-                                    password_hash=generate_password_hash('123456'),
-                                    role='employee', base_salary=s))
+            _add_once(Employee, {'username': u},
+                      username=u, full_name=n, department=d,
+                      department_id=dept.id if dept else None,
+                      company_id=company.id,
+                      password_hash=generate_password_hash('123456'),
+                      role='employee', base_salary=s)
+    db.session.commit()
     for emp in Employee.query.filter(Employee.department_id.is_(None)).all():
         dept = Department.query.filter_by(name_ar=emp.department).first()
         if dept:
@@ -78,6 +126,7 @@ def seed_db():
     db.session.commit()
 
 
+@_idempotent
 def seed_shift_types():
     defaults = [
         ('صباحي',  7, 0, 15, 0, '#22c55e', 'الدوام الصباحي (7 ص – 3 م)',   2, False),
@@ -96,6 +145,7 @@ def seed_shift_types():
     db.session.commit()
 
 
+@_idempotent
 def seed_leave_types():
     from models.employee_enhanced import LeaveType
     defaults = [
@@ -138,19 +188,25 @@ def _ensure_indexes():
             db.session.rollback()
 
 
+@_idempotent
 def seed_enterprise():
-    if not Permission.query.first():
-        defaults = [('إدارة الموظفين', 'manage_employees'), ('إدارة المناوبات', 'manage_shifts'),
-                    ('إدارة الحضور', 'manage_attendance'), ('إدارة التقارير', 'manage_reports'),
-                    ('إعدادات النظام', 'manage_settings'), ('إدارة المستندات', 'manage_documents'),
-                    ('إدارة الأذونات', 'manage_permissions'), ('الإشعارات', 'manage_notifications')]
-        for n, c in defaults:
-            db.session.add(Permission(name=n, code=c))
-        db.session.commit()
-    if not Role.query.first():
-        db.session.add(Role(name='مدير النظام', permissions='["manage_employees","manage_shifts","manage_attendance","manage_reports","manage_settings","manage_documents","manage_permissions","manage_notifications"]'))
-        db.session.add(Role(name='مشرف', permissions='["manage_attendance","manage_reports","manage_documents"]'))
-        db.session.commit()
+    # Per-row guards: the previous "if not Permission.query.first()" seeded
+    # nothing whenever any single row already existed, and both it and the Role
+    # block below raced a concurrent seeder into a UNIQUE violation.
+    defaults = [('إدارة الموظفين', 'manage_employees'), ('إدارة المناوبات', 'manage_shifts'),
+                ('إدارة الحضور', 'manage_attendance'), ('إدارة التقارير', 'manage_reports'),
+                ('إعدادات النظام', 'manage_settings'), ('إدارة المستندات', 'manage_documents'),
+                ('إدارة الأذونات', 'manage_permissions'), ('الإشعارات', 'manage_notifications')]
+    for n, c in defaults:
+        _add_once(Permission, {'code': c}, name=n, code=c)
+    db.session.commit()
+    _add_once(Role, {'name': 'مدير النظام'},
+              name='مدير النظام',
+              permissions='["manage_employees","manage_shifts","manage_attendance","manage_reports","manage_settings","manage_documents","manage_permissions","manage_notifications"]')
+    _add_once(Role, {'name': 'مشرف'},
+              name='مشرف',
+              permissions='["manage_attendance","manage_reports","manage_documents"]')
+    db.session.commit()
     if not EmailTemplate.query.first():
         db.session.add(EmailTemplate(name='تنبيه حضور', subject='تنبيه حضور وانصراف', body='مرحباً {name}، تم تسجيل حضورك بنجاح.'))
         db.session.add(EmailTemplate(name='طلب إجازة', subject='طلب إجازة جديد', body='تم تقديم طلب إجازة جديد من {name}.'))

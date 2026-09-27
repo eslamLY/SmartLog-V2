@@ -7,13 +7,13 @@ import sys
 import time
 import json
 import logging
-from datetime import datetime, UTC
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import generate_csrf
 from models import db, AuditLog
+from utils.api_response import error_response
 
 log = logging.getLogger('app')
 
@@ -73,30 +73,6 @@ def register_blueprints(app: Flask):
 
 def register_health_endpoints(app: Flask, _DB_CONFIGURED, FLASK_ENV, ON_RENDER):
     """Health check and performance monitoring endpoints."""
-    _start_time = time.time()
-
-    @app.route('/api/health')
-    def api_health_inline():
-        db_ready = app.config.get('DB_READY', False)
-        result = {
-            'status': 'healthy', 'database': 'ready' if db_ready else 'connecting',
-            'database_configured': _DB_CONFIGURED,
-            'timestamp': datetime.now(UTC).isoformat(),
-            'environment': FLASK_ENV, 'on_render': ON_RENDER,
-        }
-        if not _DB_CONFIGURED:
-            result['database'] = 'not_configured'
-            result['message'] = 'DATABASE_URL not set — app in degraded mode'
-            return jsonify(result), 503
-        if db_ready:
-            try:
-                with db.engine.connect() as conn:
-                    conn.execute(db.text('SELECT 1'))
-                result['database'] = 'connected'
-            except Exception:
-                result['database'] = 'retrying'
-        result['uptime_seconds'] = int(time.time() - _start_time)
-        return jsonify(result), 200
 
     @app.route('/api/health/static')
     def api_static_health():
@@ -189,8 +165,9 @@ def register_limiter(app: Flask):
 def _is_api_request():
     return request.path.startswith('/api/') or request.is_json
 
-def _sanitised_error(msg: str, status: int):
-    return jsonify({'ok': False, 'error': msg, 'status': status}), status
+def _sanitised_error(msg: str, status: int, code: str = None):
+    """Standard Arabic error envelope: {success, error, code} (+ legacy aliases)."""
+    return error_response(msg, code=code, status=status)
 
 
 def register_error_handlers(app: Flask):
@@ -224,6 +201,13 @@ def register_error_handlers(app: Flask):
             return _sanitised_error('الصفحة أو المورد المطلوب غير موجود.', 404)
         return render_template('errors/404.html'), 404
 
+    @app.errorhandler(405)
+    def method_not_allowed_handler(e):
+        log.warning('405 Method Not Allowed — %s %s', request.method, request.path)
+        if _is_api_request():
+            return _sanitised_error('طريقة الطلب غير مسموح بها.', 405, code='METHOD_NOT_ALLOWED')
+        return render_template('errors/404.html'), 405
+
     @app.errorhandler(500)
     def internal_error_handler(e):
         import traceback
@@ -248,7 +232,7 @@ def register_error_handlers(app: Flask):
         except Exception:
             db.session.rollback()
         if _is_api_request():
-            return jsonify({'ok': False, 'msg': 'محاولات كثيرة جداً. انتظر قليلاً.'}), 429
+            return _sanitised_error('محاولات كثيرة جداً. انتظر قليلاً.', 429, code='RATE_LIMITED')
         return render_template('blocked.html'), 429
 
 

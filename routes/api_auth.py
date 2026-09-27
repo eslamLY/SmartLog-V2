@@ -1,15 +1,16 @@
 """Stateless dual-token auth blueprint — /api/v1/auth/*."""
 import logging
-from datetime import datetime, UTC
 
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash
 
-from models import db, Employee
+from models import Employee
 from utils.jwt_utils import (
-    create_access_token, create_refresh_token,
-    decode_access_token, validate_refresh_token,
-    revoke_refresh_token, jwt_required,
+    create_access_token,
+    create_refresh_token,
+    validate_refresh_token,
+    revoke_refresh_token,
+    jwt_required,
 )
 from utils.rate_limit import check_rate_limit
 

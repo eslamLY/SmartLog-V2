@@ -1,13 +1,23 @@
-import hashlib
 import html
 import logging
 import secrets
 from datetime import datetime, date, timedelta, UTC
-from flask import (Blueprint, render_template, request, session,
-                   jsonify, current_app)
-from models import db, Employee, AttendanceLog, LeaveRequest, OutingRequest, \
-    ShiftSchedule, ShiftSwapRequest, BiometricCredential, GPSLog, ShiftType, \
-    Notification, EmployeeDocument, Department, QRToken
+from flask import Blueprint, render_template, request, session, jsonify, send_file
+from models import (
+    db,
+    Employee,
+    AttendanceLog,
+    LeaveRequest,
+    OutingRequest,
+    ShiftSchedule,
+    ShiftSwapRequest,
+    BiometricCredential,
+    GPSLog,
+    ShiftType,
+    Notification,
+    EmployeeDocument,
+    QRToken,
+)
 from models.employee_enhanced import EmployeeLeaveBalance
 from models.attendance_report import ReportCorrection
 from utils.decorators import login_required
@@ -18,7 +28,7 @@ from utils.constants import (MONTH_NAMES, WORK_START_HOUR, WORK_START_MINUTE,
                               LATE_GRACE_MINUTES)
 from services.clock_service import ClockService
 from sqlalchemy import extract
-from functools import wraps
+from utils.api_response import api_guard
 
 employee_bp = Blueprint('employee', __name__)
 
@@ -27,14 +37,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

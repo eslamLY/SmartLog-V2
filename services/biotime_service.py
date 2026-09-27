@@ -1,6 +1,6 @@
-import os, socket, struct, json, logging
+import socket, struct, json, logging
 from datetime import datetime, UTC
-from typing import Optional, Tuple
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

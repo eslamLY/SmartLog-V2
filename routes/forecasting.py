@@ -4,21 +4,17 @@ Covers predictions, models, rules, holidays, anomalies, segmentation, reports.
 """
 
 from datetime import date, timedelta
-from flask import Blueprint, render_template, request, session, jsonify, Response
+from flask import Blueprint, render_template, request, session, jsonify
 from models import db
 from models.employee import Employee
-from models.predictions import CustomRule, HolidayCalendar, AnomalyLog, PredictionResult
+from models.predictions import CustomRule, HolidayCalendar, PredictionResult
 from services.prediction_service import PredictionService
 from services.anomaly_detection import AnomalyDetector
-from services.ml_models import (
-    HolidayImpactModel, CorrelationAnalyzer, EmployeeSegmentationModel,
-    DepartmentSpecificModel, get_model,
-)
-from services.recommendation_engine import RecommendationEngine
+from services.ml_models import DepartmentSpecificModel
 from models.ml_performance import MLPerformanceTracker
 from utils.decorators import admin_required
 import logging
-from functools import wraps
+from utils.api_response import api_guard
 
 forecast_bp = Blueprint('forecast', __name__)
 
@@ -26,14 +22,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 @forecast_bp.route('/admin/forecasting')

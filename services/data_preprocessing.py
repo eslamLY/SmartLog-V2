@@ -4,19 +4,20 @@ for the AI forecasting system. Handles all feature extraction pipelines.
 """
 
 import numpy as np
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 from collections import defaultdict
-from typing import List, Optional
+from typing import List
 
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.employee_enhanced import (
-    EmployeeLeaveRequest, LeaveType, EmployeePerformance,
-    EmployeePromotion, EmployeeDisciplinaryAction,
-    EmployeeGrade, EmployeeExtended,
+    EmployeeLeaveRequest,
+    LeaveType,
+    EmployeePerformance,
+    EmployeePromotion,
+    EmployeeDisciplinaryAction,
 )
-from models.shifts import ShiftSchedule
 
 
 class DataPreprocessor:

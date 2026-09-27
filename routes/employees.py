@@ -3,7 +3,7 @@ from datetime import date, datetime, UTC
 from uuid import uuid4
 
 from flask import Blueprint, render_template, request, session, jsonify, current_app
-from sqlalchemy import or_
+from werkzeug.security import generate_password_hash
 
 from models import db, Employee, Department, AttendanceLog, AuditLog, \
     Permission, Role, EmployeePermission, BioTimeDevice
@@ -12,20 +12,13 @@ from utils.helpers import validate_password_strength
 from utils.constants import DEPARTMENTS
 from services.cached_queries import get_all_departments_by_name, invalidate_department_cache
 import logging
-from functools import wraps
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 admin_employees_bp = Blueprint('admin_employees', __name__)

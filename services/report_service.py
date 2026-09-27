@@ -1,14 +1,11 @@
-import io, os, math, calendar
+import io, os, calendar
 from datetime import datetime, date, timedelta
 from collections import defaultdict
 
-from sqlalchemy import extract
 
-from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
 from models.misc import LeaveRequest
-from models.attendance_report import ReportDataService
 
 
 class YTDService:
@@ -138,7 +135,8 @@ class ComplianceService:
         today = date.today()
         year = year or today.year
         month = month or today.month
-        _, last_day = calendar.monthrange(year, month)
+        first_day, last_day = calendar.monthrange(year, month)
+        month_start = date(year, month, first_day)
         month_end   = date(year, month, last_day)
 
         qry = Employee.query.filter(Employee.is_active == True, Employee.deleted_at == None)

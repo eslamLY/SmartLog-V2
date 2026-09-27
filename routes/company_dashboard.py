@@ -1,10 +1,10 @@
 import logging
-from datetime import date, datetime, UTC, timedelta
+from datetime import date
 
-from flask import Blueprint, render_template, request, session, jsonify
+from flask import Blueprint, render_template, jsonify
 from sqlalchemy import func
 
-from models import db, Company, Employee, AttendanceLog, BiometricDevice, Department, LeaveRequest, EmployeeDocument
+from models import db, Employee, AttendanceLog, BiometricDevice, LeaveRequest
 from routes.company_auth import company_login_required
 from services.company_service import get_current_company
 

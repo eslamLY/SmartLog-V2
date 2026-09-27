@@ -1,6 +1,5 @@
-import os, json, logging, threading
+import json, logging, threading
 from datetime import datetime, timedelta, UTC
-from typing import Optional
 
 from models import db
 from models.backup import BackupSchedule, BackupAuditLog

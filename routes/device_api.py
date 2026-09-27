@@ -3,12 +3,11 @@ import time
 import hmac
 import hashlib
 import logging
-from datetime import datetime, UTC, date
+from datetime import datetime, UTC
 from functools import wraps
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from models import db, Company, BiometricDevice, DeviceSyncLog, Employee, AttendanceLog
-from services.company_service import set_company_context
 from utils.rate_limit import check_rate_limit, rate_limit_headers
 
 # ---------------------------------------------------------------------------

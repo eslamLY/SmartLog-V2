@@ -1,29 +1,20 @@
 import logging
 from datetime import datetime, UTC
-from functools import wraps
 
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from models import db
-from models.employee import Employee
 from models.department import Department, DepartmentCertification
-from models.shifts import ShiftType
 from models.biotime_device import BioTimeDevice
 from utils.decorators import admin_required
 from services.cached_queries import invalidate_department_cache
+from utils.api_response import api_guard
 
 departments_api_bp = Blueprint('departments_api', __name__)
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 def _serialize(dept):

@@ -1,5 +1,3 @@
-from models import db
-from models.employee import Employee
 
 
 class TaxCalculator:

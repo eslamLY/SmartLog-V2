@@ -1,10 +1,9 @@
 import html, logging
 from datetime import datetime, date, timedelta, UTC
 from collections import defaultdict
-from functools import wraps
 
-from flask import Blueprint, request, jsonify, render_template, session
-from sqlalchemy import func, extract
+from flask import Blueprint, request, jsonify, render_template
+from sqlalchemy import func
 
 from models import db
 from models.employee import Employee
@@ -12,12 +11,12 @@ from models.department import Department
 from models.attendance import AttendanceLog
 from services.cached_queries import get_active_departments, get_active_departments_json
 from models.misc import LeaveRequest, EmployeeDocument
-from models.misc import EmployeeDocument
 from models.biotime_device import BioTimeDevice
 from models.shifts import ShiftType
 from models.notifications import Notification
 from models.employee_enhanced import EmployeeExtended, EmployeeLeaveRequest as NewLeaveRequest
 from utils.decorators import admin_required
+from utils.api_response import api_guard
 
 admin_dashboard_bp = Blueprint('admin_dashboard', __name__)
 LOGGER = logging.getLogger(__name__)
@@ -25,20 +24,12 @@ LOGGER = logging.getLogger(__name__)
 
 def safe_json_response(f):
     """Wrap API endpoints with try/except that always returns JSON."""
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.', 'data': []}), 500
-    return wrapper
+    return api_guard(f, LOGGER, extra={'data': []})
 
 DAY_NAMES = ['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد']
 MONTH_NAMES = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 
 
-@admin_dashboard_bp.route('/admin')
 @admin_dashboard_bp.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
@@ -194,7 +185,6 @@ def api_charts_heatmap():
         Employee.is_active == True,
     ).group_by(Employee.department_id).all())
 
-    date_strs = [d.isoformat() for d in days]
     raw = db.session.query(
         Employee.department_id,
         AttendanceLog.log_date,
@@ -309,7 +299,11 @@ def api_dashboard_records():
     search = request.args.get('search', '').strip()
     dept_id = request.args.get('department_id', '').strip()
     status_filter = request.args.get('status', '').strip()
-    page = int(request.args.get('page', 1))
+    page = request.args.get('page', 1, type=int)
+    if not page or page < 1:
+        return jsonify({'success': False, 'ok': False,
+                        'error': 'رقم الصفحة غير صالح.', 'code': 'VALIDATION_ERROR',
+                        'msg': 'رقم الصفحة غير صالح.'}), 400
     per_page = 10
     query = db.session.query(AttendanceLog, Employee).join(
         Employee, AttendanceLog.employee_id == Employee.id
@@ -317,7 +311,9 @@ def api_dashboard_records():
     if search:
         query = query.filter(Employee.full_name.contains(search))
     if dept_id:
-        query = query.filter(Employee.department_id == int(dept_id))
+        dept_pk = request.args.get('department_id', type=int)
+        if dept_pk is not None:
+            query = query.filter(Employee.department_id == dept_pk)
     if status_filter:
         query = query.filter(AttendanceLog.status == status_filter)
     total = query.count()
@@ -490,7 +486,6 @@ def api_dashboard_schedule():
                 AttendanceLog.log_date == today,
                 AttendanceLog.clock_in.isnot(None),
             ).count()
-        color = sd['color']
         if in_range:
             is_sufficient = clocked_in >= max(1, scheduled_count // 2)
             bar_color = 'var(--green)' if is_sufficient else 'var(--red)'
@@ -551,7 +546,6 @@ def api_dashboard_search():
 @safe_json_response
 @admin_required
 def api_dashboard_notifications():
-    user_id = session.get('user_id')
     notifs = Notification.query.order_by(Notification.created_at.desc()).limit(5).all()
     unread = Notification.query.filter_by(is_read=False).count()
     return jsonify({

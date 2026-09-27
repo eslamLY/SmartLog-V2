@@ -3,11 +3,12 @@ from collections import defaultdict
 from datetime import datetime, date
 from io import BytesIO
 
-from flask import (Blueprint, render_template, request, session,
-                   jsonify, send_file, make_response)
-from sqlalchemy import extract, or_
+from flask import Blueprint, render_template, request, jsonify, send_file, make_response
+from sqlalchemy import extract
 
 from models import db, Employee, AttendanceLog, Notification
+from models.department import Department
+from models.shifts import ShiftSchedule
 from utils.decorators import admin_required
 from utils.helpers import work_hours_str
 from utils.constants import MONTH_NAMES

@@ -1,4 +1,4 @@
-from datetime import datetime, date, UTC
+from datetime import datetime, UTC
 from models import db
 
 

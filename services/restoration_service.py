@@ -1,10 +1,10 @@
-import os, io, json, zlib, hashlib, logging, shutil, zipfile
+import os, json, logging, shutil
 from datetime import datetime, UTC
 from typing import Optional
 
 from models import db
 from flask import current_app
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,26 @@ def _validate_tables(table_names):
     if invalid:
         logger.warning('Skipping unknown tables: %s', invalid)
     return valid
+
+
+def _insert_statement(table, col_names):
+    insp = inspect(db.engine)
+    try:
+        pk = list(insp.get_pk_constraint(table)['constrained_columns'])
+    except Exception:
+        pk = []
+    cols = ', '.join(f'"{c}"' for c in col_names)
+    placeholders = ', '.join(f':{c}' for c in col_names)
+    stmt = f'INSERT INTO "{table}" ({cols}) VALUES ({placeholders})'
+    pk = [c for c in pk if c in col_names]
+    if not pk:
+        return stmt
+    conflict = ', '.join(f'"{c}"' for c in pk)
+    updatable = [c for c in col_names if c not in pk]
+    if not updatable:
+        return f'{stmt} ON CONFLICT ({conflict}) DO NOTHING'
+    sets = ', '.join(f'"{c}" = EXCLUDED."{c}"' for c in updatable)
+    return f'{stmt} ON CONFLICT ({conflict}) DO UPDATE SET {sets}'
 
 
 def restore_from_backup(filepath: str, master_password: str = None,
@@ -55,8 +75,7 @@ def restore_from_backup(filepath: str, master_password: str = None,
                 steps.append({'step': f'مسح {table}', 'status': 'success', 'records': 0})
                 continue
             col_names = list(rows[0].keys())
-            placeholders = ', '.join(f':{c}' for c in col_names)
-            cols = ', '.join(f'"{c}"' for c in col_names)
+            insert_stmt = _insert_statement(table, col_names)
             try:
                 for row in rows:
                     clean = {}
@@ -69,10 +88,7 @@ def restore_from_backup(filepath: str, master_password: str = None,
                             except (ValueError, TypeError):
                                 pass
                         clean[c] = val
-                    db.session.execute(
-                        text(f'INSERT OR REPLACE INTO "{table}" ({cols}) VALUES ({placeholders})'),
-                        clean
-                    )
+                    db.session.execute(text(insert_stmt), clean)
                 steps.append({'step': f'استعادة {table}', 'status': 'success', 'records': len(rows)})
             except Exception as e:
                 steps.append({'step': f'استعادة {table}', 'status': 'failed', 'error': str(e)})

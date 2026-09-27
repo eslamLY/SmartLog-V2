@@ -1,41 +1,53 @@
 from flask import Blueprint, request, jsonify, render_template
 from models import db
 from models.rbac import (
-    RbacRole, RbacPermission, RbacEmployeeRole,
-    RbacAuditLog, RbacPermissionRequest, RbacRoleTemplate, RbacDelegation
+    RbacRole,
+    RbacPermission,
+    RbacEmployeeRole,
+    RbacPermissionRequest,
+    RbacRoleTemplate,
+    RbacDelegation,
 )
 from models.employee import Employee
 from services.permission_service import (
-    list_permissions, create_role, update_role, delete_role,
-    assign_role, revoke_role, bulk_assign_roles, check_permission,
-    get_employee_permissions, get_permission_matrix, get_role_assignments,
-    get_employee_roles, create_permission_request, review_permission_request,
-    create_delegation, revoke_delegation, auto_revoke_expired_delegations
+    list_permissions,
+    create_role,
+    update_role,
+    delete_role,
+    assign_role,
+    revoke_role,
+    bulk_assign_roles,
+    check_permission,
+    get_employee_permissions,
+    get_permission_matrix,
+    get_employee_roles,
+    create_permission_request,
+    review_permission_request,
+    create_delegation,
+    revoke_delegation,
 )
 from services.cached_queries import get_all_departments_by_name
 from services.audit_service import (
-    log_role_creation, log_role_update, log_role_delete,
-    log_assignment, log_revocation, log_bulk_assign,
-    log_permission_request, log_request_review,
-    log_delegation, log_delegation_revoke,
-    get_audit_logs, get_entity_history
+    log_role_creation,
+    log_role_delete,
+    log_assignment,
+    log_revocation,
+    log_bulk_assign,
+    log_permission_request,
+    log_request_review,
+    log_delegation,
+    log_delegation_revoke,
+    get_audit_logs,
 )
-from functools import wraps
 import logging
 from utils.decorators import login_required, admin_required
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 rbac_bp = Blueprint('rbac', __name__, url_prefix='/admin/rbac')
@@ -73,7 +85,7 @@ def api_list_roles():
     return jsonify({'ok': True, 'roles': [r.to_dict() for r in roles]})
 
 @rbac_bp.route('/api/roles', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_create_role():
     data = request.get_json() or {}
@@ -85,7 +97,7 @@ def api_create_role():
     return jsonify({'ok': True, 'role': role.to_dict()})
 
 @rbac_bp.route('/api/roles/<int:role_id>', methods=['PUT'])
-@login_required
+@admin_required
 @safe_api
 def api_update_role(role_id):
     data = request.get_json() or {}
@@ -93,7 +105,7 @@ def api_update_role(role_id):
     return jsonify({'ok': True, 'role': role.to_dict()})
 
 @rbac_bp.route('/api/roles/<int:role_id>', methods=['DELETE'])
-@login_required
+@admin_required
 @safe_api
 def api_delete_role(role_id):
     try:
@@ -121,7 +133,7 @@ def api_list_permissions():
     return jsonify({'ok': True, 'permissions': [p.to_dict() for p in perms]})
 
 @rbac_bp.route('/api/permissions', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_create_permission():
     data = request.get_json()
@@ -140,7 +152,7 @@ def api_create_permission():
     return jsonify({'ok': True, 'permission': perm.to_dict()})
 
 @rbac_bp.route('/api/permissions/<int:perm_id>', methods=['PUT'])
-@login_required
+@admin_required
 @safe_api
 def api_update_permission(perm_id):
     perm = RbacPermission.query.get_or_404(perm_id)
@@ -163,7 +175,7 @@ def api_list_assignments():
     return jsonify({'ok': True, 'assignments': [a.to_dict() for a in assigns], 'total': total})
 
 @rbac_bp.route('/api/assignments', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_assign_role():
     data = request.get_json()
@@ -173,7 +185,7 @@ def api_assign_role():
     return jsonify({'ok': True, 'assignment': er.to_dict()})
 
 @rbac_bp.route('/api/assignments/<int:assignment_id>/revoke', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_revoke_role(assignment_id):
     er = RbacEmployeeRole.query.get_or_404(assignment_id)
@@ -183,7 +195,7 @@ def api_revoke_role(assignment_id):
     return jsonify({'ok': True})
 
 @rbac_bp.route('/api/assignments/bulk', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_bulk_assign():
     data = request.get_json()
@@ -249,7 +261,7 @@ def api_create_request():
     return jsonify({'ok': True, 'request': pr.to_dict()})
 
 @rbac_bp.route('/api/permission-requests/<int:req_id>/review', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_review_request(req_id):
     data = request.get_json()
@@ -266,7 +278,7 @@ def api_list_delegations():
     return jsonify({'ok': True, 'delegations': [d.to_dict() for d in delegations]})
 
 @rbac_bp.route('/api/delegations', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_create_delegation():
     data = request.get_json()
@@ -276,7 +288,7 @@ def api_create_delegation():
     return jsonify({'ok': True, 'delegation': dlg.to_dict()})
 
 @rbac_bp.route('/api/delegations/<int:dlg_id>/revoke', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_revoke_delegation(dlg_id):
     dlg = RbacDelegation.query.get_or_404(dlg_id)
@@ -321,7 +333,7 @@ def api_list_templates():
     return jsonify({'ok': True, 'templates': [t.to_dict() for t in tmpls]})
 
 @rbac_bp.route('/api/templates', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_create_template():
     data = request.get_json()
@@ -337,7 +349,7 @@ def api_create_template():
     return jsonify({'ok': True, 'template': tmpl.to_dict()})
 
 @rbac_bp.route('/api/templates/<int:tmpl_id>/apply', methods=['POST'])
-@login_required
+@admin_required
 @safe_api
 def api_apply_template(tmpl_id):
     tmpl = RbacRoleTemplate.query.get_or_404(tmpl_id)

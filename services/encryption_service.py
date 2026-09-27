@@ -1,4 +1,4 @@
-import os, base64, hashlib, logging, io
+import os, base64, hashlib, logging, struct
 from typing import Optional
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes

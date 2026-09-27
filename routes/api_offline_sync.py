@@ -1,7 +1,6 @@
-import time
 import secrets
 from datetime import datetime, timedelta, UTC
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from models import db
 from models.employee import Employee
 from models.attendance import AttendanceLog
@@ -10,21 +9,14 @@ from models.attendance_review import AttendanceReviewQueue
 
 api_offline_sync_bp = Blueprint('api_offline_sync', __name__)
 import logging
-from functools import wraps
 
 LOGGER = logging.getLogger(__name__)
 from utils.rate_limit import check_rate_limit, rate_limit_headers
+from utils.api_response import api_guard
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 

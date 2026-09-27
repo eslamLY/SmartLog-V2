@@ -1,35 +1,25 @@
 import json
 from datetime import datetime, date, timedelta, UTC
-from collections import defaultdict
 
 from flask import Blueprint, render_template, request, session, jsonify
-from sqlalchemy import func, extract
+from sqlalchemy import func
 
 from models import db, Employee, GPSLog
 from models.gps import (GeofenceZone, GeofenceEvent, AlertLog,
                          TrustedLocation, LocationAuditLog, TrackingPolicy,
                          PhotoVerification)
 from utils.decorators import admin_required
-from utils.helpers import safe_json, haversine
 from utils.constants import MONTH_NAMES, DAY_NAMES
 from services.geofence_service import GeofenceService
-from services.location_alerts import LocationAlertService
 from services.movement_analytics import MovementAnalyticsService
 import logging
-from functools import wraps
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 gps_bp = Blueprint('gps_bp', __name__)

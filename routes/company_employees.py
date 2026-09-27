@@ -1,12 +1,10 @@
 import logging
 from datetime import datetime, UTC
-from functools import wraps
 
-from flask import Blueprint, render_template, request, session, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from werkzeug.security import generate_password_hash
-from sqlalchemy import func
 
-from models import db, Employee, AttendanceLog, BiometricDevice, Department
+from models import db, Employee
 from routes.company_auth import company_login_required
 from services.company_service import get_current_company
 

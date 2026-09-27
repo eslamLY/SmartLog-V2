@@ -7,13 +7,10 @@ import logging
 from datetime import date, timedelta
 from collections import defaultdict
 from flask import Blueprint, render_template, request, jsonify
-from functools import wraps
 from models import db
 from models.employee import Employee
-from models.employee_enhanced import EmployeeLeaveRequest, EmployeeExtended
-from models.attendance import AttendanceLog
 from utils.decorators import admin_required
-from sqlalchemy import func
+from utils.api_response import api_guard
 
 scenarios_bp = Blueprint('scenarios', __name__)
 
@@ -21,14 +18,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 @scenarios_bp.route('/admin/scenarios')

@@ -24,8 +24,12 @@ def detect_environment():
         val = os.environ[key]
         if any(s in key.upper() for s in ['KEY', 'SECRET', 'TOKEN', 'PASS', 'ENCRYPT']):
             val = '****'
-        elif key == 'DATABASE_URL' and val:
-            val = val.split('@')[0].split('://')[0] + '://****:****@' + val.split('@')[1] if '@' in val else '****'
+        elif '://' in val and '@' in val:
+            # Mask credentials in ANY connection-string value, not just the
+            # literal DATABASE_URL key. Anything shaped like scheme://user:pass@host
+            # (TEST_DATABASE_URL, REDIS_URL, cache backends, ...) previously
+            # reached the log file in plaintext.
+            val = val.split('@')[0].split('://')[0] + '://****:****@' + val.split('@')[1]
         log.info('  %s=%s', key, val)
     log.info('Detected: FLASK_ENV=%s ON_RENDER=%s PRODUCTION=%s', FLASK_ENV, ON_RENDER, PRODUCTION)
     return FLASK_ENV, ON_RENDER, PRODUCTION
@@ -72,6 +76,14 @@ def resolve_secret_key(PRODUCTION):
     """Return the secret key, exiting if missing in production."""
     key = os.environ.get('SECRET_KEY')
     if PRODUCTION and not key:
-        log.error('FATAL: SECRET_KEY environment variable is missing!')
+        msg = ('FATAL: SECRET_KEY environment variable is missing! '
+               'Refusing to start in production with the development '
+               'fallback key. Generate one with: '
+               'python -c "import secrets; print(secrets.token_hex(32))"')
+        log.error(msg)
+        # create_app() has not configured logging handlers this early, so the
+        # record above is dropped and the process would exit with a bare
+        # status 1. Write to stderr directly so the reason is not lost.
+        print(msg, file=sys.stderr, flush=True)
         sys.exit(1)
     return key or 'dev-secret-change-in-prod'
