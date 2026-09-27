@@ -66,9 +66,10 @@ function uploadFile(file) {
     byId('uploadResult').innerHTML = '<div style="padding:14px;border-radius:10px;background:rgba(239,68,68,0.1);color:var(--red);text-align:center">فشل الاتصال بالخادم</div>';
     toast('فشل الاتصال', 'error');
   };
-  xhr.open('POST', '/admin/backup/api/upload', true);
-  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-  xhr.send(fd);
+xhr.open('POST', '/admin/backup/api/upload', true);
+xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+xhr.setRequestHeader('X-CSRFToken', csrfToken());
+xhr.send(fd);
 }
 
 function fmtBytes(b) {

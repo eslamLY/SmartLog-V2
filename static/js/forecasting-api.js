@@ -162,7 +162,7 @@ async function toggleRule(id) {
 async function deleteRule(id) {
   if (!confirm('حذف القاعدة؟')) return;
   try {
-    await fetch('/api/forecast/rules/' + id, { method: 'DELETE' });
+    await fetch('/api/forecast/rules/' + id, { method: 'DELETE', headers: apiHeaders() });
     loadRules();
   } catch (e) { alert('خطأ: ' + e.message); }
 }

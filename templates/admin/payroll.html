@@ -160,7 +160,7 @@ async function archiveOnePayroll(empId) {
   try {
     var resp = await fetch('/api/hrms/payroll/archive', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({employee_id: empId, month: month, year: year})
     });
     var d = await resp.json();
@@ -179,7 +179,7 @@ async function archiveAllPayroll() {
     try {
       var resp = await fetch('/api/hrms/payroll/archive', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
         body: JSON.stringify({employee_id: payData[i].emp_id, month: month, year: year})
       });
       var d = await resp.json();

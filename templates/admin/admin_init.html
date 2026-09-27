@@ -16,6 +16,7 @@
       <p style="color:var(--red);font-weight:700;margin-top:8px">⚠ بعد التنفيذ، سيتم تسجيل خروجك تلقائياً. ستسجل الدخول بحساب ADMIN / admin2020</p>
     </div>
     <form method="POST" onsubmit="return confirm('هل أنت متأكد؟ هذا الإجراء لا يمكن التراجع عنه.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="confirm" value="1">
       <button type="submit" class="btn btn-red" style="font-size:16px;padding:14px 32px">
         <i class="ti ti-rocket"></i> تأكيد وبدء التهيئة

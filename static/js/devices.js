@@ -406,7 +406,7 @@ async function importDevices(input){
   var fd = new FormData();
   fd.append('file', f);
   try {
-    var r = await fetch('/admin/devices/import', {method:'POST', body: fd});
+    var r = await fetch('/admin/devices/import', {method:'POST', headers:{'X-CSRFToken': csrfToken()}, body: fd});
     var data = await r.json();
     toast(data.msg, data.ok ? 'ok' : 'err');
     if(data.ok) setTimeout(function(){ location.reload(); }, 1200);

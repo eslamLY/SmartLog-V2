@@ -417,17 +417,17 @@ function editEmployee(id) {
 
 function deleteEmployee(id) {
   if (!confirm('تأكيد حذف الموظف؟')) return;
-  fetch(`/api/employees/${id}`, {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({reason:'حذف بواسطة المشرف'})})
+  fetch(`/api/employees/${id}`, {method:'DELETE', headers:{'Content-Type':'application/json','X-CSRFToken': csrfToken()}, body:JSON.stringify({reason:'حذف بواسطة المشرف'})})
     .then(r=>r.json()).then(r=>{if(r.ok) loadEmployees(currentPage); else alert('خطأ');});
 }
 
 function toggleEmployee(id) {
-  fetch(`/api/employees/${id}/toggle`, {method:'POST'}).then(r=>r.json()).then(r=>{if(r.ok) loadEmployees(currentPage);});
+  fetch(`/api/employees/${id}/toggle`, {method:'POST', headers:{'X-CSRFToken': csrfToken()}}).then(r=>r.json()).then(r=>{if(r.ok) loadEmployees(currentPage);});
 }
 
 function resetPassword(id) {
   const pass = prompt('كلمة المرور الجديدة (اترك فارغاً لتوليد تلقائي):');
-  fetch(`/api/employees/${id}/reset-password`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({new_password: pass||'', force_change: true})})
+  fetch(`/api/employees/${id}/reset-password`, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken': csrfToken()}, body:JSON.stringify({new_password: pass||'', force_change: true})})
     .then(r=>r.json()).then(r=>{if(r.ok) alert('تم إعادة تعيين كلمة المرور: '+r.password);});
 }
 

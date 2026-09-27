@@ -316,7 +316,7 @@ function submitReview() {
 
   fetch('/api/admin/attendance-reviews/' + id + '/review', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
     body: JSON.stringify(payload),
   })
     .then(function (r) { return r.json(); })

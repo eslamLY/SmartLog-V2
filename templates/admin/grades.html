@@ -168,7 +168,7 @@ function saveGrade() {
 function deleteGrade(gid) {
   Swal.fire({ title:'تأكيد الحذف', text:'هل تريد حذف هذه الدرجة؟', icon:'warning', showCancelButton:true, confirmButtonText:'حذف', cancelButtonText:'إلغاء', confirmButtonColor:'#dc2626', background:'var(--card)', color:'var(--text)', customClass:{popup:'swal2-dark-custom'} }).then(r => {
     if (!r.isConfirmed) return;
-    fetch('/admin/grades/' + gid, {method:'DELETE'}).then(r => r.json()).then(data => {
+    fetch('/admin/grades/' + gid, {method:'DELETE', headers:{'X-CSRFToken': csrfToken()}}).then(r => r.json()).then(data => {
       if (data.ok) { toast('تم الحذف', 'ok'); location.reload(); }
       else { toast('فشل الحذف', 'err'); }
     });

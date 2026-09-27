@@ -67,7 +67,7 @@ async function uploadLogo(){
   var f=document.getElementById('logoFile').files[0];
   if(!f){toast('يرجى اختيار صورة.','err');return;}
   var fd=new FormData();fd.set('logo',f);
-  var r=await fetch('/admin/branding/logo',{method:'POST',body:fd}).then(r=>r.json());
+  var r=await fetch('/admin/branding/logo',{method:'POST',headers:{'X-CSRFToken':csrfToken()},body:fd}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');
   if(r.ok){document.getElementById('logoPreview')?.remove();location.reload();}
 }

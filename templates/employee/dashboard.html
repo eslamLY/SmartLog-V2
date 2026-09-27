@@ -306,7 +306,7 @@ function openScanner(){
       document.getElementById('qrScannerStatus').textContent = '✓ تم المسح — جارٍ التحقق...';
       fetch('/employee/clock-in/qr', {
         method:'POST',
-        headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+        headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRFToken':csrfToken()},
         body:JSON.stringify({token: decodedText})
       }).then(function(r){ return r.json(); }).then(function(d){
         if(d.ok){ toast(d.msg,'ok'); setTimeout(function(){ location.reload(); }, 1200); }

@@ -70,7 +70,7 @@
 <script>
 function unban(id) {
   if (!confirm('إلغاء حظر عنوان IP هذا؟')) return;
-  fetch('/api/admin/blocked-ips/' + id + '/unban', { method: 'POST' })
+  fetch('/api/admin/blocked-ips/' + id + '/unban', { method: 'POST', headers: {'X-CSRFToken': csrfToken()} })
     .then(r => r.json())
     .then(data => {
       if (data.ok) { location.reload(); }

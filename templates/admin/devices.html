@@ -466,7 +466,7 @@ async function doQuickAdd(e){
   try{
     const res = await fetch('/api/devices/add-simple', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
       body: JSON.stringify({serial, name, ip})
     });
     const data = await res.json();

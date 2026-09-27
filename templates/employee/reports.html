@@ -259,7 +259,7 @@ function submitCorrection(e){
   msg.innerHTML='<i class="ti ti-loader ti-spin"></i> جاري الإرسال...';
   fetch('/employee/reports/correction-request', {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken()},
     body:JSON.stringify({
       log_date:document.getElementById('corrDate').value,
       correction_type:document.getElementById('corrType').value,

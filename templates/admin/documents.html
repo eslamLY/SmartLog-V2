@@ -323,8 +323,9 @@ function uploadDoc(){
   document.getElementById('uploadProgress').style.display = 'block';
   document.getElementById('uploadBar').style.width = '0%';
   document.getElementById('uploadPercent').textContent = '0%';
-  xhr.open('POST', '/api/documents/upload');
-  xhr.send(fd);
+xhr.open('POST', '/api/documents/upload');
+xhr.setRequestHeader('X-CSRFToken', csrfToken());
+xhr.send(fd);
 }
 
 /* ── Fetch documents ── */
@@ -411,7 +412,7 @@ async function saveEditDoc(){
   var fileInp = document.getElementById('edit_document_file');
   if(fileInp && fileInp.files[0]) fd.append('file', fileInp.files[0]);
   try {
-    var r = await fetch('/api/documents/'+editingDocId+'/edit', { method: 'PUT', body: fd });
+    var r = await fetch('/api/documents/'+editingDocId+'/edit', { method: 'PUT', headers: {'X-CSRFToken': csrfToken()}, body: fd });
     var data = await r.json();
     toast(data.msg, data.ok ? 'ok' : 'err');
     if(data.ok){ closeModal('editDocModal'); fetchDocs(); }
@@ -434,7 +435,7 @@ function confirmDelete(id){
     customClass: { popup: 'swal2-dark-custom' }
   }).then(function(res){
     if(res.isConfirmed){
-      fetch('/api/documents/'+id+'/delete', { method:'POST' }).then(function(r){ return r.json(); }).then(function(data){
+      fetch('/api/documents/'+id+'/delete', { method:'POST', headers:{'X-CSRFToken': csrfToken()} }).then(function(r){ return r.json(); }).then(function(data){
         toast(data.msg, data.ok ? 'ok' : 'err');
         if(data.ok) fetchDocs();
       });
@@ -512,7 +513,7 @@ async function checkExpiry(){
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader"></i>';
   try {
-    var r = await fetch('/api/documents/check-expiry', { method:'POST' });
+    var r = await fetch('/api/documents/check-expiry', { method:'POST', headers:{'X-CSRFToken': csrfToken()} });
     var data = await r.json();
     toast(data.msg, data.ok ? 'ok' : 'err');
   } catch(e) { toast('خطأ في الاتصال بالخادم.', 'err'); }

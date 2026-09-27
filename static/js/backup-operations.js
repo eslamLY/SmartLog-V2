@@ -65,7 +65,7 @@ function esc(s) { if(!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,
 
 function deleteBackup(id) {
   if(!confirm('هل أنت متأكد من حذف هذه النسخة؟')) return;
-  fetch('/admin/backup/api/delete/' + id, {method:'DELETE'})
+  fetch('/admin/backup/api/delete/' + id, {method:'DELETE', headers:{'X-CSRFToken': csrfToken()}})
   .then(function(r){return r.json()}).then(function(d){
     toast(d.ok ? 'تم الحذف بنجاح' : 'فشل الحذف', d.ok ? 'success' : 'error');
     if(d.ok) loadBackups();
@@ -249,7 +249,7 @@ function toggleSchedule(id) {
 
 function deleteSchedule(id) {
   if(!confirm('حذف الجدول؟')) return;
-  fetch('/admin/backup/api/schedules/delete/' + id, {method:'DELETE'})
+  fetch('/admin/backup/api/schedules/delete/' + id, {method:'DELETE', headers:{'X-CSRFToken': csrfToken()}})
   .then(function(r){return r.json()}).then(function(d){
     toast(d.ok ? 'تم الحذف' : 'فشل', d.ok ? 'success' : 'error');
     if(d.ok) loadSchedules();
@@ -432,7 +432,7 @@ function saveConfig() {
     else if(inp.type === 'number') data[key] = parseInt(inp.value) || 0;
     else data[key] = inp.value;
   }
-  fetch('/admin/backup/api/config', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
+  fetch('/admin/backup/api/config', {method:'PUT', headers:{'Content-Type':'application/json','X-CSRFToken': csrfToken()}, body:JSON.stringify(data)})
   .then(function(r){return r.json()}).then(function(d){
     toast(d.ok ? 'تم حفظ الإعدادات' : 'فشل الحفظ', d.ok ? 'success' : 'error');
   });

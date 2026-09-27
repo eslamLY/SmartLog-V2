@@ -410,7 +410,7 @@ async function doAddEmp(){
       if(photoInput.files[0]){
         var fd = new FormData();
         fd.append('photo', photoInput.files[0]);
-        await fetch('/admin/employees/'+res.id+'/photo', {method:'POST', body: fd});
+        await fetch('/admin/employees/'+res.id+'/photo', {method:'POST', headers:{'X-CSRFToken': csrfToken()}, body: fd});
       }
       clearDraft();
       closeModal('addEmpModal');
@@ -587,7 +587,7 @@ async function doEditEmp(){
       if(photoInput.files[0]){
         var fd = new FormData();
         fd.append('photo', photoInput.files[0]);
-        await fetch('/admin/employees/'+id+'/photo', {method:'POST', body: fd});
+        await fetch('/admin/employees/'+id+'/photo', {method:'POST', headers:{'X-CSRFToken': csrfToken()}, body: fd});
       }
       closeModal('editEmpModal');
       setTimeout(function(){ location.reload(); }, 1000);

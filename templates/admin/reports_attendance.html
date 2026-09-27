@@ -1016,7 +1016,7 @@ function saveSchedule(e){
   const freq=document.getElementById('schedFreq').value;
   const t=document.getElementById('schedTime').value.split(':');
   fetch('/admin/reports/api/scheduled/create', {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken': csrfToken()},
     body:JSON.stringify({
       name:document.getElementById('schedName').value,
       frequency:freq,
@@ -1033,14 +1033,14 @@ function saveSchedule(e){
   }).catch(()=>{msg.style.color='var(--red)';msg.textContent='حدث خطأ';});
 }
 function toggleSched(id){
-  fetch('/admin/reports/api/scheduled/'+id+'/toggle', {method:'POST'}).then(r=>r.json()).then(()=>loadSchedule());
+  fetch('/admin/reports/api/scheduled/'+id+'/toggle', {method:'POST', headers:{'X-CSRFToken': csrfToken()}}).then(r=>r.json()).then(()=>loadSchedule());
 }
 function deleteSched(id){
   if(!confirm('حذف هذا التقرير المجدول؟'))return;
-  fetch('/admin/reports/api/scheduled/'+id+'/delete', {method:'POST'}).then(r=>r.json()).then(()=>loadSchedule());
+  fetch('/admin/reports/api/scheduled/'+id+'/delete', {method:'POST', headers:{'X-CSRFToken': csrfToken()}}).then(r=>r.json()).then(()=>loadSchedule());
 }
 function runNow(id){
-  fetch('/admin/reports/api/scheduled/'+id+'/run-now', {method:'POST'}).then(r=>r.json()).then(()=>loadSchedule());
+  fetch('/admin/reports/api/scheduled/'+id+'/run-now', {method:'POST', headers:{'X-CSRFToken': csrfToken()}}).then(r=>r.json()).then(()=>loadSchedule());
 }
 
 restoreFilterState();
