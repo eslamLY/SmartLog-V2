@@ -156,7 +156,7 @@ def login():
     return render_template('login.html', timeout=request.args.get('timeout'))
 
 
-@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'], strict_slashes=False)
 def forgot_password():
     if request.method == 'POST':
         data = request.get_json() or {}
@@ -184,7 +184,7 @@ def forgot_password():
                            captcha_question=f'ما حاصل {a} {op} {b}؟')
 
 
-@auth_bp.route('/reset-password', methods=['GET', 'POST'])
+@auth_bp.route('/reset-password', methods=['GET', 'POST'], strict_slashes=False)
 def reset_password():
     uid = session.get('reset_user_id')
     if not uid:
@@ -215,7 +215,7 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
-@auth_bp.route('/verify-2fa', methods=['GET', 'POST'])
+@auth_bp.route('/verify-2fa', methods=['GET', 'POST'], strict_slashes=False)
 def verify_2fa():
     uid = session.get('pre_auth_user_id')
     if not uid:
@@ -247,7 +247,7 @@ def verify_2fa():
     return render_template('auth/verify_2fa.html', username=emp.username, full_name=emp.full_name)
 
 
-@auth_bp.route('/setup-2fa', methods=['GET', 'POST'])
+@auth_bp.route('/setup-2fa', methods=['GET', 'POST'], strict_slashes=False)
 def setup_2fa():
     uid = session.get('user_id')
     if not uid:
@@ -294,7 +294,7 @@ def setup_2fa():
                            dashboard_url=dashboard_url)
 
 
-@auth_bp.route('/force-password-change', methods=['GET', 'POST'])
+@auth_bp.route('/force-password-change', methods=['GET', 'POST'], strict_slashes=False)
 def force_password_change():
     eid = session.get('user_id')
     if not eid:
