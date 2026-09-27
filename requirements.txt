@@ -51,3 +51,25 @@ WTForms==3.2.2
 xlsxwriter==3.2.9
 pyzk==0.9
 PyJWT==2.10.1
+
+# ── Optional / lazily-imported extras ───────────────────────────────────────
+# Imported inside try/except (services/report_service.py, routes/admin_attendance.py,
+# services/ml_models.py, services/whatsapp_service.py). The app boots without
+# them, but Arabic PDF export degrades to raw HTML. Pure-wheel, safe to pin.
+arabic-reshaper==3.0.1
+python-bidi==0.6.11
+xhtml2pdf==0.2.20
+reportlab==4.4.10
+pandas==2.3.3
+
+# ── Development / test ──────────────────────────────────────────────────────
+pytest==9.1.1
+pytest-cov==7.1.0
+
+# ── Intentionally NOT pinned (see docs below) ───────────────────────────────
+# weasyprint : needs native pango/cairo via system libraries; pinning it breaks
+#              `pip install` on slim containers. reportlab is used as the
+#              fallback in ReportGenerationService.generate_pdf_report().
+# prophet    : pulls cmdstanpy + a C++ toolchain; TimeSeriesForecastModel
+#              degrades gracefully when absent.
+# twilio     : optional WhatsApp provider, enabled per-deployment via config.

@@ -25,15 +25,15 @@ databases:
   - name: smartlog-db
     databaseName: smartlog
     plan: starter          # $7/mo — 1 GB RAM, 10 GB storage
-    region: oregon         # Change to nearest your users
-    postgresMajorVersion: 16
+    region: frankfurt      # must match the live DB region (see note below)
+    postgresMajorVersion: 18
     ipAllowList: []
 
 services:
   - type: web
     name: smartlog-backend
     runtime: docker
-    region: oregon
+    region: frankfurt      # co-located with the database for the internal URL
     plan: starter          # $7/mo — 512 MB RAM, 1 CPU
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
@@ -61,6 +61,10 @@ services:
       # WARNING: Changing this key after data exists will BREAK existing encrypted data!
 
       # ─── Database (auto-linked from smartlog-db) ───
+      # Render injects the INTERNAL hostname (no region suffix). Set
+      # DATABASE_URL manually in the dashboard to the External Database URL
+      # until credentials are rotated -- the internal host does not resolve
+      # outside Render's private network.
       - key: DATABASE_URL
         fromDatabase:
           name: smartlog-db
