@@ -8,24 +8,17 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from models import db, Employee, LoginAttempt, BrandingConfig, AuditLog
 from utils.helpers import validate_password_strength
 from utils.constants import MAX_LOGIN_ATTEMPTS
-from utils.rate_limit import check_rate_limit, rate_limit_headers
+from utils.rate_limit import check_rate_limit
 
 auth_bp = Blueprint('auth', __name__)
 import logging
-from functools import wraps
+from utils.api_response import api_guard
 
 LOGGER = logging.getLogger(__name__)
 
 
 def safe_api(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error('API error in %s: %s', f.__name__, e)
-            return jsonify({'ok': False, 'msg': 'حدث خطأ داخلي.'}), 500
-    return wrapper
+    return api_guard(f, LOGGER)
 
 
 
@@ -81,7 +74,7 @@ def index():
     return redirect(url_for('auth.login'))
 
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
+@auth_bp.route('/login', methods=['GET', 'POST'], strict_slashes=False)
 def login():
     if request.method == 'POST':
         allowed, remaining = check_rate_limit('login', 5, 300)
